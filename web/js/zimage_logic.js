@@ -12,6 +12,7 @@ const RATIO_DATA = {
     "5:4 wide": ["1920 x 1536", "1440 x 1152", "1040 x 832"]
 };
 
+// 注册节点js逻辑
 app.registerExtension({
     name: "eazy.zimage.size_logic",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {

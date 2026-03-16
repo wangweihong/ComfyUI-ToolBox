@@ -201,178 +201,180 @@ const ASSET_PATH = new URL("../assets/cinematic/", import.meta.url).href;
 const ASSET_EXT = ".jpg";
 
 // --- FULL DATA DEFINITIONS ---
+// --- FULL DATA DEFINITIONS ---
+
 const categories = {
-    ratio: { 
-        title: "Aspect Ratio", type: "ratio", 
-        options: [
-            {id:"16-9", label:"16:9", value:"--ar 16:9", desc:"Standard Widescreen. Ideal for TV and YouTube.", w:16, h:9}, 
-            {id:"9-16", label:"9:16", value:"--ar 9:16", desc:"Vertical. Perfect for TikTok, Reels, and Mobile.", w:9, h:16}, 
-            {id:"1-1", label:"1:1", value:"--ar 1:1", desc:"Square. Classic Instagram format.", w:1, h:1}, 
-            {id:"4-3", label:"4:3", value:"--ar 4:3", desc:"Standard Definition. Retro TV look.", w:4, h:3},
-            {id:"235-1", label:"2.35:1", value:"--ar 2.35:1", desc:"Anamorphic Widescreen. Classic CinemaScope look.", w:2.35, h:1}, 
-            {id:"143-1", label:"1.43:1", value:"--ar 1.43:1", desc:"IMAX. Massive vertical scale.", w:1.43, h:1}
-        ]
-    },
-    framing: { 
-        title: "Framing / Shot Size", type: "select", 
-        options: [
-            {id:"ecu", label:"Extreme Close-Up", value:"extreme close-up", desc:"Focuses on a specific detail (e.g., an eye). Intensifies emotion."}, 
-            {id:"cu", label:"Close-Up", value:"close-up", desc:"Head and shoulders. Focuses on facial expression."}, 
-            {id:"med", label:"Medium Shot", value:"medium shot", desc:"Waist up. Standard interaction shot."}, 
-            {id:"cowboy", label:"Cowboy Shot", value:"American shot", desc:"Mid-thigh up. Originates from Westerns to show gun holsters."}, 
-            {id:"full", label:"Full Body", value:"full body shot", desc:"Head to toe. Shows attire and stance."}, 
-            {id:"wide", label:"Wide Shot", value:"wide shot", desc:"Subject + environment. Shows context."}, 
-            {id:"est", label:"Establishing Shot", value:"establishing shot", desc:"Very wide. Sets the scene and location."},
-            {id:"macro", label:"Macro", value:"macro photography", desc:"Microscopic detail. Insects, textures, eyes."},
-            {id:"tilt", label:"Tilt-Shift", value:"tilt-shift photography", desc:"Miniature effect with selective focus band. Makes large scenes look like models."},
-            {id:"split", label:"Split Diopter", value:"split diopter shot", desc:"Both foreground and background are sharp. Classic Brian De Palma technique."}
-        ]
-    },
-    angle: { 
-        title: "Camera Angle", type: "select", 
-        options: [
-            {id:"eye", label:"Eye Level", value:"eye level angle", desc:"Neutral perspective. Connects directly with the subject."}, 
-            {id:"low", label:"Low Angle", value:"low angle shot", desc:"Looking up. Makes subject look powerful or dominant."}, 
-            {id:"high", label:"High Angle", value:"high angle shot", desc:"Looking down. Makes subject look vulnerable or small."}, 
-            {id:"worm", label:"Worm's Eye", value:"worm's eye view", desc:"From the floor looking up. Grandeur or strangeness."}, 
-            {id:"ground", label:"Ground Level", value:"ground level shot", desc:"Camera sits on the ground. Intimate texture."},
-            {id:"bird", label:"Bird's Eye / Overhead", value:"overhead bird's eye view", desc:"Directly overhead (90 degrees). Geometry and layout."}, 
-            {id:"ots", label:"Over-the-Shoulder", value:"over-the-shoulder shot", desc:"Behind one character looking at another. Dialogue."},
-            {id:"dutch", label:"Dutch Angle", value:"Dutch angle", desc:"Tilted horizon. Creates unease, tension, or disorientation."},
-            {id:"pov", label:"POV", value:"first-person POV", desc:"Seen through the eyes of a character."}
-        ]
-    },
-    camera: { 
-        title: "Camera Model", type: "select", 
-        options: [
-            {id:"arri", label:"Arri Alexa LF", value:"shot on Arri Alexa LF", desc:"The industry standard for digital cinema. High dynamic range."}, 
-            {id:"imax70", label:"IMAX 70mm Film", value:"shot on IMAX 70mm Film", desc:"Unmatched resolution and depth. The Nolan look."}, 
-            {id:"panavision", label:"Panavision Millennium", value:"shot on Panavision Millennium DXL2", desc:"Warm skin tones and classic Hollywood aesthetics."},
-            {id:"sony", label:"Sony Venice 2", value:"shot on Sony Venice 2", desc:"Modern, sharp, incredible low light performance."}, 
-            {id:"iphone", label:"iPhone 15 Pro", value:"shot on iPhone 15 Pro", desc:"Digital, sharp, deep depth of field. Modern vlog style."}, 
-            {id:"polaroid", label:"Polaroid SX-70", value:"Polaroid SX-70 instant film", desc:"Soft, nostalgic, chemical borders and faded colors."}, 
-            {id:"gopro", label:"GoPro Hero", value:"shot on GoPro Hero", desc:"Wide, distorted fish-eye, action sports feel."}
-        ]
-    },
-    focal: { 
-        title: "Focal Length", type: "select", 
-        options: [
-            {id:"14mm", label:"14mm (Ultra Wide)", value:"14mm lens", desc:"Distorted edges, vast scale. Action cam look."}, 
-            {id:"24mm", label:"24mm (Wide)", value:"24mm lens", desc:"Standard wide. Good for landscapes and interiors."}, 
-            {id:"35mm", label:"35mm (Classic)", value:"35mm lens", desc:"Closest to human field of view. Storytelling lens."}, 
-            {id:"50mm", label:"50mm (Standard)", value:"50mm lens", desc:"Nifty Fifty. Natural perspective, no distortion."}, 
-            {id:"85mm", label:"85mm (Portrait)", value:"85mm lens", desc:"Flattering for faces. Separates subject from background."}, 
-            {id:"135mm", label:"135mm (Telephoto)", value:"135mm lens", desc:"Significant compression. Ideal for distant subjects."},
-            {id:"200mm", label:"200mm (Super Tele)", value:"200mm lens", desc:"Compresses space. Background appears huge behind subject."}
-        ]
-    },
-    dof: { 
-        title: "Aperture / Depth of Field", type: "slider", 
-        options: [
-            {id:"f12", val:"f/1.2", label:"f/1.2 (Dreamy)", desc:"Razor thin focus. Dreamy bokeh."},
-            {id:"f18", val:"f/1.8", label:"f/1.8 (Shallow)", desc:"Very shallow. Great for low light."},
-            {id:"f28", val:"f/2.8", label:"f/2.8 (Pro)", desc:"Professional zoom lens standard. Good separation."},
-            {id:"f4", val:"f/4.0", label:"f/4.0 (Balanced)", desc:"Balanced separation and clarity."},
-            {id:"f56", val:"f/5.6", label:"f/5.6 (Sharp)", desc:"Standard sharpness."},
-            {id:"f8", val:"f/8.0", label:"f/8.0 (Landscape)", desc:"Landscape standard. Mostly in focus."},
-            {id:"f11", val:"f/11", label:"f/11 (Deep)", desc:"Deep focus."},
-            {id:"f16", val:"f/16", label:"f/16 (Very Sharp)", desc:"Everything sharp. Sunstars appear."},
-            {id:"f22", val:"f/22", label:"f/22 (Max Depth)", desc:"Maximum depth. Risk of diffraction softness."}
-        ]
-    },
-    lighting: { 
-        title: "Lighting", type: "select", 
-        options: [
-            {id:"volumetric", label:"Volumetric / God Rays", value:"volumetric lighting", desc:"Light beams visible in air/fog. Epic atmosphere."}, 
-            {id:"biolum", label:"Bioluminescence", value:"bioluminescent lighting", desc:"Glowing organic light (blue/green). Avatar Pandora style."},
-            {id:"golden", label:"Golden Hour", value:"golden hour", desc:"Warm, soft light just before sunset."}, 
-            {id:"blue", label:"Blue Hour", value:"blue hour", desc:"Cold, melancholic twilight before sunrise."}, 
-            {id:"noon", label:"Noon Sun", value:"harsh noon sunlight", desc:"Short shadows, high contrast, bright."}, 
-            {id:"overcast", label:"Overcast", value:"overcast soft lighting", desc:"Diffused, shadowless, giant softbox effect."},
-            {id:"studio", label:"Studio Key Light", value:"studio key lighting", desc:"Controlled, professional artificial lighting."}, 
-            {id:"rembrandt", label:"Rembrandt", value:"Rembrandt lighting", desc:"Triangle of light on the cheek. Dramatic portraiture."}, 
-            {id:"candle", label:"Candlelight", value:"lit by candlelight", desc:"Warm, flickering, low light, intimate."},
-            {id:"moon", label:"Moonlight", value:"moonlight", desc:"Cold, silver/blue low light."},
-            {id:"sil", label:"Silhouette", value:"silhouette lighting", desc:"Subject is black against a bright background."},
-            {id:"neon", label:"Neon", value:"neon lighting", desc:"Vibrant pinks, cyans, and harsh artificial light."}, 
-            {id:"chiaroscuro", label:"Chiaroscuro", value:"chiaroscuro", desc:"High contrast between light and dark."}
-        ]
-    },
-    palette: { 
-        title: "Color Palette", type: "select", 
-        options: [
-            {id:"tealorange", label:"Teal & Orange", value:"teal and orange color grading", desc:"Blockbuster standard. Cool shadows, warm skin tones."}, 
-            {id:"velvia", label:"Fujifilm Velvia", value:"Fujifilm Velvia 50", desc:"High saturation, deep blacks, vivid colors. Nature photography."}, 
-            {id:"ektachrome", label:"Kodak Ektachrome", value:"Kodak Ektachrome", desc:"Cooler tones, fine grain, distinct blues."},
-            {id:"techni", label:"Technicolor", value:"Technicolor process", desc:"Hyper-saturated red/green/blue. Old Hollywood Wizard of Oz look."},
-            {id:"bw", label:"Black & White", value:"black and white photography", desc:"Timeless, focuses on texture and light."}, 
-            {id:"kodak", label:"Kodak Portra 400", value:"Kodak Portra 400 film look", desc:"Natural skin tones, fine grain, warm highlights."},
-            {id:"vivid", label:"Vivid / Saturated", value:"vivid colors, high saturation", desc:"Punchy, bright, eye-catching."}, 
-            {id:"muted", label:"Muted / Desaturated", value:"muted tones, low saturation", desc:"Grim, serious, realistic."}, 
-            {id:"warm", label:"Warm Tones", value:"warm color palette", desc:"Cozy, nostalgic, safe."},
-            {id:"cool", label:"Cool Tones", value:"cool color palette", desc:"Clinical, detached, or sad."},
-            {id:"highcon", label:"High Contrast", value:"high contrast", desc:"Deep blacks and bright whites. Dramatic."},
-            {id:"mono", label:"Monochromatic", value:"monochromatic color scheme", desc:"Using shades of a single color."},
-            {id:"neonpal", label:"Neon Palette", value:"neon color palette", desc:"Electric greens, pinks, purples."},
-            {id:"sepia", label:"Sepia", value:"sepia tone", desc:"Old western, flashback, antique."},
-        ]
-    },
-    texture: { 
-        title: "Texture & Post (Multi)", type: "multi", 
-        options: [
-            {id:"clean", label:"Clean Digital", value:"clean digital noise-free", desc:"Pristine digital clarity. No noise or artifacts."},
-            {id:"grain", label:"Film Grain", value:"heavy film grain", desc:"The organic texture of silver halide crystals on celluloid."},
-            {id:"burn", label:"Film Burn", value:"film burn artifacts", desc:"Light leaks and chemical distortions at the edge of the reel."},
-            {id:"vhs", label:"VHS", value:"VHS artifacts", desc:"Analog tracking errors and color bleeding of magnetic tape."},
-            {id:"bloom", label:"Bloom", value:"bloom effect", desc:"Light spreading from bright edges, creating a dreamy glow."},
-            {id:"chromatic", label:"Chromatic Aberration", value:"chromatic aberration", desc:"Color fringing at high-contrast edges caused by lens refraction."},
-            {id:"motion", label:"Motion Blur", value:"motion blur", desc:"Kinetic energy captured through a longer shutter speed."},
-            {id:"vignette", label:"Vignette", value:"vignette", desc:"Gradual darkening toward the corners to focus the eye."}
-        ]
-    },
-    style: { 
-        title: "Art Style (Multi)", type: "multi", 
-        options: [
-            {id:"photo", label:"Photorealistic", value:"photorealistic, 8k", desc:"Mimicking real photography with physical accuracy."}, 
-            {id:"cine", label:"Cinematic", value:"cinematic composition", desc:"Mood and lighting typical of professional movie sets."}, 
-            {id:"3d", label:"3D Render", value:"Unreal Engine 5 render, 3D", desc:"The sharp, clean look of modern real-time computer graphics."}, 
-            {id:"clay", label:"Claymation", value:"claymation style, Aardman", desc:"The tactile, handcrafted feel of stop-motion clay characters."},
-            {id:"water", label:"Watercolor", value:"watercolor painting", desc:"Soft edges, bleeding colors, and organic paper texture."},
-            {id:"cyber", label:"Cyberpunk", value:"Cyberpunk aesthetic", desc:"High tech and low life; neon, rain, and urban futurism."}, 
-            {id:"steam", label:"Steampunk", value:"Steampunk aesthetic, brass and gears", desc:"Victorian industrial design powered by steam and clockwork."},
-            {id:"diner", label:"1950s Diner", value:"1950s diner aesthetic, retro americana", desc:"Chrome, neon, checkerboard floors, and classic Americana nostalgia."},
-            {id:"atom", label:"Atompunk", value:"atompunk aesthetic", desc:"The retro-futuristic vision of the 1950s: Googie architecture and nuclear optimism."},
-            {id:"vapor", label:"Vaporwave", value:"vaporwave aesthetic", desc:"Retro-futuristic 80s dreamscapes with pink and teal hues."},
-            {id:"goth", label:"Gothic", value:"Gothic aesthetic", desc:"Dark, ornate, and mysterious moods with historic architectural roots."},
-            {id:"min", label:"Minimalist", value:"minimalist style", desc:"Stripped down to the essential shapes, colors, and concepts."},
-            {id:"retro80", label:"Retro 80s", value:"1980s retro style", desc:"Saturated primary colors and the lo-fi glow of CRT screens."},
-            {id:"docu", label:"Gritty Documentary", value:"gritty documentary footage", desc:"Raw, unpolished, and handheld realism."},
-            {id:"ghibli", label:"Studio Ghibli", value:"Studio Ghibli style", desc:"Lush, hand-painted backgrounds and whimsical charm."}, 
-            {id:"oil", label:"Oil Painting", value:"oil painting texture", desc:"Thick brushstrokes and rich, layered pigments on canvas."},
-            {id:"noir", label:"Film Noir", value:"film noir style", desc:"High-contrast lighting and a cynical urban atmosphere."}
-        ]
-    },
-    artist: { 
-        title: "Artist / Director", type: "select", 
-        options: [
-            {id:"wes", label:"Wes Anderson", value:"directed by Wes Anderson", desc:"Symmetry, pastel colors, and whimsical storybook staging."},
-            {id:"ridley", label:"Ridley Scott", value:"directed by Ridley Scott", desc:"Atmospheric scale, high detail, and moody sci-fi noir."},
-            {id:"nolan", label:"Christopher Nolan", value:"directed by Christopher Nolan", desc:"Grand scale, practical effects, and a cool, clinical color palette."},
-            {id:"hopper", label:"Edward Hopper", value:"art by Edward Hopper", desc:"Dramatic shadows, urban isolation, and cinematic stillness."},
-            {id:"fraser", label:"Greig Fraser", value:"cinematography by Greig Fraser", desc:"The Batman/Dune look: Moody, soft, and dark-focused digital."},
-            {id:"lubezki", label:"Emmanuel Lubezki", value:"cinematography by Emmanuel Lubezki", desc:"Master of natural light and immersive long-take cinematography."},
-            {id:"hoyte", label:"Hoyte van Hoytema", value:"cinematography by Hoyte van Hoytema", desc:"IMAX scale, tactile texture, and shallow depth of field."},
-            {id:"fincher", label:"David Fincher", value:"directed by David Fincher", desc:"Extreme precision, green/yellow tints, and low-light digital clarity."},
-            {id:"burton", label:"Tim Burton", value:"directed by Tim Burton", desc:"Gothic, quirky, and dark fantasy visuals with high contrast."},
-            {id:"spielberg", label:"Steven Spielberg", value:"directed by Steven Spielberg", desc:"Cinematic wonder, backlighting, and distinct, iconic silhouettes."},
-            {id:"denis", label:"Denis Villeneuve", value:"directed by Denis Villeneuve", desc:"Brutalist architecture, vast scale, and heavy atmosphere."},
-            {id:"wong", label:"Wong Kar-wai", value:"directed by Wong Kar-wai", desc:"Saturated neon, motion blur, and a feeling of urban longing."},
-            {id:"mead", label:"Syd Mead", value:"art by Syd Mead", desc:"Industrial futurism and functional high-tech design."},
-            {id:"miyazaki", label:"Hayao Miyazaki", value:"art by Hayao Miyazaki", desc:"Lush nature, intricate flying machines, and hand-painted detail."},
-            {id:"tarantino", label:"Quentin Tarantino", value:"directed by Quentin Tarantino", desc:"Low angles, vibrant colors, and 70s exploitation film style."},
-            {id:"giger", label:"H.R. Giger", value:"art by H.R. Giger", desc:"Biomechanical nightmarish textures and monochromatic darkness."}
-        ]
-    }
+  ratio: {
+    title: "宽高比", type: "ratio",
+    options: [
+      {id:"16-9", label:"16:9", value:"--ar 16:9", desc:"标准宽屏。适合电视和YouTube。", w:16, h:9},
+      {id:"9-16", label:"9:16", value:"--ar 9:16", desc:"垂直。适合TikTok、Reels和手机。", w:9, h:16},
+      {id:"1-1", label:"1:1", value:"--ar 1:1", desc:"正方形。经典Instagram格式。", w:1, h:1},
+      {id:"4-3", label:"4:3", value:"--ar 4:3", desc:"标清。复古电视风格。", w:4, h:3},
+      {id:"235-1", label:"2.35:1", value:"--ar 2.35:1", desc:"变形宽银幕。经典CinemaScope风格。", w:2.35, h:1},
+      {id:"143-1", label:"1.43:1", value:"--ar 1.43:1", desc:"IMAX。巨大的垂直感。", w:1.43, h:1}
+    ]
+  },
+  framing: {
+    title: "取景/镜头尺寸", type: "select",
+    options: [
+      {id:"ecu", label:"极特写", value:"extreme close-up", desc:"聚焦特定细节（如眼睛）。增强情感。"},
+      {id:"cu", label:"特写", value:"close-up", desc:"头和肩。聚焦面部表情。"},
+      {id:"med", label:"中景", value:"medium shot", desc:"腰部以上。标准互动镜头。"},
+      {id:"cowboy", label:"牛仔镜头", value:"American shot", desc:"大腿中部以上。源自西部片以展示枪套。"},
+      {id:"full", label:"全身", value:"full body shot", desc:"从头到脚。展示服装和姿态。"},
+      {id:"wide", label:"广角镜头", value:"wide shot", desc:"主体+环境。展示上下文。"},
+      {id:"est", label:"定场镜头", value:"establishing shot", desc:"非常广。设定场景和地点。"},
+      {id:"macro", label:"微距", value:"macro photography", desc:"微观细节。昆虫、纹理、眼睛。"},
+      {id:"tilt", label:"移轴", value:"tilt-shift photography", desc:"选择性聚焦带的微缩效果。使大场景看起来像模型。"},
+      {id:"split", label:"分像屈光", value:"split diopter shot", desc:"前景和背景都清晰。经典的布莱恩·德·帕尔玛技巧。"}
+    ]
+  },
+  angle: {
+    title: "拍摄角度", type: "select",
+    options: [
+      {id:"eye", label:"平视", value:"eye level angle", desc:"中性视角。直接与主体连接。"},
+      {id:"low", label:"低角度", value:"low angle shot", desc:"仰视。使主体显得强大或支配性。"},
+      {id:"high", label:"高角度", value:"high angle shot", desc:"俯视。使主体显得脆弱或渺小。"},
+      {id:"worm", label:"虫眼视角", value:"worm's eye view", desc:"从地面仰视。宏伟或奇异。"},
+      {id:"ground", label:"地面水平", value:"ground level shot", desc:"相机放在地面。亲密的纹理。"},
+      {id:"bird", label:"鸟瞰/俯视", value:"overhead bird's eye view", desc:"正上方（90度）。几何和布局。"},
+      {id:"ots", label:"过肩镜头", value:"over-the-shoulder shot", desc:"一个角色背后看另一个角色。对话。"},
+      {id:"dutch", label:"荷兰角", value:"Dutch angle", desc:"倾斜地平线。制造不安、紧张或迷失感。"},
+      {id:"pov", label:"第一人称视角", value:"first-person POV", desc:"通过角色的眼睛看。"}
+    ]
+  },
+  camera: {
+    title: "相机型号", type: "select",
+    options: [
+      {id:"arri", label:"Arri Alexa LF", value:"shot on Arri Alexa LF", desc:"数字电影行业标准。高动态范围。"},
+      {id:"imax70", label:"IMAX 70mm Film", value:"shot on IMAX 70mm Film", desc:"无与伦比的分辨率和深度。诺兰风格。"},
+      {id:"panavision", label:"Panavision Millennium", value:"shot on Panavision Millennium DXL2", desc:"温暖的肤色和经典好莱坞美学。"},
+      {id:"sony", label:"Sony Venice 2", value:"shot on Sony Venice 2", desc:"现代、锐利、出色的低光性能。"},
+      {id:"iphone", label:"iPhone 15 Pro", value:"shot on iPhone 15 Pro", desc:"数字、锐利、深景深。现代vlog风格。"},
+      {id:"polaroid", label:"Polaroid SX-70", value:"Polaroid SX-70 instant film", desc:"柔和、怀旧、化学边框和褪色。"},
+      {id:"gopro", label:"GoPro Hero", value:"shot on GoPro Hero", desc:"广角、畸变鱼眼、运动感。"}
+    ]
+  },
+  focal: {
+    title: "焦距", type: "select",
+    options: [
+      {id:"14mm", label:"14mm（超广角）", value:"14mm lens", desc:"边缘畸变、巨大视野。运动相机感。"},
+      {id:"24mm", label:"24mm（广角）", value:"24mm lens", desc:"标准广角。适合风景和室内。"},
+      {id:"35mm", label:"35mm（经典）", value:"35mm lens", desc:"最接近人眼视野。叙事镜头。"},
+      {id:"50mm", label:"50mm（标准）", value:"50mm lens", desc:"经典五十。自然视角，无畸变。"},
+      {id:"85mm", label:"85mm（人像）", value:"85mm lens", desc:"美化面部。使主体与背景分离。"},
+      {id:"135mm", label:"135mm（长焦）", value:"135mm lens", desc:"显著压缩。适合远距离主体。"},
+      {id:"200mm", label:"200mm（超长焦）", value:"200mm lens", desc:"压缩空间。背景在主体后显得巨大。"}
+    ]
+  },
+  dof: {
+    title: "光圈/景深", type: "slider",
+    options: [
+      {id:"f12", val:"f/1.2", label:"f/1.2（梦幻）", desc:"极浅焦点。梦幻散景。"},
+      {id:"f18", val:"f/1.8", label:"f/1.8（浅）", desc:"非常浅。适合低光。"},
+      {id:"f28", val:"f/2.8", label:"f/2.8（专业）", desc:"专业变焦镜头标准。良好的分离度。"},
+      {id:"f4", val:"f/4.0", label:"f/4.0（平衡）", desc:"分离度和清晰度平衡。"},
+      {id:"f56", val:"f/5.6", label:"f/5.6（锐利）", desc:"标准锐度。"},
+      {id:"f8", val:"f/8.0", label:"f/8.0（风景）", desc:"风景标准。大部分清晰。"},
+      {id:"f11", val:"f/11", label:"f/11（深）", desc:"深景深。"},
+      {id:"f16", val:"f/16", label:"f/16（非常锐利）", desc:"一切清晰。出现星芒。"},
+      {id:"f22", val:"f/22", label:"f/22（最大景深）", desc:"最大景深。可能有衍射模糊风险。"}
+    ]
+  },
+  lighting: {
+    title: "照明", type: "select",
+    options: [
+      {id:"volumetric", label:"体积光/上帝光", value:"volumetric lighting", desc:"空气中可见的光束。史诗氛围。"},
+      {id:"biolum", label:"生物荧光", value:"bioluminescent lighting", desc:"发光的有机光（蓝/绿）。阿凡达潘多拉风格。"},
+      {id:"golden", label:"黄金时刻", value:"golden hour", desc:"日落前的温暖柔和光。"},
+      {id:"blue", label:"蓝色时刻", value:"blue hour", desc:"日出前的冷、忧郁光线。"},
+      {id:"noon", label:"正午阳光", value:"harsh noon sunlight", desc:"强烈的正午阳光，短阴影，高对比，明亮。"},
+      {id:"overcast", label:"阴天", value:"overcast soft lighting", desc:"漫射，无阴影，巨型柔光箱效果。"},
+      {id:"studio", label:"影棚主光", value:"studio key lighting", desc:"受控的专业人工照明。"},
+      {id:"rembrandt", label:"伦勃朗光", value:"Rembrandt lighting", desc:"脸颊上的三角形光。戏剧性肖像。"},
+      {id:"candle", label:"烛光", value:"lit by candlelight", desc:"温暖、闪烁、低光、亲密。"},
+      {id:"moon", label:"月光", value:"moonlight", desc:"冷、银/蓝色低光。"},
+      {id:"sil", label:"剪影", value:"silhouette lighting", desc:"主体在明亮背景前呈黑色。"},
+      {id:"neon", label:"霓虹", value:"neon lighting", desc:"鲜艳的粉红、青色和强烈的人工光。"},
+      {id:"chiaroscuro", label:"明暗对比", value:"chiaroscuro", desc:"光和暗之间高对比。"}
+    ]
+  },
+  palette: {
+    title: "色彩调色板", type: "select",
+    options: [
+      {id:"tealorange", label:"青橙", value:"teal and orange color grading", desc:"大片标准。冷阴影，温暖肤色。"},
+      {id:"velvia", label:"富士Velvia", value:"Fujifilm Velvia 50", desc:"高饱和度，深黑，鲜艳色彩。自然摄影。"},
+      {id:"ektachrome", label:"柯达Ektachrome", value:"Kodak Ektachrome", desc:"冷色调，细颗粒，独特蓝色。"},
+      {id:"techni", label:"特艺彩色", value:"Technicolor process", desc:"超饱和红/绿/蓝。老好莱坞《绿野仙踪》风格。"},
+      {id:"bw", label:"黑白", value:"black and white photography", desc:"永恒，聚焦纹理和光线。"},
+      {id:"kodak", label:"柯达Portra 400", value:"Kodak Portra 400 film look", desc:"自然肤色，细颗粒，温暖高光。"},
+      {id:"vivid", label:"鲜艳/饱和", value:"vivid colors, high saturation", desc:"有力、明亮、引人注目。"},
+      {id:"muted", label:"柔和/低饱和", value:"muted tones, low saturation", desc:"阴沉、严肃、现实。"},
+      {id:"warm", label:"暖色调", value:"warm color palette", desc:"舒适、怀旧、安全。"},
+      {id:"cool", label:"冷色调", value:"cool color palette", desc:"冷静、疏离或悲伤。"},
+      {id:"highcon", label:"高对比", value:"high contrast", desc:"深黑和亮白。戏剧性。"},
+      {id:"mono", label:"单色", value:"monochromatic color scheme", desc:"使用单一颜色的深浅。"},
+      {id:"neonpal", label:"霓虹色调", value:"neon color palette", desc:"电光绿、粉、紫。"},
+      {id:"sepia", label:"怀旧棕褐", value:"sepia tone", desc:"老西部、闪回、古旧。"}
+    ]
+  },
+  texture: {
+    title: "纹理与后期（多选）", type: "multi",
+    options: [
+      {id:"clean", label:"干净数字", value:"clean digital noise-free", desc:"原始数字清晰度。无噪点或伪影。"},
+      {id:"grain", label:"胶片颗粒", value:"heavy film grain", desc:"胶片上卤化银晶体的有机纹理。"},
+      {id:"burn", label:"胶片烧灼", value:"film burn artifacts", desc:"卷片边缘的漏光和化学变形。"},
+      {id:"vhs", label:"VHS录像带", value:"VHS artifacts", desc:"模拟跟踪错误和磁带颜色渗漏。"},
+      {id:"bloom", label:"辉光", value:"bloom effect", desc:"从明亮边缘扩散的光，创造梦幻光芒。"},
+      {id:"chromatic", label:"色差", value:"chromatic aberration", desc:"镜头折射引起的高对比边缘色边。"},
+      {id:"motion", label:"运动模糊", value:"motion blur", desc:"通过较慢快门速度捕捉的动能。"},
+      {id:"vignette", label:"暗角", value:"vignette", desc:"向角落逐渐变暗，聚焦视线。"}
+    ]
+  },
+  style: {
+    title: "艺术风格（多选）", type: "multi",
+    options: [
+      {id:"photo", label:"照片级真实", value:"photorealistic, 8k", desc:"以物理准确性模仿真实摄影。"},
+      {id:"cine", label:"电影感", value:"cinematic composition", desc:"专业电影拍摄的典型情绪和灯光。"},
+      {id:"3d", label:"3D渲染", value:"Unreal Engine 5 render, 3D", desc:"现代实时计算机图形的锐利、干净外观。"},
+      {id:"clay", label:"黏土动画", value:"claymation style, Aardman", desc:"定格黏土角色的触感、手工感。"},
+      {id:"water", label:"水彩", value:"watercolor painting", desc:"柔和边缘，颜色渗透，有机纸纹理。"},
+      {id:"cyber", label:"赛博朋克", value:"Cyberpunk aesthetic", desc:"高科技低生活；霓虹、雨水和城市未来主义。"},
+      {id:"steam", label:"蒸汽朋克", value:"Steampunk aesthetic, brass and gears", desc:"维多利亚工业设计，由蒸汽和发条驱动。"},
+      {id:"diner", label:"1950年代餐厅", value:"1950s diner aesthetic, retro americana", desc:"铬合金、霓虹、棋盘地板和经典美国怀旧。"},
+      {id:"atom", label:"原子朋克", value:"atompunk aesthetic", desc:"1950年代的复古未来主义愿景：Googie建筑和核乐观主义。"},
+      {id:"vapor", label:"蒸汽波", value:"vaporwave aesthetic", desc:"复古未来主义80年代梦境，粉红和青绿调。"},
+      {id:"goth", label:"哥特", value:"Gothic aesthetic", desc:"黑暗、华丽、神秘氛围，源于历史建筑。"},
+      {id:"min", label:"极简主义", value:"minimalist style", desc:"剥离到基本形状、颜色和概念。"},
+      {id:"retro80", label:"80年代复古", value:"1980s retro style", desc:"饱和原色和CRT屏幕的低保真辉光。"},
+      {id:"docu", label:"写实纪录片", value:"gritty documentary footage", desc:"原始、未经修饰、手持摄影的现实主义。"},
+      {id:"ghibli", label:"吉卜力工作室", value:"Studio Ghibli style", desc:"丰富的手绘背景和奇幻魅力。"},
+      {id:"oil", label:"油画", value:"oil painting texture", desc:"厚笔触和画布上丰富、分层的颜料。"},
+      {id:"noir", label:"黑色电影", value:"film noir style", desc:"高对比照明和愤世嫉俗的城市氛围。"}
+    ]
+  },
+  artist: {
+    title: "艺术家/导演", type: "select",
+    options: [
+      {id:"wes", label:"韦斯·安德森", value:"directed by Wes Anderson", desc:"对称、柔和色彩和奇幻故事书式舞台。"},
+      {id:"ridley", label:"雷德利·斯科特", value:"directed by Ridley Scott", desc:"氛围规模、高细节和阴郁科幻黑色。"},
+      {id:"nolan", label:"克里斯托弗·诺兰", value:"directed by Christopher Nolan", desc:"宏大尺度、实景特效和冷静、干净的色调。"},
+      {id:"hopper", label:"爱德华·霍普", value:"art by Edward Hopper", desc:"戏剧性阴影、城市孤立和电影般的静止。"},
+      {id:"fraser", label:"格雷格·弗莱瑟", value:"cinematography by Greig Fraser", desc:"《蝙蝠侠》《沙丘》风格：阴郁、柔和、聚焦黑暗的数字摄影。"},
+      {id:"lubezki", label:"艾曼努尔·卢贝兹基", value:"cinematography by Emmanuel Lubezki", desc:"自然光大师和沉浸式长镜头摄影。"},
+      {id:"hoyte", label:"霍伊特·范·霍特玛", value:"cinematography by Hoyte van Hoytema", desc:"IMAX规模、触感纹理和浅景深。"},
+      {id:"fincher", label:"大卫·芬奇", value:"directed by David Fincher", desc:"极致精确、绿/黄调、低光数字清晰度。"},
+      {id:"burton", label:"蒂姆·伯顿", value:"directed by Tim Burton", desc:"哥特、古怪、黑暗奇幻视觉，高对比。"},
+      {id:"spielberg", label:"史蒂文·斯皮尔伯格", value:"directed by Steven Spielberg", desc:"电影奇观、背光和鲜明标志性剪影。"},
+      {id:"denis", label:"丹尼斯·维伦纽瓦", value:"directed by Denis Villeneuve", desc:"粗野主义建筑、巨大规模和沉重氛围。"},
+      {id:"wong", label:"王家卫", value:"directed by Wong Kar-wai", desc:"饱和霓虹、运动模糊和都市向往感。"},
+      {id:"mead", label:"西德·米德", value:"art by Syd Mead", desc:"工业未来主义和实用高科技设计。"},
+      {id:"miyazaki", label:"宫崎骏", value:"art by Hayao Miyazaki", desc:"丰富自然、复杂飞行器和手绘细节。"},
+      {id:"tarantino", label:"昆汀·塔伦蒂诺", value:"directed by Quentin Tarantino", desc:"低角度、鲜艳色彩和70年代剥削电影风格。"},
+      {id:"giger", label:"H.R.吉格尔", value:"art by H.R. Giger", desc:"生物机械噩梦纹理和单色黑暗。"}
+    ]
+  }
 };
 
 // --- HELPER: UPDATE PREVIEW ---
@@ -894,11 +896,11 @@ function createLoaderUI(node) {
 
 // --- REGISTER EXTENSION ---
 app.registerExtension({
-    name: "Yedp.CinematicPrompt",
+    name: "Yedp.CinematicPromptCN",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         
         // 1. PROMPT BUILDER NODE
-        if (nodeData.name === "CinematicPromptNode") {
+        if (nodeData.name === "CinematicPromptNodeCN") {
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
                 const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
@@ -913,7 +915,7 @@ app.registerExtension({
         }
         
         // 2. REFERENCE LOADER NODE
-        if (nodeData.name === "CinematicLoaderNode") {
+        if (nodeData.name === "CinematicLoaderNodeCN") {
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
                 const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;

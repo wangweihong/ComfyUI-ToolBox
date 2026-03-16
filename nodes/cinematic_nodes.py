@@ -108,10 +108,16 @@ class CinematicLoaderNode:
 
 NODE_CLASS_MAPPINGS = {
     "CinematicPromptNode": CinematicPromptNode,
-    "CinematicLoaderNode": CinematicLoaderNode
+    "CinematicLoaderNode": CinematicLoaderNode,
+
+    "CinematicPromptNodeCN": CinematicPromptNode,
+    "CinematicLoaderNodeCN": CinematicLoaderNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CinematicPromptNode": "toolbox-prompt-builder",
-    "CinematicLoaderNode": "toolbox-prompt-loader"
+    "CinematicLoaderNode": "toolbox-prompt-loader",
+
+    "CinematicPromptNode": "toolbox-prompt-builder-cn",
+    "CinematicLoaderNode": "toolbox-prompt-loader-cn"
 }
