@@ -64,7 +64,9 @@ class CinematicLoaderNode:
     def load_reference(self, image_name):
         # 1. Determine path to assets folder relative to this python file
         current_dir = os.path.dirname(os.path.realpath(__file__))
-        assets_dir = os.path.join(current_dir, "web", "assets")
+        # Move up one directory to remove "nodes" layer
+        current_dir = os.path.dirname(current_dir)
+        assets_dir = os.path.join(current_dir, "web", "assets","cinematic")
         
         # 2. Construct file path
         # Note: image_name comes from JS without extension to allow flexibility, or we handle it here
@@ -81,6 +83,7 @@ class CinematicLoaderNode:
             else:
                 # Fallback to a placeholder black image if file not found
                 print(f"[Cinematic Loader] Error: Could not find image {image_name} in {assets_dir}")
+                print(f"[Cinematic Loader] Error: image path :{image_path}")
                 empty_img = torch.zeros(1, 512, 512, 3)
                 empty_mask = torch.zeros(1, 512, 512)
                 return (empty_img, empty_mask)
