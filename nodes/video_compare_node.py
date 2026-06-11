@@ -124,7 +124,3 @@ class ParallelVideoComparison:
 NODE_CLASS_MAPPINGS = {
     "ParallelVideoComparison": ParallelVideoComparison
 }
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "ParallelVideoComparison": "🎬 Parallel Video Comparison "
-}

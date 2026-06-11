@@ -41,4 +41,3 @@ class ToolBoxLatentSize:
             return (1024, 1024)
 
 NODE_CLASS_MAPPINGS = {"ToolBoxLatentSize": ToolBoxLatentSize}
-NODE_DISPLAY_NAME_MAPPINGS = {"ToolBoxLatentSize": "toolbox-latent-size"}
