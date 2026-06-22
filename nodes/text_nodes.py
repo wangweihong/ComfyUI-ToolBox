@@ -1,12 +1,12 @@
 class AnyType(str):
-    """A special type that can be connected to any other types. Credit to pythongosssss"""
+    """A special type that can be connected to any other types."""
 
     def __ne__(self, __value: object) -> bool:
         return False
 
 any_type = AnyType("*")
 
-class CR_Text:
+class ToolBoxText:
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -16,13 +16,12 @@ class CR_Text:
             }
         }
 
-    RETURN_TYPES = (any_type, "STRING", )
-    RETURN_NAMES = ("text" )
-    FUNCTION = "text_multiline"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("text",)
 
-    def text_multiline(self, text):
-        return (text,)
-    
+def text_multiline(self, text):
+    return (text,)
+
 NODE_CLASS_MAPPINGS = {
-    "CR_Text": CR_Text
+    "ToolBoxText": ToolBoxText
 }
