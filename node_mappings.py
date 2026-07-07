@@ -26,4 +26,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ParallelVideoComparison": "tb-video-comparison",
     # text
     "ToolBoxText": "tb-text",
+    "ToolBoxSubjectConceptReplacer": "tb-subject-concept-replacer",
 }
