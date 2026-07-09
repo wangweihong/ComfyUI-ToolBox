@@ -22,9 +22,11 @@ class ToolBoxText:
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
+    FUNCTION = "text_multiline"
+    CATEGORY = "eazy-toolbox/text"
 
-def text_multiline(self, text):
-    return (text,)
+    def text_multiline(self, text):
+        return (text,)
 
 
 class ToolBoxSubjectConceptReplacer:
