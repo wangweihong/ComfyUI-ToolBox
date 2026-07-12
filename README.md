@@ -35,7 +35,7 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 ### 节点参数说明
 | 参数名 | 类型 | 描述 |
 |--------|------|------|
-| seed | INT | 可复现随机种子；`fixed` 保持相同结果，生成后控制设为 `randomize` 时会在连续执行间自动更新 seed 并重新抽取；随机结果仍可能低概率连续相同 |
+| seed | INT | 可复现随机种子；`fixed` 保持相同结果，生成后控制设为 `randomize` 时会在完整或局部连续执行间自动更新 seed 并重新抽取；随机结果仍可能低概率连续相同 |
 | language | Combo | `全部`、`zh`、`en` |
 | media_type | Combo | `全部`、`image`、`video`、`audio`、`music` |
 | prompt_type | Combo | `全部`、`natural`、`danbooru` |
