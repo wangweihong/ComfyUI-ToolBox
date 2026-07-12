@@ -32,4 +32,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # prompt
     "ToolBoxRandomPrompt": "tb-random-prompt",
     "ToolBoxPromptWriter": "tb-prompt-writer",
+    "ToolBoxPromptNSFWDetector": "tb-prompt-nsfw-detector",
 }

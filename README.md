@@ -49,3 +49,27 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 ### tb-prompt-writer (ToolBoxPromptWriter)
 
 该节点可在 ComfyUI 页面中将一条提示词及其元数据写入本地数据库，并输出 `id`、`prompt`、`metadata`。`id=0` 时自动创建新记录；指定已存在的 `id` 时更新该记录；指定不存在的 `id` 会报错。
+
+## 🔞 Prompt NSFW 检测
+
+### tb-prompt-nsfw-detector (ToolBoxPromptNSFWDetector)
+
+该节点使用本地文本分类模型和精确 Danbooru 成人标签词典，检测中文、英文自然语言及 Danbooru 标签式 prompt 中的成人性内容。它只返回检测结果，不会修改或拦截原 prompt。
+
+安装依赖：
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+首次执行会从 Hugging Face 下载 `uget/sexual_content_dection`，之后使用本地缓存离线推理。推理文本不会发送给远程 API；首次模型下载失败或缺少依赖时，节点会明确报错而不会静默退化。
+
+| 参数/输出 | 类型 | 描述 |
+|-----------|------|------|
+| prompt | STRING | 待检测的自然语言或 Danbooru prompt；空文本按安全处理 |
+| threshold | FLOAT | 模型判定阈值，默认 `0.5`；不影响显式 Danbooru 标签命中 |
+| is_nsfw | BOOLEAN | 模型或标签词典任一命中时为 `true` |
+| score | FLOAT | `0–1` 风险分数；显式词典命中时为 `1.0` |
+| details | STRING | JSON 详情，包含模型分数、阈值、命中标签和判定来源 |
+
+该检测仅覆盖成人性内容，不是暴力、仇恨或违法内容的完整安全审核。自动分类可能误报或漏报，不应作为高风险场景中的唯一审核措施。

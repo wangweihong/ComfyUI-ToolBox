@@ -1,5 +1,7 @@
 import json
+import re
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,6 +19,125 @@ SAFETY_FILTERS = ["全部", "nsfw", "safe"]
 CONTENT_FORMAT_FILTERS = ["全部", "plaintext", "json"]
 CONTENT_FORMATS = ["plaintext", "json"]
 DYNAMIC_FILTERS = ["全部", "dynamic", "static"]
+
+NSFW_MODEL_ID = "uget/sexual_content_dection"
+NSFW_MODEL_MAX_LENGTH = 128
+_NSFW_MODEL_BUNDLE = None
+_NSFW_MODEL_LOCK = threading.Lock()
+
+# Exact Danbooru-style tags only. Natural-language semantics are handled by the
+# classifier, which avoids substring false positives such as "breastplate".
+NSFW_DANBOORU_TAGS = frozenset({
+    "anal", "anal fingering", "anus", "areolae", "ass focus", "bdsm",
+    "bikini aside", "bondage", "breast grab", "breast sucking", "breasts out",
+    "bukkake", "cervix", "clothed sex", "cum", "cum in mouth", "cum on body",
+    "cum on breasts", "cum on face", "cum on stomach", "cum pool", "deepthroat",
+    "double penetration", "erection", "explicit", "fellatio", "female ejaculation",
+    "fingering", "forced orgasm", "group sex", "handjob", "hentai", "implied sex",
+    "lactation", "masturbation", "multiple insertions", "naked", "nipple piercing",
+    "nipple slip", "nipples", "nude", "oral", "orgasm", "paizuri", "penis",
+    "penis in mouth", "questionable", "sex", "sex from behind", "sex toy",
+    "spread anus", "spread legs", "testicles", "topless", "uncensored",
+    "vaginal", "vaginal penetration", "vibrator", "visible erection", "yaoi", "yuri",
+})
+NSFW_RATINGS = frozenset({"explicit", "questionable", "e", "q"})
+_WEIGHT_SUFFIX_RE = re.compile(r":\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*$")
+_SEXUAL_LABEL_RE = re.compile(r"(?:sexual|nsfw|adult|porn)", re.IGNORECASE)
+_SAFE_LABEL_RE = re.compile(r"(?:none|safe|sfw|non.?sexual)", re.IGNORECASE)
+
+
+def normalize_danbooru_tag(raw_tag):
+    tag = raw_tag.strip().replace("\\(", "(").replace("\\)", ")")
+    while len(tag) >= 2 and tag[0] == "(" and tag[-1] == ")":
+        tag = tag[1:-1].strip()
+    tag = _WEIGHT_SUFFIX_RE.sub("", tag).strip()
+    while len(tag) >= 2 and tag[0] == "(" and tag[-1] == ")":
+        tag = tag[1:-1].strip()
+    tag = tag.casefold().replace("_", " ")
+    return " ".join(tag.split())
+
+
+def find_nsfw_danbooru_tags(prompt):
+    matches = set()
+    for raw_tag in re.split(r"[,\r\n]+", prompt):
+        tag = normalize_danbooru_tag(raw_tag)
+        if not tag:
+            continue
+        if tag in NSFW_DANBOORU_TAGS:
+            matches.add(tag)
+            continue
+        rating = re.fullmatch(r"rating\s*:\s*(.+)", tag)
+        if rating and rating.group(1).strip() in NSFW_RATINGS:
+            matches.add(f"rating:{rating.group(1).strip()}")
+    return sorted(matches)
+
+
+def _resolve_sexual_label_index(model):
+    id2label = getattr(model.config, "id2label", None) or {}
+    labels = {int(index): str(label) for index, label in id2label.items()}
+    sexual = [index for index, label in labels.items() if _SEXUAL_LABEL_RE.search(label)]
+    safe = [index for index, label in labels.items() if _SAFE_LABEL_RE.search(label)]
+    if len(sexual) == 1 and sexual[0] not in safe:
+        return sexual[0]
+
+    # This model omits id2label in config.json. Its published model card defines
+    # class 0 as None and class 1 as Sexual, so keep the fallback model-specific.
+    model_name = str(getattr(model.config, "_name_or_path", ""))
+    if model_name == NSFW_MODEL_ID and int(getattr(model.config, "num_labels", 0)) == 2:
+        return 1
+    raise RuntimeError(
+        "NSFW model labels are invalid: expected exactly one Sexual/NSFW/Adult label "
+        "in config.id2label."
+    )
+
+
+def _load_nsfw_model():
+    global _NSFW_MODEL_BUNDLE
+    if _NSFW_MODEL_BUNDLE is not None:
+        return _NSFW_MODEL_BUNDLE
+    with _NSFW_MODEL_LOCK:
+        if _NSFW_MODEL_BUNDLE is not None:
+            return _NSFW_MODEL_BUNDLE
+        try:
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+        except ImportError as exc:
+            raise RuntimeError(
+                "Prompt NSFW Detector requires 'transformers'. Install this plugin's "
+                "requirements.txt, then restart ComfyUI."
+            ) from exc
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(NSFW_MODEL_ID)
+            model = AutoModelForSequenceClassification.from_pretrained(NSFW_MODEL_ID)
+            model.to("cpu")
+            model.eval()
+            sexual_index = _resolve_sexual_label_index(model)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Unable to load NSFW model '{NSFW_MODEL_ID}'. Connect to the internet for "
+                "the first download or ensure it exists in the Hugging Face cache. "
+                f"Original error: {exc}"
+            ) from exc
+        _NSFW_MODEL_BUNDLE = (tokenizer, model, sexual_index)
+        return _NSFW_MODEL_BUNDLE
+
+
+def predict_nsfw_score(prompt):
+    import torch
+
+    tokenizer, model, sexual_index = _load_nsfw_model()
+    encoded = tokenizer(
+        prompt,
+        return_tensors="pt",
+        truncation=True,
+        max_length=NSFW_MODEL_MAX_LENGTH,
+    )
+    encoded = {name: tensor.to("cpu") for name, tensor in encoded.items()}
+    with torch.inference_mode():
+        logits = model(**encoded).logits
+        probabilities = torch.softmax(logits, dim=-1)
+    if sexual_index < 0 or sexual_index >= probabilities.shape[-1]:
+        raise RuntimeError("NSFW model Sexual label index is outside the logits shape.")
+    return float(probabilities[0, sexual_index].item())
 
 
 def parse_tags(tags):
@@ -326,7 +447,56 @@ class ToolBoxPromptWriter:
             return (row["id"], row["prompt"], metadata_json(conn, row))
 
 
+class ToolBoxPromptNSFWDetector:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prompt": ("STRING", {"default": "", "multiline": True}),
+                "threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
+            }
+        }
+
+    RETURN_TYPES = ("BOOLEAN", "FLOAT", "STRING")
+    RETURN_NAMES = ("is_nsfw", "score", "details")
+    FUNCTION = "detect_nsfw"
+    CATEGORY = "eazy-toolbox/prompt"
+
+    def detect_nsfw(self, prompt, threshold):
+        prompt = str(prompt or "").strip()
+        threshold = float(threshold)
+        if not 0.0 <= threshold <= 1.0:
+            raise ValueError("threshold must be between 0 and 1.")
+
+        matched_tags = find_nsfw_danbooru_tags(prompt)
+        model_score = predict_nsfw_score(prompt) if prompt else 0.0
+        model_matched = model_score >= threshold
+        tag_matched = bool(matched_tags)
+        is_nsfw = model_matched or tag_matched
+        score = 1.0 if tag_matched else model_score
+
+        if tag_matched and model_matched:
+            source = "model+danbooru"
+        elif tag_matched:
+            source = "danbooru"
+        elif model_matched:
+            source = "model"
+        else:
+            source = "none"
+        details = {
+            "is_nsfw": is_nsfw,
+            "score": score,
+            "model_score": model_score,
+            "threshold": threshold,
+            "model": NSFW_MODEL_ID,
+            "matched_danbooru_tags": matched_tags,
+            "source": source,
+        }
+        return (is_nsfw, score, json.dumps(details, ensure_ascii=False, sort_keys=True))
+
+
 NODE_CLASS_MAPPINGS = {
     "ToolBoxRandomPrompt": ToolBoxRandomPrompt,
     "ToolBoxPromptWriter": ToolBoxPromptWriter,
+    "ToolBoxPromptNSFWDetector": ToolBoxPromptNSFWDetector,
 }
