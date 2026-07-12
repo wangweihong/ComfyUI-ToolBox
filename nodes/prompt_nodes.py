@@ -291,7 +291,15 @@ class ToolBoxRandomPrompt:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "seed": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": 0,
+                        "max": 0xffffffffffffffff,
+                        "control_after_generate": True,
+                    },
+                ),
                 "language": (LANGUAGE_FILTERS, {"default": "全部"}),
                 "media_type": (MEDIA_TYPE_FILTERS, {"default": "全部"}),
                 "prompt_type": (PROMPT_TYPE_FILTERS, {"default": "全部"}),
