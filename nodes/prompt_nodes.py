@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import sqlite3
@@ -154,6 +155,10 @@ def parse_tags(tags):
     return parsed
 
 
+def prompt_shasum(prompt):
+    return hashlib.sha1(prompt.encode("utf-8")).hexdigest()
+
+
 def require_enum(name, value, allowed):
     if value not in allowed:
         raise ValueError(f"{name} must be one of: {', '.join(allowed)}")
@@ -163,6 +168,7 @@ def create_schema(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS prompts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shasum TEXT NOT NULL UNIQUE,
             prompt TEXT NOT NULL,
             language TEXT NOT NULL,
             media_type TEXT NOT NULL,
@@ -200,20 +206,46 @@ def connect_db(create=False):
     return conn
 
 
-def ensure_schema(conn):
-    required_columns = {
-        "id", "prompt", "language", "media_type", "prompt_type", "nsfw", "content_format",
+def required_prompt_columns():
+    return {
+        "id", "shasum", "prompt", "language", "media_type", "prompt_type", "nsfw", "content_format",
         "dynamic", "suggested_width", "suggested_height", "created_at",
     }
+
+
+def migration_command():
+    return f"python3 scripts/migrate_prompt_shasum.py --db {DEFAULT_PROMPT_DB}"
+
+
+def ensure_schema(conn):
+    required_columns = required_prompt_columns()
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(prompts)").fetchall()}
-    if not required_columns.issubset(columns):
-        raise ValueError(f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. Run: python3 scripts/import_prompts.py")
+    missing_columns = sorted(required_columns - columns)
+    if missing_columns:
+        raise ValueError(
+            f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
+            f"Missing columns: {', '.join(missing_columns)}. "
+            f"Run: {migration_command()}"
+        )
 
 
 def insert_tags(conn, prompt_id, tags):
     for tag in tags:
-        conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag,))
-        tag_id = conn.execute("SELECT id FROM tags WHERE name = ?", (tag,)).fetchone()["id"]
+        tag = tag.strip().lower()
+        if not tag:
+            continue
+
+        row = conn.execute("SELECT id FROM tags WHERE name = ?", (tag,)).fetchone()
+        if row is not None:
+            tag_id = row["id"]
+        else:
+            try:
+                tag_id = conn.execute("INSERT INTO tags (name) VALUES (?)", (tag,)).lastrowid
+            except sqlite3.IntegrityError:
+                row = conn.execute("SELECT id FROM tags WHERE name = ?", (tag,)).fetchone()
+                if row is None:
+                    raise
+                tag_id = row["id"]
         conn.execute(
             "INSERT OR IGNORE INTO prompt_tags (prompt_id, tag_id) VALUES (?, ?)",
             (prompt_id, tag_id),
@@ -237,6 +269,7 @@ def row_tags(conn, prompt_id):
 def metadata_json(conn, row):
     metadata = {
         "id": row["id"],
+        "shasum": row["shasum"],
         "language": row["language"],
         "media_type": row["media_type"],
         "prompt_type": row["prompt_type"],
@@ -380,16 +413,18 @@ class ToolBoxPromptWriter:
             raise ValueError("width and height must be positive integers.")
 
         with connect_db(create=True) as conn:
+            ensure_schema(conn)
             created_at = datetime.now(timezone.utc).isoformat()
-            if prompt_id > 0:
-                exists = conn.execute("SELECT 1 FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
-                if exists is None:
-                    raise ValueError(f"prompt id does not exist: {prompt_id}")
+            shasum = prompt_shasum(prompt)
+            existing = conn.execute("SELECT id FROM prompts WHERE shasum = ?", (shasum,)).fetchone()
+            if existing is not None:
+                prompt_id = existing["id"]
 
                 conn.execute(
                     """
                     UPDATE prompts
-                    SET prompt = ?,
+                    SET shasum = ?,
+                        prompt = ?,
                         language = ?,
                         media_type = ?,
                         prompt_type = ?,
@@ -402,6 +437,7 @@ class ToolBoxPromptWriter:
                     WHERE id = ?
                     """,
                     (
+                        shasum,
                         prompt,
                         language,
                         media_type,
@@ -420,12 +456,13 @@ class ToolBoxPromptWriter:
                 cursor = conn.execute(
                     """
                     INSERT INTO prompts (
-                        prompt, language, media_type, prompt_type, nsfw, content_format, dynamic,
+                        shasum, prompt, language, media_type, prompt_type, nsfw, content_format, dynamic,
                         suggested_width, suggested_height, created_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        shasum,
                         prompt,
                         language,
                         media_type,

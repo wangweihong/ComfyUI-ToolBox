@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import re
 import sqlite3
 from datetime import datetime, timezone
@@ -19,6 +20,10 @@ MEDIA_TYPES = ("image", "video", "audio", "music")
 
 def normalize_prompt(lines):
     return re.sub(r"\s+", " ", " ".join(line.strip() for line in lines)).strip()
+
+
+def prompt_shasum(prompt):
+    return hashlib.sha1(prompt.encode("utf-8")).hexdigest()
 
 
 def parse_prompt_file(path):
@@ -70,6 +75,14 @@ def parse_tags(tags):
     return parsed
 
 
+def validate_tag_options(tags, apply_tags_to_all):
+    if tags and not apply_tags_to_all:
+        raise ValueError(
+            "--tags applies the listed tags to every imported prompt. "
+            "Pass --apply-tags-to-all to confirm batch-wide tag assignment."
+        )
+
+
 def create_schema(conn):
     conn.execute("DROP TABLE IF EXISTS prompt_tags")
     conn.execute("DROP TABLE IF EXISTS tags")
@@ -77,6 +90,7 @@ def create_schema(conn):
     conn.execute("""
         CREATE TABLE prompts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shasum TEXT NOT NULL UNIQUE,
             prompt TEXT NOT NULL,
             language TEXT NOT NULL,
             media_type TEXT NOT NULL,
@@ -103,16 +117,37 @@ def create_schema(conn):
 
 def insert_tags(conn, prompt_id, tags):
     for tag in tags:
-        conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag,))
-        tag_id = conn.execute("SELECT id FROM tags WHERE name = ?", (tag,)).fetchone()[0]
+        tag = tag.strip().lower()
+        if not tag:
+            continue
+
+        row = conn.execute("SELECT id FROM tags WHERE name = ?", (tag,)).fetchone()
+        if row is not None:
+            tag_id = row[0]
+        else:
+            try:
+                tag_id = conn.execute("INSERT INTO tags (name) VALUES (?)", (tag,)).lastrowid
+            except sqlite3.IntegrityError:
+                row = conn.execute("SELECT id FROM tags WHERE name = ?", (tag,)).fetchone()
+                if row is None:
+                    raise
+                tag_id = row[0]
         conn.execute(
             "INSERT OR IGNORE INTO prompt_tags (prompt_id, tag_id) VALUES (?, ?)",
             (prompt_id, tag_id),
         )
 
 
-def import_records(records, db_path, metadata):
+def import_records(records, db_path, metadata, apply_tags_to_all=False):
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    unique_records = []
+    seen_shasums = set()
+    for prompt_id, prompt in records:
+        shasum = prompt_shasum(prompt)
+        if shasum in seen_shasums:
+            continue
+        seen_shasums.add(shasum)
+        unique_records.append((prompt_id, shasum, prompt))
 
     with sqlite3.connect(db_path) as conn:
         conn.execute("PRAGMA foreign_keys = ON")
@@ -121,14 +156,15 @@ def import_records(records, db_path, metadata):
         conn.executemany(
             """
             INSERT INTO prompts (
-                id, prompt, language, media_type, prompt_type, nsfw, content_format, dynamic,
+                id, shasum, prompt, language, media_type, prompt_type, nsfw, content_format, dynamic,
                 suggested_width, suggested_height, created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
                     prompt_id,
+                    shasum,
                     prompt,
                     metadata["language"],
                     metadata["media_type"],
@@ -140,14 +176,17 @@ def import_records(records, db_path, metadata):
                     metadata["suggested_height"],
                     created_at,
                 )
-                for prompt_id, prompt in records
+                for prompt_id, shasum, prompt in unique_records
             ],
         )
 
-        for prompt_id, _ in records:
-            insert_tags(conn, prompt_id, metadata["tags"])
+        if apply_tags_to_all:
+            for prompt_id, _, _ in unique_records:
+                insert_tags(conn, prompt_id, metadata["tags"])
 
         conn.commit()
+
+    return len(unique_records)
 
 
 def main():
@@ -173,6 +212,11 @@ def main():
     parser.add_argument("--prompt-type", choices=PROMPT_TYPES, required=True, help="Prompt style metadata.")
     parser.add_argument("--content-format", choices=CONTENT_FORMATS, default="plaintext", help="Prompt content format.")
     parser.add_argument("--tags", default="", help='Comma-separated tags, for example "landscape,night".')
+    parser.add_argument(
+        "--apply-tags-to-all",
+        action="store_true",
+        help="Confirm that --tags should be attached to every imported prompt.",
+    )
     parser.add_argument("--width", type=int, default=1024, help="Suggested width metadata. Default: 1024")
     parser.add_argument("--height", type=int, default=768, help="Suggested height metadata. Default: 768")
 
@@ -188,6 +232,9 @@ def main():
 
     if args.width <= 0 or args.height <= 0:
         raise ValueError("--width and --height must be positive integers.")
+
+    tags = parse_tags(args.tags)
+    validate_tag_options(tags, args.apply_tags_to_all)
 
     if not args.input.exists():
         raise FileNotFoundError(f"Prompt path not found: {args.input}")
@@ -207,14 +254,14 @@ def main():
         "nsfw": 1 if args.nsfw else 0,
         "content_format": args.content_format,
         "dynamic": 1 if args.dynamic else 0,
-        "tags": parse_tags(args.tags),
+        "tags": tags,
         "suggested_width": args.width,
         "suggested_height": args.height,
     }
 
-    import_records(records, args.db, metadata)
+    imported_count = import_records(records, args.db, metadata, apply_tags_to_all=args.apply_tags_to_all)
 
-    print(f"Imported {len(records)} prompts into {args.db}")
+    print(f"Imported {imported_count} prompts into {args.db}")
 
 
 if __name__ == "__main__":

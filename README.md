@@ -27,10 +27,10 @@
 首次使用前运行导入脚本：
 
 ```bash
-python3 scripts/import_prompts.py --language zh --media-type image --prompt-type natural --nsfw --content-format plaintext --static --tags "portrait,indoor"
+python3 scripts/import_prompts.py --language zh --media-type image --prompt-type natural --nsfw --content-format plaintext --static
 ```
 
-默认会读取插件根目录下的 `prompts/` 目录，并生成 `data/prompts.sqlite3`。导入脚本会提取记录 id 和提示词内容；如果提示词跨多行，会拼接成同一行写入数据库。可使用 `--input prompt.txt` 指定单个文件。
+默认会读取插件根目录下的 `prompts/` 目录，并生成 `data/prompts.sqlite3`。导入脚本会提取记录 id 和提示词内容；如果提示词跨多行，会拼接成同一行写入数据库。可使用 `--input prompt.txt` 指定单个文件。`--tags` 是批量标签，会绑定到本次导入的每一条提示词；如确实需要批量标签，需同时传入 `--apply-tags-to-all`。
 
 ### 节点参数说明
 | 参数名 | 类型 | 描述 |
@@ -48,7 +48,7 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 
 ### tb-prompt-writer (ToolBoxPromptWriter)
 
-该节点可在 ComfyUI 页面中将一条提示词及其元数据写入本地数据库，并输出 `id`、`prompt`、`metadata`。`id=0` 时自动创建新记录；指定已存在的 `id` 时更新该记录；指定不存在的 `id` 会报错。
+该节点可在 ComfyUI 页面中将一条提示词及其元数据写入本地数据库，并输出 `id`、`prompt`、`metadata`。写入时会根据去除首尾空白后的 `prompt` 计算 SHA-1 `shasum`：数据库中已有相同 `shasum` 时更新该记录，否则创建新记录。`id` 输入仅用于兼容旧工作流，不再决定更新目标。
 
 ## 🔞 Prompt NSFW 检测
 
