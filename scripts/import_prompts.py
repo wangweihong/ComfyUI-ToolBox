@@ -90,7 +90,7 @@ def create_schema(conn):
     conn.execute("""
         CREATE TABLE prompts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shasum TEXT NOT NULL UNIQUE,
+            shasum TEXT NOT NULL,
             prompt TEXT NOT NULL,
             language TEXT NOT NULL,
             media_type TEXT NOT NULL,

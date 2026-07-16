@@ -53,14 +53,23 @@ def table_exists(conn, table):
 
 
 def has_unique_shasum_index(conn):
+    return bool(unique_shasum_indexes(conn))
+
+
+def unique_shasum_indexes(conn):
+    indexes = []
     for index in conn.execute("PRAGMA index_list(prompts)").fetchall():
         if not index[2]:
             continue
         index_name = index[1]
-        columns = [row[2] for row in conn.execute(f"PRAGMA index_info({index_name})").fetchall()]
+        quoted_name = index_name.replace('"', '""')
+        columns = [
+            row[2]
+            for row in conn.execute(f'PRAGMA index_info("{quoted_name}")').fetchall()
+        ]
         if columns == ["shasum"]:
-            return True
-    return False
+            indexes.append({"name": index_name, "origin": index[3]})
+    return indexes
 
 
 def ensure_shasum_column(conn):
@@ -88,6 +97,101 @@ def backfill_shasum(conn, skip_ids=None):
         conn.execute("UPDATE prompts SET shasum = ? WHERE id = ?", (shasum, prompt_id))
         updated += 1
     return updated
+
+
+def create_prompts_table(conn, table_name):
+    quoted_name = table_name.replace('"', '""')
+    conn.execute(f"""
+        CREATE TABLE "{quoted_name}" (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shasum TEXT NOT NULL,
+            prompt TEXT NOT NULL,
+            language TEXT NOT NULL,
+            media_type TEXT NOT NULL,
+            prompt_type TEXT NOT NULL,
+            nsfw INTEGER NOT NULL,
+            content_format TEXT NOT NULL,
+            dynamic INTEGER NOT NULL,
+            suggested_width INTEGER NOT NULL DEFAULT 1024,
+            suggested_height INTEGER NOT NULL DEFAULT 768,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+
+def rebuild_prompts_without_unique(conn):
+    columns = [
+        "id", "shasum", "prompt", "language", "media_type", "prompt_type", "nsfw",
+        "content_format", "dynamic", "suggested_width", "suggested_height", "created_at",
+    ]
+    missing_columns = sorted(set(columns) - table_columns(conn, "prompts"))
+    if missing_columns:
+        raise ValueError(
+            f"Cannot rebuild prompts table; missing columns: {', '.join(missing_columns)}"
+        )
+
+    sequence_row = conn.execute(
+        "SELECT seq FROM sqlite_sequence WHERE name = 'prompts'"
+    ).fetchone()
+    previous_sequence = sequence_row[0] if sequence_row is not None else 0
+    rows = conn.execute(f"SELECT {', '.join(columns)} FROM prompts ORDER BY id").fetchall()
+    updated_rows = 0
+    migrated_rows = []
+    for row in rows:
+        values = list(row)
+        shasum = prompt_shasum(values[2])
+        if values[1] != shasum:
+            values[1] = shasum
+            updated_rows += 1
+        migrated_rows.append(values)
+
+    conn.execute("DROP TABLE IF EXISTS prompts_migrated")
+    create_prompts_table(conn, "prompts_migrated")
+    placeholders = ", ".join("?" for _ in columns)
+    conn.executemany(
+        f"INSERT INTO prompts_migrated ({', '.join(columns)}) VALUES ({placeholders})",
+        migrated_rows,
+    )
+    conn.execute("DROP TABLE prompts")
+    conn.execute("ALTER TABLE prompts_migrated RENAME TO prompts")
+
+    maximum_id = max((row[0] for row in migrated_rows), default=0)
+    sequence = max(previous_sequence, maximum_id)
+    conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('prompts', 'prompts_migrated')")
+    if sequence:
+        conn.execute(
+            "INSERT INTO sqlite_sequence(name, seq) VALUES ('prompts', ?)",
+            (sequence,),
+        )
+    return updated_rows
+
+
+def remove_unique_shasum_constraint(conn):
+    indexes = unique_shasum_indexes(conn)
+    if not indexes:
+        return False, 0
+
+    requires_rebuild = any(index["origin"] != "c" for index in indexes)
+    if requires_rebuild:
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            with conn:
+                updated_rows = rebuild_prompts_without_unique(conn)
+                violations = conn.execute("PRAGMA foreign_key_check").fetchall()
+                if violations:
+                    raise ValueError(
+                        "Foreign key check failed after rebuilding prompts table: "
+                        f"{violations[:10]}"
+                    )
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
+        return True, updated_rows
+
+    for index in indexes:
+        quoted_name = index["name"].replace('"', '""')
+        conn.execute(f'DROP INDEX "{quoted_name}"')
+    return True, 0
 
 
 def find_duplicate_prompt_groups(conn):
@@ -118,15 +222,6 @@ def print_duplicate_summary(duplicate_groups, output=print):
         output(f"    prompt: {prompt_preview(group['prompt'])}")
 
 
-def confirm_delete_duplicates(input_func=input, output=print):
-    try:
-        answer = input_func("Delete duplicate rows and merge their tags? [y/N] ")
-    except (EOFError, OSError):
-        output("No confirmation received; duplicate rows will not be deleted.")
-        return False
-    return answer.strip().lower() in {"y", "yes"}
-
-
 def delete_duplicate_prompt_groups(conn, duplicate_groups):
     removed = 0
     has_prompt_tags = table_exists(conn, "prompt_tags")
@@ -149,7 +244,7 @@ def delete_duplicate_prompt_groups(conn, duplicate_groups):
     return removed
 
 
-def migrate_db(db_path, delete_duplicates=None, input_func=input, output=print):
+def migrate_db(db_path, delete_duplicates=None, output=print):
     if not db_path.exists():
         raise FileNotFoundError(f"Prompt database not found: {db_path}")
 
@@ -162,33 +257,13 @@ def migrate_db(db_path, delete_duplicates=None, input_func=input, output=print):
         if duplicate_groups:
             print_duplicate_summary(duplicate_groups, output=output)
 
-        should_delete_duplicates = False
-        if duplicate_groups:
-            if delete_duplicates is None:
-                should_delete_duplicates = confirm_delete_duplicates(input_func=input_func, output=output)
-            else:
-                should_delete_duplicates = bool(delete_duplicates)
-
+        should_delete_duplicates = bool(delete_duplicates)
         removed_duplicates = 0
         if should_delete_duplicates:
             removed_duplicates = delete_duplicate_prompt_groups(conn, duplicate_groups)
-            duplicate_groups = []
 
-        skip_ids = set()
-        if duplicate_groups and has_unique_shasum_index(conn):
-            skip_ids = {
-                prompt_id
-                for group in duplicate_groups
-                for prompt_id in group["ids"]
-            }
-        updated_rows = backfill_shasum(conn, skip_ids=skip_ids)
-
-        index_created = False
-        if duplicate_groups:
-            output("Unique shasum index skipped; resolve duplicate prompt rows first.")
-        else:
-            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_prompts_shasum ON prompts(shasum)")
-            index_created = True
+        unique_constraint_removed, rebuilt_rows = remove_unique_shasum_constraint(conn)
+        updated_rows = rebuilt_rows + backfill_shasum(conn)
         conn.commit()
 
     return {
@@ -196,13 +271,17 @@ def migrate_db(db_path, delete_duplicates=None, input_func=input, output=print):
         "updated_rows": updated_rows,
         "duplicate_group_count": duplicate_group_count,
         "removed_duplicates": removed_duplicates,
-        "index_created": index_created,
+        "unique_constraint_removed": unique_constraint_removed,
+        "index_created": False,
     }
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Add and backfill SHA-1 shasum values for the prompt database."
+        description=(
+            "Add and backfill SHA-1 shasum values, and allow duplicate shasums in the "
+            "prompt database."
+        )
     )
     parser.add_argument(
         "--db",
@@ -219,7 +298,7 @@ def main():
     duplicate_group.add_argument(
         "--no-delete",
         action="store_true",
-        help="Report duplicate prompt rows but never delete them.",
+        help="Preserve duplicate prompt rows (the default; retained for compatibility).",
     )
     args = parser.parse_args()
 
@@ -236,13 +315,13 @@ def main():
         return 1
 
     added = "added" if result["added_column"] else "already present"
-    index_status = "created or already present" if result["index_created"] else "skipped"
+    constraint_status = "removed" if result["unique_constraint_removed"] else "already absent"
     print(
         f"shasum column: {added}; "
         f"updated rows: {result['updated_rows']}; "
         f"duplicate groups: {result['duplicate_group_count']}; "
         f"removed duplicate rows: {result['removed_duplicates']}; "
-        f"unique index: {index_status}; "
+        f"unique shasum constraint: {constraint_status}; "
         f"database: {args.db}"
     )
     return 0

@@ -35,7 +35,7 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 ### 节点参数说明
 | 参数名 | 类型 | 描述 |
 |--------|------|------|
-| seed | INT | 可复现随机种子；`fixed` 保持相同结果，生成后控制设为 `randomize` 时会在完整或局部连续执行间自动更新 seed 并重新抽取；随机结果仍可能低概率连续相同 |
+| seed | INT | 可复现随机种子；`fixed` 保持相同结果。生成后控制设为 `randomize` 时，无论完整执行还是点击节点局部运行，都会自动更新 seed 并重新抽取；由于随机取样允许重复，仍可能低概率连续得到同一提示词 |
 | language | Combo | `全部`、`zh`、`en` |
 | media_type | Combo | `全部`、`image`、`video`、`audio`、`music` |
 | prompt_type | Combo | `全部`、`natural`、`danbooru` |
@@ -48,7 +48,7 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 
 ### tb-prompt-writer (ToolBoxPromptWriter)
 
-该节点可在 ComfyUI 页面中将一条提示词及其元数据写入本地数据库，并输出 `id`、`prompt`、`metadata`。写入时会根据去除首尾空白后的 `prompt` 计算 SHA-1 `shasum`：数据库中已有相同 `shasum` 时更新该记录，否则创建新记录。`id` 输入仅用于兼容旧工作流，不再决定更新目标。
+该节点可在 ComfyUI 页面中将一条提示词及其元数据写入本地数据库，并输出 `id`、`prompt`、`metadata`。写入时会根据去除首尾空白后的 `prompt` 计算 SHA-1 `shasum`：`id=0` 时更新相同 `shasum` 中 ID 最小的记录，不存在时创建新记录；指定 ID 时只更新该记录，即使其他记录已有相同 `shasum`。指定不存在的 ID 会报错。旧数据库需先运行 `python3 scripts/migrate_prompt_shasum.py --db data/prompts.sqlite3` 移除 `shasum` 唯一约束。
 
 ## 🔞 Prompt NSFW 检测
 

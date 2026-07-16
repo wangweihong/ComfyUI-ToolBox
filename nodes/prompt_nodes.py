@@ -168,7 +168,7 @@ def create_schema(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS prompts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shasum TEXT NOT NULL UNIQUE,
+            shasum TEXT NOT NULL,
             prompt TEXT NOT NULL,
             language TEXT NOT NULL,
             media_type TEXT NOT NULL,
@@ -225,6 +225,30 @@ def ensure_schema(conn):
         raise ValueError(
             f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
             f"Missing columns: {', '.join(missing_columns)}. "
+            f"Run: {migration_command()}"
+        )
+
+
+def has_unique_shasum_index(conn):
+    for index in conn.execute("PRAGMA index_list(prompts)").fetchall():
+        if not index["unique"]:
+            continue
+        index_name = index["name"].replace('"', '""')
+        columns = [
+            row["name"]
+            for row in conn.execute(f'PRAGMA index_info("{index_name}")').fetchall()
+        ]
+        if columns == ["shasum"]:
+            return True
+    return False
+
+
+def ensure_writer_schema(conn):
+    ensure_schema(conn)
+    if has_unique_shasum_index(conn):
+        raise ValueError(
+            f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
+            "The shasum column must allow duplicates. "
             f"Run: {migration_command()}"
         )
 
@@ -421,13 +445,29 @@ class ToolBoxPromptWriter:
             raise ValueError("width and height must be positive integers.")
 
         with connect_db(create=True) as conn:
-            ensure_schema(conn)
+            ensure_writer_schema(conn)
             created_at = datetime.now(timezone.utc).isoformat()
             shasum = prompt_shasum(prompt)
-            existing = conn.execute("SELECT id FROM prompts WHERE shasum = ?", (shasum,)).fetchone()
-            if existing is not None:
-                prompt_id = existing["id"]
+            update_existing = False
 
+            if prompt_id > 0:
+                existing = conn.execute(
+                    "SELECT 1 FROM prompts WHERE id = ?",
+                    (prompt_id,),
+                ).fetchone()
+                if existing is None:
+                    raise ValueError(f"prompt id does not exist: {prompt_id}")
+                update_existing = True
+            else:
+                existing = conn.execute(
+                    "SELECT id FROM prompts WHERE shasum = ? ORDER BY id LIMIT 1",
+                    (shasum,),
+                ).fetchone()
+                if existing is not None:
+                    prompt_id = existing["id"]
+                    update_existing = True
+
+            if update_existing:
                 conn.execute(
                     """
                     UPDATE prompts
