@@ -19,7 +19,7 @@ def session_epoch(node_id):
     """Invalidate ComfyUI's cached UI tokens after LRU eviction, without disabling queue caching."""
     with _session_lock:
         record = _node_sessions.setdefault(str(node_id), {"epoch": 0, "tokens": []})
-        live = [token for token in record["tokens"] if SESSION_CACHE.get(token) is not None]
+        live = [token for token in record["tokens"] if SESSION_CACHE.contains(token)]
         if len(live) != len(record["tokens"]):
             record["epoch"] += 1
             record["tokens"] = live
@@ -36,7 +36,7 @@ def session_payload(session, **metadata):
     with _session_lock:
         session_epoch(node_id)
         _node_sessions[node_id]["tokens"].append(key)
-    return {"session": key, "preview_available": SESSION_CACHE.get(key) is not None,
+    return {"session": key, "preview_available": SESSION_CACHE.contains(key),
             "width": session["images"].shape[2], "height": session["images"].shape[1],
             "batch": len(session["images"]), "identity": data.digest(session["images"]), **metadata}
 

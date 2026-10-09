@@ -37,6 +37,11 @@ class ByteLRU:
             self._items.move_to_end(key)
             return self._items[key]
 
+    def contains(self, key):
+        """Checking cache validity is not a use of a preview snapshot."""
+        with self._lock:
+            return key in self._items
+
     def put(self, key, value):
         with self._lock:
             self._items.pop(key, None)

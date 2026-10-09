@@ -18,7 +18,7 @@ SPEC.loader.exec_module(PACKAGE)
 from tb_stocking_test import data, engine, models, routes
 from tb_stocking_test.cache import ByteLRU, REGION_CACHE, SCENE_CACHE, SESSION_CACHE
 from tb_stocking_test.core import guide_fields as gf, coverage, look, tiles
-from tb_stocking_test.nodes import NFStockingEditor, NFStockingSolve, NFStockingRender, session_epoch
+from tb_stocking_test.nodes import NFStockingEditor, NFStockingSolve, NFStockingRender, session_epoch, session_payload
 
 OFF = dict(sparkle_depth=0, sparkle_bright=0, sparkle_painted=0, sparkle_even=0, strength_auto=False)
 
@@ -239,6 +239,16 @@ def test_cache_byte_bound_after_mutation_and_many_previews():
     assert SCENE_CACHE.stats()["items"] <= SCENE_CACHE.max_items
 
 
+def test_validity_checks_do_not_refresh_lru_order():
+    cache = ByteLRU(1024, 2)
+    cache.put("old", {"x": 1}); cache.put("current", {"x": 2})
+    assert cache.contains("old")
+    assert not cache.contains("missing")
+    cache.put("new", {"x": 3})
+    assert not cache.contains("old")
+    assert cache.contains("current") and cache.contains("new")
+
+
 def test_nodes_saved_json_without_session_and_preview_matches_queue():
     image, _, doc = fixture(); inp = torch.from_numpy(image[None])
     editor = NFStockingEditor().edit(inp, data.dump_guides(doc))
@@ -285,6 +295,22 @@ def test_two_workflows_with_same_node_id_keep_independent_sessions():
     for i in range(7): SESSION_CACHE.put(f"unrelated-{i}", {"arr": np.zeros(10)})
     assert SESSION_CACHE.get(first) is None and SESSION_CACHE.get(second) is not None
     assert session_epoch(node_id) == before + 1
+
+
+def test_repeated_five_style_workflow_keeps_the_new_editor_image():
+    # One editor plus five renderers fits in the eight-session budget. Merely
+    # checking prior executions must not make those old snapshots more recent.
+    node_ids = ["image-switch-editor", *[f"image-switch-render-{i}" for i in range(5)]]
+    for run in range(4):
+        tokens = []
+        for node_id in node_ids:
+            # Cache signature discovery can revisit other output nodes while
+            # the current execution is still publishing its new snapshots.
+            for prior_node in node_ids:
+                session_epoch(prior_node)
+            payload = session_payload({"images": np.full((1, 64, 64, 3), run / 4, np.float32)}, node_id=node_id)
+            tokens.append(payload["session"])
+        assert all(SESSION_CACHE.get(token) is not None for token in tokens), "new bottom image was evicted by old UI snapshots"
 
 
 def test_occluded_courses_match_unoccluded_reference():
