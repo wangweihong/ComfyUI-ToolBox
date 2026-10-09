@@ -24,13 +24,15 @@ ToolBox 原有 `requirements.txt` 的 Transformers 约束维持原状；本功�
 
 1. `LoadImage → NFStockingEditor`，先执行一次，让编辑器取得上游底图。生成图同样需要先运行上游。
 2. 点击“编辑丝袜引导”，涂出部位；走向线沿一条横纹横穿部位，通常每个部位 1–3 条。
-3. 折叠表面串线时，用隔开线沿交界绘制。窗口自动显示求解等值线；每次修改直接保存到 `guides_json`。
+3. 折叠表面串线时，用隔开线沿交界绘制。窗口自动显示求解等值线；编辑期间保留草稿，点击“保存并关闭”才写入 `guides_json`。
 4. 将图像与引导连到 `NFStockingSolve`，再将图像和字段连到 `NFStockingRender`。
 5. 调整渲染参数，点击“纹理细节预览”。预览使用最近一次队列执行的求解结果；修改引导后重新执行工作流。
 6. 成品接 `SaveImage`；诊断图可接 `PreviewImage`。红色为密度衰减、蓝色为颜色排除、黄色为缺少走向引导。
 
 编辑快捷键：B 画笔、E 橡皮、P 走向、W 隔开、S 点选；Ctrl/Cmd+Z 撤销，Shift+Ctrl/Cmd+Z 重做。
 滚轮缩放，中键或空格拖动平移。100%/200% 查看原像素；右键或工具栏按钮删除当前部位最后一条线。
+“取消”或 Esc 直接关闭并放弃本次草稿，已有保存内容保留。正式运行工作流前先保存草稿。
+未连接 SAM 时，点选按钮被禁用，工具栏下方会说明需要连接模型并重新运行；连接后同一区域显示使用提示。
 部位列表靠后的遮罩优先。外部 MASK 连接后可作为部位底图，手绘添加与擦除独立保存。
 尺寸改变时点击节点的“清空引导”按钮，再执行并重新绘制；不会自动拉伸旧坐标。
 
@@ -90,6 +92,7 @@ MASK 合成规则为 `max(输入底图, 手绘添加) * (1 - 擦除)`，求解�
 python scripts/generate_stocking_examples.py
 python -m pytest tests/test_stocking_texture.py -q
 node --test tests/stocking_geometry.test.mjs
+node --test tests/stocking_editor_state.test.mjs
 python scripts/test_stocking_api.py --url http://127.0.0.1:8188 --include-sam
 python scripts/benchmark_stocking_texture.py --output /tmp/stocking-benchmark.json
 ```
@@ -114,4 +117,4 @@ python -m unittest discover -s tests -p test_stocking_function_workflows.py
 
 每份生成一个可在界面打开的 `.json` 和一个队列/API 用的 `.api.json`。
 03 要求本地 Small 模型；02 首次运行只加载 SAM 句柄，需在编辑器中点击选区。
-04 的五种样式共用同一求解结果和其余参数，便于公平比较；05 同时导出透明图层、重合成结果和诊断图。
+04 已连接 SAM 句柄以支持编辑器点选，五种样式仍共用同一求解结果和其余参数，便于公平比较；05 同时导出透明图层、重合成结果和诊断图。

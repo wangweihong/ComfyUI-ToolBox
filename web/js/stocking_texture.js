@@ -1,6 +1,7 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs";
+import { GuideDraft, samHint } from "./stocking_editor_state.mjs";
 
 const CLASSES = new Set(["NFStockingEditor", "NFStockingRender"]);
 const API_ROOT = "/toolbox/stocking";
@@ -80,6 +81,7 @@ function styles() {
     .tb-stocking-dialog button{cursor:pointer}.tb-stocking-dialog button:disabled{opacity:.4;cursor:default}.tb-stocking-dialog button.active{background:#236457;border-color:#56d7b7}
     .tb-stocking-sidebar label{display:flex;flex-direction:column;margin:9px 0;gap:5px}.tb-stocking-sidebar select,.tb-stocking-sidebar input{max-width:100%}
     .tb-stocking-status{padding:9px 14px;color:#c9d1db;font-size:12px;min-height:18px;white-space:pre-wrap}.tb-stocking-sidebar small{color:#b8c3d0;display:block;line-height:1.6}
+    .tb-stocking-sam-hint{padding:8px 14px;background:#28303b;color:#d8e4ef;font-size:12px;line-height:1.5}.tb-stocking-save-state{color:#ffd37a;font-size:12px}
     @media(max-width:760px){.tb-stocking-sidebar{width:160px}.tb-stocking-dialog{height:96vh}.tb-stocking-head,.tb-stocking-tools{padding:6px}}
     `;
 }
@@ -89,6 +91,7 @@ class StockingDialog {
         this.node = node; this.payload = payload; this.renderMode = render;
         this.index = 0; this.revision = 0; this.planeSerial = 0; this.client = crypto.randomUUID(); this.closed = false;
         this.selected = 0; this.tool = render ? "pan" : "paint"; this.radius = 14;
+        this.draft = null;
         this.history = []; this.future = []; this.planes = new Map(); this.overlays = new Map();
         this.controller = new AbortController(); this.pending = null; this.previewBitmap = null; this.requestSerial = 0;
         styles();
@@ -104,13 +107,26 @@ class StockingDialog {
         this.button(head, "适应", () => { this.view = fitView(payload.width, payload.height, this.stage.clientWidth, this.stage.clientHeight); this.draw(); });
         this.button(head, "100%", () => { this.view = { scale: 1, x: 0, y: 0 }; this.draw(); });
         this.button(head, "200%", () => { this.view = { scale: 2, x: 0, y: 0 }; this.draw(); });
-        this.button(head, render ? "关闭" : "保存并关闭", () => this.close());
+        if (render) this.button(head, "关闭", () => this.close());
+        else {
+            this.saveState = el("small", "尚未修改", head, { className: "tb-stocking-save-state" });
+            this.button(head, "保存并关闭", () => this.close(true));
+            const cancel = this.button(head, "取消", () => this.close());
+            cancel.title = "放弃本次修改并关闭；Esc 也可取消";
+            const dismiss = this.button(head, "×", () => this.close());
+            dismiss.setAttribute("aria-label", "关闭编辑器（不保存）");
+            dismiss.title = "关闭编辑器，不保存本次修改";
+        }
         const tools = el("div", null, dialog, { className: "tb-stocking-tools" });
         if (!render) {
             for (const [key, label] of [["paint", "画笔 B"], ["erase", "橡皮 E"], ["stroke", "走向 P"], ["wall", "隔开 W"], ["sam", "点选 S"], ["pan", "平移"]]) {
                 const b = this.button(tools, label, () => { this.tool = key; this.markTools(); });
                 b.dataset.tool = key;
-                if (key === "sam") b.disabled = !payload.sam_available;
+                if (key === "sam") {
+                    b.disabled = !payload.sam_available;
+                    const connected = this.node.inputs?.find(i => i.name === "sam")?.link != null;
+                    b.title = samHint(!!payload.sam_available, connected);
+                }
             }
             const size = el("input", null, tools, { type: "number", value: "14", min: "1", max: "256", title: "笔刷半径（图像像素）" });
             size.style.width = "65px"; size.onchange = () => this.radius = Math.max(1, Math.min(256, Number(size.value) || 14));
@@ -120,6 +136,10 @@ class StockingDialog {
         } else {
             this.button(tools, "标出问题", e => { this.diagnostics = !this.diagnostics; e.classList.toggle("active", this.diagnostics); this.schedule(); });
             this.button(tools, "对比原图", e => { this.showOriginal = !this.showOriginal; e.classList.toggle("active", this.showOriginal); this.draw(); });
+        }
+        if (!render) {
+            const connected = this.node.inputs?.find(i => i.name === "sam")?.link != null;
+            el("div", samHint(!!payload.sam_available, connected), dialog, { className: "tb-stocking-sam-hint" });
         }
         const body = el("div", null, dialog, { className: "tb-stocking-body" });
         this.sidebar = el("div", null, body, { className: "tb-stocking-sidebar" });
@@ -153,20 +173,22 @@ class StockingDialog {
 
     readDocument() {
         const raw = value(this.node, "guides_json", "{}");
-        let doc;
-        try { doc = JSON.parse(raw); } catch { throw new Error("引导 JSON 无效，请修正后重新打开"); }
-        this.doc = doc.version ? doc : structuredClone(this.payload.document);
+        try { this.draft = new GuideDraft(raw, value(this.node, "batch_mode", "shared"), this.payload.document); }
+        catch { throw new Error("引导 JSON 无效，请修正后重新打开"); }
         if (this.doc.width !== this.payload.width || this.doc.height !== this.payload.height) {
             this.sidebar.textContent = "底图尺寸改变，原引导不能自动拉伸。";
             this.button(this.sidebar, "为新尺寸重建引导", () => {
-                this.doc = structuredClone(this.payload.document); this.commit(); this.loadIndex(this.index);
+                this.doc = structuredClone(this.payload.document); this.updateDraft(); this.loadIndex(this.index);
             });
             throw new Error("引导尺寸与底图不一致，请重建引导");
         }
         this.buildRegionControls();
     }
 
-    frame() { return this.doc?.frames[value(this.node, "batch_mode", "shared") === "shared" ? 0 : this.index]; }
+    get doc() { return this.draft?.doc; }
+    set doc(doc) { this.draft.doc = doc; }
+    get batchMode() { return this.draft?.mode || "shared"; }
+    frame() { return this.doc?.frames[this.batchMode === "shared" ? 0 : this.index]; }
     region() { return this.frame()?.regions[this.selected]; }
 
     buildRegionControls() {
@@ -174,12 +196,12 @@ class StockingDialog {
         const modeLabel = el("label", "批次引导", this.sidebar);
         const mode = el("select", null, modeLabel);
         el("option", "共享引导", mode, { value: "shared" }); el("option", "逐图引导", mode, { value: "per_image" });
-        mode.value = value(this.node, "batch_mode", "shared");
+        mode.value = this.batchMode;
         mode.onchange = () => {
             this.remember();
             if (mode.value === "per_image") this.doc.frames = Array.from({ length: this.payload.batch }, (_, i) => structuredClone(this.doc.frames[i] || this.doc.frames[0]));
             else this.doc.frames = [structuredClone(this.doc.frames[this.index] || this.doc.frames[0])];
-            setValue(this.node, "batch_mode", mode.value); this.selected = 0; this.commit(); this.loadPlanes();
+            this.draft.mode = mode.value; this.selected = 0; this.updateDraft(); this.loadPlanes();
         };
         el("label", "部位（靠后者优先）", this.sidebar);
         this.regionSelect = el("select", null, this.sidebar);
@@ -189,23 +211,23 @@ class StockingDialog {
         this.sourceCheck = el("input", null, sourceLabel, { type: "checkbox", checked: !!this.region()?.external, disabled: !this.payload.has_mask });
         this.sourceCheck.onchange = () => {
             if (!this.region()) return; this.remember(); this.region().external = this.sourceCheck.checked;
-            this.overlays.delete(this.region().id); this.commit(); this.refreshRegions(); this.draw();
+            this.overlays.delete(this.region().id); this.updateDraft(); this.refreshRegions(); this.draw();
         };
         this.button(this.sidebar, "新增部位", () => {
             this.remember(); this.frame().regions.push({ id: crypto.randomUUID(), name: `部位 ${this.frame().regions.length + 1}`,
                 external: false, mask: "", erase: "", strokes: [], walls: [] });
-            this.selected = this.frame().regions.length - 1; this.commit(); this.loadPlanes();
+            this.selected = this.frame().regions.length - 1; this.updateDraft(); this.loadPlanes();
         });
         this.button(this.sidebar, "重命名", () => {
             if (!this.region()) return; const name = prompt("部位名称", this.region().name);
-            if (name?.trim()) { this.remember(); this.region().name = name.trim(); this.commit(); this.refreshRegions(); }
+            if (name?.trim()) { this.remember(); this.region().name = name.trim(); this.updateDraft(); this.refreshRegions(); }
         });
         this.button(this.sidebar, "删除部位", () => {
             if (!this.region()) return; this.remember(); this.frame().regions.splice(this.selected, 1);
-            this.selected = Math.max(0, this.selected - 1); this.commit(); this.loadPlanes();
+            this.selected = Math.max(0, this.selected - 1); this.updateDraft(); this.loadPlanes();
         });
         this.samControls = el("div", null, this.sidebar);
-        el("small", "走向线横穿部位，决定弧度；隔开线画在折叠交界。滚轮缩放，中键或空格拖动平移。修改自动保存到工作流；正式执行请重新加入队列。", this.sidebar);
+        el("small", "走向线横穿部位，决定弧度；隔开线画在折叠交界。滚轮缩放，中键或空格拖动平移。修改先保留在草稿中，自动更新预览；保存并关闭后再运行工作流。取消或 Esc 会放弃本次修改。", this.sidebar);
     }
 
     refreshRegions() {
@@ -276,19 +298,23 @@ class StockingDialog {
         }
     }
 
-    commit() { this.flushPlanes(); setValue(this.node, "guides_json", JSON.stringify(this.doc)); this.previewBitmap = null; this.schedule(); }
-    snapshot() { return JSON.stringify({ doc: this.doc, mode: value(this.node, "batch_mode", "shared"), selected: this.selected }); }
+    updateDraft() {
+        this.flushPlanes(); this.previewBitmap = null;
+        if (this.saveState) this.saveState.textContent = this.draft.dirty ? "有未保存修改" : "尚未修改";
+        this.schedule();
+    }
+    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected }); }
     remember() {
         this.flushPlanes(); this.history.push(this.snapshot()); this.future = [];
         while (this.history.length > 30 || this.history.reduce((sum, s) => sum + s.length, 0) > 16 * 1024 * 1024) this.history.shift();
     }
     restore(raw) {
         const s = JSON.parse(raw); this.doc = s.doc; this.selected = s.selected;
-        setValue(this.node, "batch_mode", s.mode); this.commit(); this.buildRegionControls(); this.loadPlanes();
+        this.draft.mode = s.mode; this.updateDraft(); this.buildRegionControls(); this.loadPlanes();
     }
     undo() { if (this.history.length) { this.flushPlanes(); this.future.push(this.snapshot()); this.restore(this.history.pop()); } }
     redo() { if (this.future.length) { this.flushPlanes(); this.history.push(this.snapshot()); this.restore(this.future.pop()); } }
-    removeLast(key) { if (this.region()?.[key]?.length) { this.remember(); this.region()[key].pop(); this.commit(); this.draw(); } }
+    removeLast(key) { if (this.region()?.[key]?.length) { this.remember(); this.region()[key].pop(); this.updateDraft(); this.draw(); } }
 
     point(e) { return imagePoint(e.clientX, e.clientY, this.canvas.getBoundingClientRect(), this.view, this.payload.width, this.payload.height); }
     down(e) {
@@ -322,7 +348,7 @@ class StockingDialog {
             rasterPaint(p.erase, d.points, this.radius, d.tool === "erase" ? "white" : "black");
             p.dirty = true; this.overlays.delete(r.id);
         } else if (d.points.length > 1) r[d.tool === "stroke" ? "strokes" : "walls"].push(d.points);
-        this.commit(); this.draw();
+        this.updateDraft(); this.draw();
     }
 
     overlayFor(r, index) {
@@ -401,7 +427,7 @@ class StockingDialog {
                 body.rect = rect;
             }
         } else {
-            body.guides_json = JSON.stringify(this.doc); body.batch_mode = value(this.node, "batch_mode", "shared");
+            body.guides_json = JSON.stringify(this.doc); body.batch_mode = this.batchMode;
         }
         this.status.textContent = `底图 ${this.payload.identity.slice(0, 10)} · 计算版本 ${revision}…`;
         const result = await post("preview", body, controller.signal);
@@ -436,13 +462,14 @@ class StockingDialog {
                 }
                 ctx.putImageData(pixels, 0, 0);
             }
-            p.dirty = true; this.overlays.delete(r.id); this.commit(); this.draw();
+            p.dirty = true; this.overlays.delete(r.id); this.updateDraft(); this.draw();
         }));
     }
 
     key(e) {
-        if (this.closed || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-        if (e.key === "Escape") { this.close(); return; }
+        if (this.closed) return;
+        if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); this.close(); return; }
+        if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
         if (e.code === "Space") { this.space = true; e.preventDefault(); }
         if (!this.renderMode) {
             const key = e.key.toLowerCase();
@@ -452,9 +479,11 @@ class StockingDialog {
         }
     }
 
-    close() {
+    close(save = false) {
         if (this.closed) return;
-        if (!this.renderMode && this.doc) this.commit();
+        if (!this.renderMode && save && this.draft) {
+            this.flushPlanes(); this.draft.save((name, val) => setValue(this.node, name, val));
+        }
         this.closed = true; clearTimeout(this.timer); this.controller.abort(); this.pending?.abort(); this.resize.disconnect();
         document.removeEventListener("keydown", this.keyboard); this.base?.close(); this.external?.close(); this.overlay.remove();
         if (this.node.__stockingDialog === this) this.node.__stockingDialog = null;

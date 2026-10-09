@@ -49,6 +49,8 @@ def graphs(image_name, guides, prefix, density):
     p["8"] = save(["3", 1], "03-depth-guides")
     result.append(("03-深度辅助与贴体纹理", p))
     p = base()
+    p["11"] = {"class_type": "NFStockingSAMLoader", "inputs": {"checkpoint": "sams/sam_vit_b_01ec64.pth", "device": "auto"}}
+    p["2"]["inputs"]["sam"] = ["11", 0]
     for i, (style, _) in enumerate(STYLES, 4):
         p[str(i)] = {"class_type": "NFStockingRender", "inputs": dict(params, style=style)}
         p[str(i + 10)] = save([str(i), 0], "04-" + style)
@@ -85,7 +87,7 @@ def layout(index, prompt):
         for i in range(4, 9):
             positions[str(i)] = [1200, 160 + (i - 4) * 520]
             positions[str(i + 10)] = [1600, 160 + (i - 4) * 520]
-        positions["9"] = [2000, 160]; positions["10"] = [2400, 160]
+        positions["9"] = [2000, 160]; positions["10"] = [2400, 160]; positions["11"] = [0, 600]
     else:
         positions.update({"4": [1200, 160], "5": [1200, 720], "6": [1600, 720], "7": [2000, 720],
                           "8": [1600, 160], "9": [2000, 160], "10": [1600, 1150], "11": [2000, 1150]})

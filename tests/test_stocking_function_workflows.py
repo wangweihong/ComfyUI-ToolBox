@@ -49,6 +49,13 @@ class FunctionalWorkflowsTest(unittest.TestCase):
             self.assertEqual({k: v for k, v in p.items() if k != "style"}, baseline)
         self.assertEqual(sum(p["class_type"] == "NFStockingSolve" for p in prompt.values()), 1)
 
+    def test_comparison_workflow_can_select_regions_with_sam(self):
+        prompt = self.graphs[3][1]
+        loader, slot = prompt["2"]["inputs"]["sam"]
+        self.assertEqual(slot, 0)
+        self.assertEqual(prompt[loader]["class_type"], "NFStockingSAMLoader")
+        self.assertEqual(prompt[loader]["inputs"]["checkpoint"], "sams/sam_vit_b_01ec64.pth")
+
     def test_layer_workflow_uses_opacity_for_composition_and_inverts_png_mask(self):
         prompt = self.graphs[4][1]
         self.assertEqual(prompt["8"]["inputs"]["mask"], ["4", 2])
