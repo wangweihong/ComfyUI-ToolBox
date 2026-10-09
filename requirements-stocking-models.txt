@@ -1,0 +1,3 @@
+# Optional; reuse ComfyUI's torch/torchvision. No automatic downloads at runtime.
+segment-anything==1.0
+transformers>=4.42

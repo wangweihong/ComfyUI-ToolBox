@@ -1,0 +1,400 @@
+{
+  "python": "3.13.12 (main, Feb  4 2026, 00:00:00) [GCC 14.3.1 20250617 (Red Hat 14.3.1-2)]",
+  "torch": "2.11.0+cu130",
+  "cuda": true,
+  "device": "NVIDIA GeForce RTX 5090 D",
+  "note": "Synthetic artwork; solver and renderer are CPU. RSS is cumulative process peak, not per-stage allocation.",
+  "cases": [
+    {
+      "height": 1216,
+      "width": 832,
+      "batch": 1,
+      "cold_solve_seconds": 2.0275975769982324,
+      "cached_solve_seconds": 0.08718807199693401,
+      "renders": [
+        {
+          "style": "knit",
+          "full_batch_seconds": 0.5957068009993236,
+          "warm_512_crop_median_seconds": 0.09852177299762843,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 81950423,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "loops",
+          "full_batch_seconds": 0.3690449760033516,
+          "warm_512_crop_median_seconds": 0.10354187899793033,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 81950424,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "lines",
+          "full_batch_seconds": 0.2679559309981414,
+          "warm_512_crop_median_seconds": 0.0935454819991719,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 98137816,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "grain",
+          "full_batch_seconds": 0.46624440400046296,
+          "warm_512_crop_median_seconds": 0.11075086200071382,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 98137816,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "oily",
+          "full_batch_seconds": 0.9544203220029885,
+          "warm_512_crop_median_seconds": 0.13964652299910085,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 122418903,
+            "limit": 1073741824
+          }
+        }
+      ],
+      "peak_process_rss_mib": 1170.6640625,
+      "region_cache": {
+        "items": 2,
+        "bytes": 18878176,
+        "limit": 268435456
+      }
+    },
+    {
+      "height": 1216,
+      "width": 832,
+      "batch": 4,
+      "cold_solve_seconds": 1.330978647001757,
+      "cached_solve_seconds": 0.30494210200049565,
+      "renders": [
+        {
+          "style": "knit",
+          "full_batch_seconds": 0.7602965650003171,
+          "warm_512_crop_median_seconds": 0.09060511400093674,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 81950423,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "loops",
+          "full_batch_seconds": 0.5442374539998127,
+          "warm_512_crop_median_seconds": 0.10683623700242606,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 81950424,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "lines",
+          "full_batch_seconds": 0.49623331199836684,
+          "warm_512_crop_median_seconds": 0.07478575699860812,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 98137816,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "grain",
+          "full_batch_seconds": 0.5733682339996449,
+          "warm_512_crop_median_seconds": 0.099764820002747,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 98137816,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "oily",
+          "full_batch_seconds": 1.0981063789986365,
+          "warm_512_crop_median_seconds": 0.13907010899856687,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 122418903,
+            "limit": 1073741824
+          }
+        }
+      ],
+      "peak_process_rss_mib": 1507.82421875,
+      "region_cache": {
+        "items": 2,
+        "bytes": 18878176,
+        "limit": 268435456
+      }
+    },
+    {
+      "height": 1920,
+      "width": 1280,
+      "batch": 1,
+      "cold_solve_seconds": 3.3471414639971044,
+      "cached_solve_seconds": 0.2097900490007305,
+      "renders": [
+        {
+          "style": "knit",
+          "full_batch_seconds": 1.2897226809982385,
+          "warm_512_crop_median_seconds": 0.1115516160025436,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 199067415,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "loops",
+          "full_batch_seconds": 0.7839714209985686,
+          "warm_512_crop_median_seconds": 0.11698685499868589,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 199067416,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "lines",
+          "full_batch_seconds": 0.5878183439999702,
+          "warm_512_crop_median_seconds": 0.1329551349990652,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 238389016,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "grain",
+          "full_batch_seconds": 1.0213804529994377,
+          "warm_512_crop_median_seconds": 0.13433776700185263,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 238389016,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "oily",
+          "full_batch_seconds": 2.417084144999535,
+          "warm_512_crop_median_seconds": 0.17064539199782303,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 297371415,
+            "limit": 1073741824
+          }
+        }
+      ],
+      "peak_process_rss_mib": 1716.5,
+      "region_cache": {
+        "items": 2,
+        "bytes": 44590656,
+        "limit": 268435456
+      }
+    },
+    {
+      "height": 1920,
+      "width": 1280,
+      "batch": 4,
+      "cold_solve_seconds": 4.227725124001154,
+      "cached_solve_seconds": 0.9061697800025286,
+      "renders": [
+        {
+          "style": "knit",
+          "full_batch_seconds": 1.8479036850003467,
+          "warm_512_crop_median_seconds": 0.16566811500160838,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 199067415,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "loops",
+          "full_batch_seconds": 1.368634762999136,
+          "warm_512_crop_median_seconds": 0.12049217100138776,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 199067416,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "lines",
+          "full_batch_seconds": 1.2137313339990214,
+          "warm_512_crop_median_seconds": 0.12558328999875812,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 238389016,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "grain",
+          "full_batch_seconds": 1.553052536000905,
+          "warm_512_crop_median_seconds": 0.1330481660006626,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 238389016,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "oily",
+          "full_batch_seconds": 2.9669254790023842,
+          "warm_512_crop_median_seconds": 0.17665733399917372,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 297371415,
+            "limit": 1073741824
+          }
+        }
+      ],
+      "peak_process_rss_mib": 2526.73828125,
+      "region_cache": {
+        "items": 2,
+        "bytes": 44590656,
+        "limit": 268435456
+      }
+    },
+    {
+      "height": 2160,
+      "width": 3840,
+      "batch": 1,
+      "cold_solve_seconds": 12.827154752001661,
+      "cached_solve_seconds": 0.6623349149995192,
+      "renders": [
+        {
+          "style": "knit",
+          "full_batch_seconds": 4.508692757997778,
+          "warm_512_crop_median_seconds": 0.2173833470005775,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 671848215,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "loops",
+          "full_batch_seconds": 2.8415006390023336,
+          "warm_512_crop_median_seconds": 0.22903058899828466,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 671848216,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "lines",
+          "full_batch_seconds": 2.033601852999709,
+          "warm_512_crop_median_seconds": 0.3443341230013175,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 804558616,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "grain",
+          "full_batch_seconds": 3.5948478169993905,
+          "warm_512_crop_median_seconds": 0.22976013099832926,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 804558616,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "oily",
+          "full_batch_seconds": 8.03135741600272,
+          "warm_512_crop_median_seconds": 0.26467861000128323,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 1003624215,
+            "limit": 1073741824
+          }
+        }
+      ],
+      "peak_process_rss_mib": 3640.01953125,
+      "region_cache": {
+        "items": 2,
+        "bytes": 146451264,
+        "limit": 268435456
+      }
+    },
+    {
+      "height": 2160,
+      "width": 3840,
+      "batch": 4,
+      "cold_solve_seconds": 14.558508886999334,
+      "cached_solve_seconds": 2.827072356998542,
+      "renders": [
+        {
+          "style": "knit",
+          "full_batch_seconds": 7.083137892001105,
+          "warm_512_crop_median_seconds": 0.32043273100134684,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 671848215,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "loops",
+          "full_batch_seconds": 5.154733495000983,
+          "warm_512_crop_median_seconds": 0.24596575499890605,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 671848216,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "lines",
+          "full_batch_seconds": 4.3507742590009,
+          "warm_512_crop_median_seconds": 0.3160923939976783,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 804558616,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "grain",
+          "full_batch_seconds": 5.28305435600123,
+          "warm_512_crop_median_seconds": 0.22155968900187872,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 804558616,
+            "limit": 1073741824
+          }
+        },
+        {
+          "style": "oily",
+          "full_batch_seconds": 9.549798519001342,
+          "warm_512_crop_median_seconds": 0.24992183200083673,
+          "scene_cache": {
+            "items": 1,
+            "bytes": 1003624215,
+            "limit": 1073741824
+          }
+        }
+      ],
+      "peak_process_rss_mib": 6462.1484375,
+      "region_cache": {
+        "items": 2,
+        "bytes": 146451264,
+        "limit": 268435456
+      }
+    }
+  ],
+  "peak_cuda_allocated_mib": 0.0
+}

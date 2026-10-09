@@ -5,6 +5,9 @@ from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
+from .nodes.stocking_texture.nodes import NODE_CLASS_MAPPINGS as stocking_nodes_mapping
+from .nodes.stocking_texture.nodes import NODE_DISPLAY_NAME_MAPPINGS as stocking_display_mapping
+from .nodes.stocking_texture import routes as _stocking_routes
 
 
 NODE_CLASS_MAPPINGS = {
@@ -13,10 +16,12 @@ NODE_CLASS_MAPPINGS = {
     **video_compare_nodes_mapping,
     **text_nodes_mapping,
     **prompt_nodes_mapping,
+    **stocking_nodes_mapping,
 }
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **stocking_display_mapping,
     # latent size
     "ToolBoxLatentSize": "tb-latent-size",
     # cinematic prompt

@@ -1,0 +1,17 @@
+{
+  "shape": [
+    1,
+    384,
+    256,
+    3
+  ],
+  "min": 0.0,
+  "max": 1.0,
+  "finite": true,
+  "gpu_seconds": 3.6725705940007174,
+  "offloaded": "cpu",
+  "cpu_seconds": 1.603393404999224,
+  "cpu_gpu_correlation": 0.9999999913167525,
+  "cpu_offloaded": "cpu",
+  "real_comfyui_queue": "success"
+}

@@ -1,0 +1,621 @@
+{
+  "ImageCompositeMasked": {
+    "input": {
+      "required": {
+        "destination": [
+          "IMAGE",
+          {}
+        ],
+        "source": [
+          "IMAGE",
+          {}
+        ],
+        "x": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 16384,
+            "step": 1
+          }
+        ],
+        "y": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 16384,
+            "step": 1
+          }
+        ],
+        "resize_source": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      },
+      "optional": {
+        "mask": [
+          "MASK",
+          {}
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "destination",
+        "source",
+        "x",
+        "y",
+        "resize_source"
+      ],
+      "optional": [
+        "mask"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "display_name": "Image Composite Masked"
+  },
+  "InvertMask": {
+    "input": {
+      "required": {
+        "mask": [
+          "MASK",
+          {}
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "mask"
+      ]
+    },
+    "output": [
+      "MASK"
+    ],
+    "output_name": [
+      "MASK"
+    ],
+    "display_name": "Invert Mask"
+  },
+  "JoinImageWithAlpha": {
+    "input": {
+      "required": {
+        "image": [
+          "IMAGE",
+          {}
+        ],
+        "alpha": [
+          "MASK",
+          {}
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "image",
+        "alpha"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "display_name": "Join Image with Alpha"
+  },
+  "LoadImage": {
+    "input": {
+      "required": {
+        "image": [
+          [
+            "reference.png"
+          ],
+          {
+            "image_upload": true
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "image"
+      ]
+    },
+    "output": [
+      "IMAGE",
+      "MASK"
+    ],
+    "output_name": [
+      "IMAGE",
+      "MASK"
+    ],
+    "display_name": "Load Image"
+  },
+  "MaskToImage": {
+    "input": {
+      "required": {
+        "mask": [
+          "MASK",
+          {}
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "mask"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "display_name": "Convert Mask to Image"
+  },
+  "NFStockingDepth": {
+    "input": {
+      "required": {
+        "images": [
+          "IMAGE"
+        ],
+        "model": [
+          [
+            "stocking_texture/Depth-Anything-V2-Small-hf"
+          ]
+        ],
+        "device": [
+          [
+            "auto",
+            "cpu",
+            "cuda"
+          ]
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "images",
+        "model",
+        "device"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "depth_white_near"
+    ],
+    "display_name": "tb-丝袜深度辅助 Small"
+  },
+  "NFStockingEditor": {
+    "input": {
+      "required": {
+        "images": [
+          "IMAGE"
+        ],
+        "guides_json": [
+          "STRING",
+          {
+            "default": "{}",
+            "multiline": true
+          }
+        ],
+        "batch_mode": [
+          [
+            "shared",
+            "per_image"
+          ],
+          {
+            "default": "shared"
+          }
+        ]
+      },
+      "optional": {
+        "mask": [
+          "MASK"
+        ],
+        "sam": [
+          "NF_STOCKING_SAM"
+        ]
+      },
+      "hidden": {
+        "unique_id": "UNIQUE_ID"
+      }
+    },
+    "input_order": {
+      "required": [
+        "images",
+        "guides_json",
+        "batch_mode"
+      ],
+      "optional": [
+        "mask",
+        "sam"
+      ],
+      "hidden": [
+        "unique_id"
+      ]
+    },
+    "output": [
+      "NF_STOCKING_GUIDES",
+      "MASK",
+      "IMAGE"
+    ],
+    "output_name": [
+      "guides",
+      "regions_mask",
+      "guides_preview"
+    ],
+    "display_name": "tb-丝袜引导编辑器"
+  },
+  "NFStockingRender": {
+    "input": {
+      "required": {
+        "images": [
+          "IMAGE"
+        ],
+        "fields": [
+          "NF_STOCKING_FIELDS"
+        ],
+        "style": [
+          [
+            "knit",
+            "loops",
+            "lines",
+            "grain",
+            "oily"
+          ],
+          {
+            "default": "knit"
+          }
+        ],
+        "density": [
+          "FLOAT",
+          {
+            "default": 100,
+            "min": 40,
+            "max": 200,
+            "step": 1
+          }
+        ],
+        "tilt": [
+          "FLOAT",
+          {
+            "default": 32,
+            "min": 0,
+            "max": 75,
+            "step": 1
+          }
+        ],
+        "strength": [
+          "FLOAT",
+          {
+            "default": 100,
+            "min": 0,
+            "max": 250,
+            "step": 1
+          }
+        ],
+        "strength_auto": [
+          "BOOLEAN",
+          {
+            "default": true
+          }
+        ],
+        "color_exclude": [
+          "BOOLEAN",
+          {
+            "default": true
+          }
+        ],
+        "sparkle_depth": [
+          "FLOAT",
+          {
+            "default": 100,
+            "min": 0,
+            "max": 300,
+            "step": 1
+          }
+        ],
+        "sparkle_bright": [
+          "FLOAT",
+          {
+            "default": 100,
+            "min": 0,
+            "max": 300,
+            "step": 1
+          }
+        ],
+        "sparkle_painted": [
+          "FLOAT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 300,
+            "step": 1
+          }
+        ],
+        "sparkle_even": [
+          "FLOAT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 300,
+            "step": 1
+          }
+        ],
+        "seed": [
+          "INT",
+          {
+            "default": 20261005,
+            "min": 0,
+            "max": 18446744073709551615
+          }
+        ]
+      },
+      "optional": {
+        "sparkle_mask": [
+          "MASK"
+        ]
+      },
+      "hidden": {
+        "unique_id": "UNIQUE_ID"
+      }
+    },
+    "input_order": {
+      "required": [
+        "images",
+        "fields",
+        "style",
+        "density",
+        "tilt",
+        "strength",
+        "strength_auto",
+        "color_exclude",
+        "sparkle_depth",
+        "sparkle_bright",
+        "sparkle_painted",
+        "sparkle_even",
+        "seed"
+      ],
+      "optional": [
+        "sparkle_mask"
+      ],
+      "hidden": [
+        "unique_id"
+      ]
+    },
+    "output": [
+      "IMAGE",
+      "IMAGE",
+      "MASK",
+      "IMAGE",
+      "STRING"
+    ],
+    "output_name": [
+      "image",
+      "stocking_layer",
+      "layer_alpha",
+      "diagnostics",
+      "report"
+    ],
+    "display_name": "tb-丝袜纹理（油光为试验）"
+  },
+  "NFStockingSAMLoader": {
+    "input": {
+      "required": {
+        "checkpoint": [
+          [
+            "sams/sam_vit_b_01ec64.pth"
+          ]
+        ],
+        "device": [
+          [
+            "auto",
+            "cpu",
+            "cuda"
+          ]
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "checkpoint",
+        "device"
+      ]
+    },
+    "output": [
+      "NF_STOCKING_SAM"
+    ],
+    "output_name": [
+      "NF_STOCKING_SAM"
+    ],
+    "display_name": "tb-丝袜 SAM 点选模型"
+  },
+  "NFStockingSolve": {
+    "input": {
+      "required": {
+        "images": [
+          "IMAGE"
+        ],
+        "guides": [
+          "NF_STOCKING_GUIDES"
+        ],
+        "depth_direction": [
+          [
+            "white_near",
+            "black_near"
+          ],
+          {
+            "default": "white_near"
+          }
+        ],
+        "auto_walls": [
+          "BOOLEAN",
+          {
+            "default": true
+          }
+        ]
+      },
+      "optional": {
+        "depth": [
+          "IMAGE"
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "images",
+        "guides",
+        "depth_direction",
+        "auto_walls"
+      ],
+      "optional": [
+        "depth"
+      ]
+    },
+    "output": [
+      "NF_STOCKING_FIELDS",
+      "IMAGE"
+    ],
+    "output_name": [
+      "fields",
+      "isolines_preview"
+    ],
+    "display_name": "tb-丝袜走向求解"
+  },
+  "ParallelVideoComparison": {
+    "input": {
+      "required": {},
+      "optional": {
+        "image1": [
+          "IMAGE"
+        ],
+        "name1": [
+          "STRING",
+          {
+            "default": "Video 1"
+          }
+        ],
+        "image2": [
+          "IMAGE"
+        ],
+        "name2": [
+          "STRING",
+          {
+            "default": "Video 2"
+          }
+        ],
+        "image3": [
+          "IMAGE"
+        ],
+        "name3": [
+          "STRING",
+          {
+            "default": "Video 3"
+          }
+        ],
+        "image4": [
+          "IMAGE"
+        ],
+        "name4": [
+          "STRING",
+          {
+            "default": "Video 4"
+          }
+        ],
+        "image5": [
+          "IMAGE"
+        ],
+        "name5": [
+          "STRING",
+          {
+            "default": "Video 5"
+          }
+        ],
+        "image6": [
+          "IMAGE"
+        ],
+        "name6": [
+          "STRING",
+          {
+            "default": "Video 6"
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [],
+      "optional": [
+        "image1",
+        "name1",
+        "image2",
+        "name2",
+        "image3",
+        "name3",
+        "image4",
+        "name4",
+        "image5",
+        "name5",
+        "image6",
+        "name6"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "IMAGE"
+    ],
+    "display_name": "tb-video-comparison"
+  },
+  "SaveImage": {
+    "input": {
+      "required": {
+        "images": [
+          "IMAGE",
+          {
+            "tooltip": "The images to save."
+          }
+        ],
+        "filename_prefix": [
+          "STRING",
+          {
+            "default": "ComfyUI",
+            "tooltip": "The prefix for the file to save. This may include formatting information such as %date:yyyy-MM-dd% or %Empty Latent Image.width% to include values from nodes."
+          }
+        ]
+      },
+      "hidden": {
+        "prompt": "PROMPT",
+        "extra_pnginfo": "EXTRA_PNGINFO"
+      }
+    },
+    "input_order": {
+      "required": [
+        "images",
+        "filename_prefix"
+      ],
+      "hidden": [
+        "prompt",
+        "extra_pnginfo"
+      ]
+    },
+    "output": [
+      "IMAGE"
+    ],
+    "output_name": [
+      "images"
+    ],
+    "display_name": "Save Image"
+  }
+}

@@ -1,6 +1,13 @@
 # 🧰 ComfyUI-ZImage-Toolbox
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
+
+## 丝袜纹理与引导编辑
+
+新增五个 `NFStocking` 节点：部位/走向/隔开线编辑器、走向求解、五样式纹理渲染、可选 SAM 点选和 Small 深度辅助。
+支持外部 MASK、灰度深度、静态批次、自动细节预览、透明图层与问题诊断；核心流程无需模型下载。
+详见 [安装、工作流与测试说明](docs/stocking_texture.md)，示例位于 [examples/stocking_texture](examples/stocking_texture)。
+
 ## 🚀 核心功能：尺寸管理 (Size Management)
 ### 1. zimage-latent-size (ToolBoxLatentSize)
 

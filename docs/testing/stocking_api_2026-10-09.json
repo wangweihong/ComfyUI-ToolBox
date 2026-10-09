@@ -1,0 +1,39 @@
+[
+  {
+    "variant": "manual",
+    "images": 1,
+    "status": "success",
+    "layer_composite_exact": true,
+    "crop_equals_saved_image": true,
+    "stale_request_rejected": true
+  },
+  {
+    "variant": "external-depth",
+    "images": 1,
+    "status": "success",
+    "layer_composite_exact": true,
+    "crop_equals_saved_image": true,
+    "stale_request_rejected": true
+  },
+  {
+    "variant": "batch",
+    "images": 4,
+    "status": "success",
+    "layer_composite_exact": true,
+    "crop_equals_saved_image": true,
+    "stale_request_rejected": true
+  },
+  {
+    "variant": "sam",
+    "images": 1,
+    "status": "success",
+    "layer_composite_exact": true,
+    "crop_equals_saved_image": true,
+    "stale_request_rejected": true,
+    "sam_areas": [
+      76171,
+      82651,
+      163032
+    ]
+  }
+]

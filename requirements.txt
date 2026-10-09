@@ -1,1 +1,6 @@
 transformers>=4.42,<5
+numpy>=1.26
+scipy>=1.11
+opencv-python>=4.8
+contourpy>=1.2
+Pillow>=10
