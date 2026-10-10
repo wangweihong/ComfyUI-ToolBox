@@ -1,0 +1,106 @@
+[
+  {
+    "id": "knit",
+    "label": "细线",
+    "label_en": "Fine lines",
+    "hint": "纱线之间的细缝透出暖色亮线，浅色丝袜上呈粉色。",
+    "hint_en": "Warm lines through fine gaps between yarns; pink on light fabric.",
+    "period": 0
+  },
+  {
+    "id": "loops",
+    "label": "针织",
+    "label_en": "Knit loops",
+    "hint": "一列列 V 形线圈，接近丝袜加厚部分的织法。",
+    "hint_en": "Columns of V-shaped knit loops.",
+    "period": 0
+  },
+  {
+    "id": "lines",
+    "label": "斜单线",
+    "label_en": "Slanted lines",
+    "hint": "斜向细线；左右部位方向相反，斜度仅用于此样式。",
+    "hint_en": "Slanted fine lines; opposite directions on left/right.",
+    "period": 0
+  },
+  {
+    "id": "grain",
+    "label": "加濑风",
+    "label_en": "Grain knit",
+    "hint": "细碎颗粒感的针织纹理。",
+    "hint_en": "Fine grain knit texture.",
+    "period": 0
+  },
+  {
+    "id": "oily",
+    "label": "油光（试验）",
+    "label_en": "Oily (experimental)",
+    "hint": "试验样式，适合有明显高光的纯色深色丝袜；原画高光决定反光位置。",
+    "hint_en": "Experimental; follows existing highlights on dark fabric.",
+    "period": 0
+  },
+  {
+    "id": "polka",
+    "label": "波点",
+    "label_en": "Polka dots",
+    "hint": "错行排列的小圆点，沿腿部弧度贴合。",
+    "hint_en": "Staggered dots following the fabric surface.",
+    "period": 48
+  },
+  {
+    "id": "hearts",
+    "label": "爱心",
+    "label_en": "Hearts",
+    "hint": "错行爱心印花，可调整大小与颜色。",
+    "hint_en": "Staggered heart motifs with adjustable size and color.",
+    "period": 64
+  },
+  {
+    "id": "diamonds",
+    "label": "菱格",
+    "label_en": "Diamonds",
+    "hint": "相连菱格线条，贴合腿部走向。",
+    "hint_en": "Linked diamonds following fabric direction.",
+    "period": 56
+  },
+  {
+    "id": "fishnet_small",
+    "label": "小渔网",
+    "label_en": "Fine fishnet",
+    "hint": "细密菱形网格，保留原图透肤与明暗。",
+    "hint_en": "Fine diamond mesh preserving original shading.",
+    "period": 24
+  },
+  {
+    "id": "fishnet_large",
+    "label": "大渔网",
+    "label_en": "Wide fishnet",
+    "hint": "大孔菱形网格，可切换织物或印花表现。",
+    "hint_en": "Wide diamond mesh in fabric or print mode.",
+    "period": 72
+  },
+  {
+    "id": "lace",
+    "label": "蕾丝",
+    "label_en": "Lace",
+    "hint": "花瓣、藤蔓与细网交织的蕾丝纹样。",
+    "hint_en": "Floral lace with vines and fine mesh.",
+    "period": 100
+  },
+  {
+    "id": "floral",
+    "label": "花卉",
+    "label_en": "Floral",
+    "hint": "花朵与叶片交错排列，沿腿部弯曲。",
+    "hint_en": "Flowers and leaves following the leg curvature.",
+    "period": 110
+  },
+  {
+    "id": "leopard",
+    "label": "豹纹",
+    "label_en": "Leopard",
+    "hint": "不规则斑环与小斑点组成的豹纹。",
+    "hint_en": "Irregular rosettes and small spots.",
+    "period": 90
+  }
+]

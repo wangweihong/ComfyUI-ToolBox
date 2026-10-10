@@ -141,6 +141,26 @@ def parse_guides(text, height, width, batch, mode="shared", external=False):
             for key in ("mask", "erase"):
                 if not isinstance(region.get(key, ""), str):
                     raise ValueError(f"{key} 必须为 PNG base64 字符串")
+            damage = region.get("damage_strokes", [])
+            if not isinstance(damage, list) or len(damage) > 512:
+                raise ValueError("每个部位最多支持 512 条损伤路径")
+            for stroke in damage:
+                if not isinstance(stroke, dict) or stroke.get("type") not in ("snag", "ladder"):
+                    raise ValueError("损伤类型必须为 snag 或 ladder")
+                thickness = stroke.get("width")
+                if isinstance(thickness, bool) or not isinstance(thickness, (int, float)) or not np.isfinite(thickness) or not 1 <= thickness <= 256:
+                    raise ValueError("损伤宽度必须在 [1,256]")
+                try:
+                    coords = np.asarray(stroke.get("points"), np.float64)
+                except (ValueError, TypeError) as exc:
+                    raise ValueError("损伤坐标无效") from exc
+                if coords.ndim != 2 or coords.shape[1] != 2 or not len(coords) or not np.isfinite(coords).all():
+                    raise ValueError("损伤路径至少需要一个有限的 [x,y] 坐标")
+                if (coords[:,0] < 0).any() or (coords[:,0] >= width).any() or (coords[:,1] < 0).any() or (coords[:,1] >= height).any():
+                    raise ValueError("损伤坐标超出图像范围")
+                points += len(coords)
+                if points > MAX_POINTS:
+                    raise ValueError("引导点数超过限制")
             for key in ("strokes", "walls"):
                 lines = region.get(key, [])
                 if not isinstance(lines, list):

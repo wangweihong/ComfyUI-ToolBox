@@ -1,5 +1,6 @@
 """Headless solver/render pipeline. The browser and queue use these same functions."""
 import threading
+import copy
 import time
 import warnings
 
@@ -10,6 +11,8 @@ from scipy.sparse.linalg import MatrixRankWarning
 from . import data
 from .cache import REGION_CACHE, SCENE_CACHE
 from .core import coverage, guide_fields as gf, look, walls
+from .styles import base_style, PATTERNS
+from .effects import clean_effects, render_effects
 
 ALGORITHM_VERSION = "ad4cc92-v1"
 _solve_lock = threading.RLock()
@@ -143,6 +146,7 @@ def solve_one(image, frame, masks, depth=None, auto_walls=True):
               "cut": cut, "walls": wall_map, "unguided": (reg > 0) & ~guided, "depth": depth,
               "names": [r["name"] for r in frame["regions"]], "solve_seconds": time.perf_counter() - start,
               "cache_hits": hits, "cache_misses": misses, "notes": notes}
+    result["damage_strokes"] = [copy.deepcopy(r.get("damage_strokes", [])) for r in frame["regions"]]
     result["signature"] = data.digest(ALGORITHM_VERSION, reg, soft, values[0], values[3], cut, depth, result["names"], result["unguided"])
     return result
 
@@ -203,7 +207,7 @@ def clean_params(params, depth_available=True):
         if isinstance(value, (int, float)) and not np.isfinite(value):
             raise ValueError(f"参数 {k} 必须为有限数值")
     # Sources stay independent in ComfyUI; the desktop's linked sliders are a UI convenience.
-    q = look.clean_params(dict(params, sparkle_link=False))
+    q = look.clean_params(dict(params, style=base_style(params.get("style", "knit")), sparkle_link=False))
     if not depth_available:
         q["sparkle_depth"] = 0.0
     return q
@@ -213,12 +217,19 @@ def render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=Non
     start = time.perf_counter()
     scene = scene_for(image, f, color_exclude, seed, painted)
     q = clean_params(params, f["depth"] is not None)
+    style = params.get("style", "knit")
+    effects = clean_effects(params.get("effects_json", "{}"))
+    extended = style in PATTERNS or effects["text"]["enabled"] or effects["damage"]["enabled"]
     sl = (slice(None), slice(None)) if rect is None else (slice(rect[1], rect[3]), slice(rect[0], rect[2]))
     if scene.R.any():
-        out_bgr, info = scene.render(q, rect=rect)
+        out_bgr, info = scene.render(q, rect=None if extended else rect)
         # Scene caches geometry metadata; per-frame diagnostics must not mutate it.
         info = dict(info)
         fraction, fade = scene.fade(q)
+        if extended:
+            out_bgr, effect_info = render_effects(scene, f, out_bgr, style, effects, q)
+            out_bgr = out_bgr[sl]
+            info.update(effect_info)
     else:
         # Empty/unguided domains need no render, including images too small for np.gradient.
         out_bgr = scene.src[sl].copy()
@@ -240,7 +251,7 @@ def render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=Non
         unguided = f["unguided"][sl]
         for mask, color in [(faded, (1, 0.15, 0.15)), (excluded, (0.1, 0.4, 1)), (unguided, (1, 0.85, 0))]:
             diag[mask] = diag[mask] * 0.5 + np.array(color) * 0.5
-    info.update(faded_fraction=fraction, seed=int(seed), effective_strength=scene.resolve(q)["strength"],
+    info.update(style=style, faded_fraction=fraction, seed=int(seed), effective_strength=scene.resolve(q)["strength"],
                 solve_seconds=f["solve_seconds"], render_seconds=time.perf_counter() - start,
                 cache_hits=f["cache_hits"], cache_misses=f["cache_misses"],
                 unguided_pixels=int(f["unguided"].sum()), changed_pixels=int(changed.sum()), notes=f["notes"])

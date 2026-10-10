@@ -1,12 +1,14 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261010-unified";
-import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261010-unified";
-import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261010-unified";
-import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261010-unified";
+import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261010-effects2";
+import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261010-effects2";
+import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261010-effects2";
+import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261010-effects2";
 
-import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261010-unified";
-import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261010-unified";
+import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261010-effects2";
+import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261010-effects2";
+import { PATTERN_STYLES } from "./stocking_style_registry.mjs?v=20261010-effects2";
+import { readEffects, effectPatch, damageStroke, upgradeEffectsValue } from "./stocking_effects_state.mjs?v=20261010-effects2";
 const CLASSES = new Set(["NFStockingEditor", "NFStockingRender", "NFStockingTexture"]);
 const API_ROOT = "/toolbox/stocking";
 const COLORS = ["#48dfaf", "#ffb45a", "#96aaff", "#ff78c8"];
@@ -99,6 +101,7 @@ class StockingDialog {
         this.node = node; this.payload = payload; this.renderMode = render;
         this.unified = node.comfyClass === "NFStockingTexture";
         this.settings = { ...payload.params };
+        this.initialSettings = JSON.stringify(this.settings);
         if (this.unified && !payload.sam3_available && this.settings.source_mode === "semantic") this.settings.source_mode = "manual";
         this.initialDocument = JSON.stringify(payload.document);
         if (this.unified) node.__stockingDialog = this;
@@ -136,7 +139,7 @@ class StockingDialog {
         const tools = el("div", null, dialog, { className: "tb-stocking-tools" });
         this.tools = tools;
         if (!render) {
-            for (const [key, label] of [["paint", "画笔 B"], ["erase", "橡皮 E"], ["stroke", "走向 P"], ["wall", "隔开 W"], ["sam", "点选 S"], ["pan", "平移"]]) {
+            for (const [key, label] of [["paint", "画笔 B"], ["erase", "橡皮 E"], ["stroke", "走向 P"], ["wall", "隔开 W"], ["sam", "点选 S"], ["damage", "钩丝 D"], ["pan", "平移"]]) {
                 const b = this.button(tools, label, () => { this.tool = key; this.markTools(); });
                 b.dataset.tool = key;
                 if (key === "sam") {
@@ -150,6 +153,10 @@ class StockingDialog {
             this.button(tools, "撤销", () => this.undo()); this.button(tools, "重做", () => this.redo());
             this.button(tools, "删除最后走向", () => this.removeLast("strokes"));
             this.button(tools, "删除最后隔开", () => this.removeLast("walls"));
+            this.button(tools, "删除最后损伤", () => this.removeLast("damage_strokes"));
+            const damageType = el("select", null, tools, { title: "手工损伤类型" });
+            for (const [id, label] of [["snag", "钩丝"], ["ladder", "梯状抽丝"]]) el("option", label, damageType, { value: id });
+            damageType.onchange = () => this.manualDamageType = damageType.value;
         } else {
             this.button(tools, "标出问题", e => { this.diagnostics = !this.diagnostics; e.classList.toggle("active", this.diagnostics); this.schedule(); });
             this.button(tools, "对比原图", e => { this.showOriginal = !this.showOriginal; e.classList.toggle("active", this.showOriginal); this.draw(); });
@@ -325,6 +332,7 @@ class StockingDialog {
     }
 
     buildRenderControls() {
+        el("h3", "基础样式", this.sidebar);
         const label = el("label", "样式", this.sidebar);
         this.styleSelect = el("select", null, label, { value: value(this.node, "style", "knit") });
         for (const [val, text] of Object.entries(STYLE_LABELS)) el("option", text, this.styleSelect, { value: val });
@@ -375,6 +383,7 @@ class StockingDialog {
             else { seed.value = String(value(this.node, "seed", 20261005)); this.status.textContent = "种子请输入有效整数；超出浏览器精确整数范围的种子请使用 API。"; }
         };
         this.refreshRenderControls();
+        this.buildEffectControls();
         el("small", this.unified ? "滑杆自动更新草稿预览；保存并关闭后运行工作流得到正式输出。取消不保存参数。整体定位细节，拖动分界线对比原图。" : "拖动滑杆自动预览并写入本渲染节点；关闭后运行工作流得到正式输出。整体点击定位细节，拖分界线对比；细节使用导出的原像素。修改引导后需重新运行工作流。", this.sidebar);
     }
 
@@ -387,6 +396,100 @@ class StockingDialog {
             } else setValue(this.node, name, val);
         }
         this.refreshRenderControls(); this.schedule();
+        this.updateSaveState();
+    }
+
+    updateSaveState() {
+        if (this.saveState) this.saveState.textContent = this.draft?.dirty || JSON.stringify(this.settings) !== this.initialSettings ? "有未保存修改" : "尚未修改";
+    }
+
+    effects() { return readEffects(value(this.node, "effects_json", "{}")); }
+
+    changeEffect(group, key, raw) {
+        const next = effectPatch(value(this.node, "effects_json", "{}"), group, key, raw);
+        if (next === null) { this.status.textContent = "文字仅支持最多 128 个英文、数字、空格和常见标点；数值必须有效。"; return; }
+        this.changeParameter("effects_json", next);
+    }
+
+    buildEffectControls() {
+        this.effectControls = [];
+        const add = (parent, group, key, label, spec) => {
+            const row = el("label", label, parent);
+            let input;
+            if (Array.isArray(spec)) {
+                input = el("select", null, row);
+                for (const [val, text] of spec) el("option", text, input, { value: val });
+            } else input = el("input", null, row, spec);
+            input.dataset.setting = "effects_json"; input.setAttribute("aria-label", label);
+            const update = () => this.changeEffect(group, key, input.type === "checkbox" ? input.checked : input.value);
+            input.onchange = update;
+            if (["range", "color", "text"].includes(input.type)) input.oninput = update;
+            if (input.type === "number") input.oninput = () => {
+                if (input.value !== "" && Number(input.value) >= Number(input.min) && Number(input.value) <= Number(input.max)) update();
+            };
+            this.effectControls.push({ input, group, key });
+            return input;
+        };
+        const number = (min,max,value=100) => ({ type: "number", min, max, step: 1, value });
+        this.patternControls = el("section", null, this.sidebar);
+        el("h3", "花纹", this.patternControls);
+        add(this.patternControls,"pattern","mode","表现模式",[["fabric","织物"],["print","印花"]]);
+        add(this.patternControls,"pattern","size","花纹大小 %",number(25,400));
+        add(this.patternControls,"pattern","rotation","花纹旋转 °",number(-180,180,0));
+        add(this.patternControls,"pattern","color","花纹颜色",{type:"color"});
+        add(this.patternControls,"pattern","opacity","花纹不透明度 %",number(0,100,70));
+        const text = el("section",null,this.sidebar); el("h3","英文印花",text);
+        add(text,"text","enabled","启用英文印花",{type:"checkbox"});
+        const presetLabel = el("label","文字预设",text);
+        this.textPreset = el("select",null,presetLabel); this.textPreset.setAttribute("aria-label","文字预设");
+        for (const v of ["BALENCIAGA","PARIS","custom"]) el("option",v === "custom" ? "自定义" : v,this.textPreset,{value:v});
+        this.textPreset.onchange = () => { if (this.textPreset.value !== "custom") this.changeEffect("text","content",this.textPreset.value); };
+        this.textPreset.dataset.setting = "effects_json";
+        add(text,"text","content","英文文字",{type:"text",maxLength:128});
+        add(text,"text","size","文字字号 %",number(25,400));
+        add(text,"text","spacing_x","文字列间距 %",number(25,400));
+        add(text,"text","spacing_y","文字行间距 %",number(25,400));
+        add(text,"text","rotation","文字旋转 °",number(-180,180,0));
+        add(text,"text","color","文字颜色",{type:"color"});
+        add(text,"text","opacity","文字不透明度 %",number(0,100,70));
+        el("small","英文错行重复排列，字母不随左右腿镜像。",text);
+        const damage = el("section",null,this.sidebar); el("h3","损伤",damage);
+        add(damage,"damage","enabled","启用损伤",{type:"checkbox"});
+        add(damage,"damage","mode","损伤方式",[["random","随机"],["manual","手工"],["both","随机＋手工"]]);
+        add(damage,"damage","type","损伤类型",[["mixed","钩丝＋抽丝"],["snag","钩丝"],["ladder","梯状抽丝"]]);
+        add(damage,"damage","count","每部位随机数量",number(0,50,5));
+        add(damage,"damage","length","损伤长度 %",number(25,400));
+        add(damage,"damage","width","损伤宽度 %",number(25,400));
+        add(damage,"damage","strength","损伤强度 %",number(0,100,60));
+        if (this.unified) {
+            const target = el("label","损伤目标部位",damage);
+            this.damageRegionSelect = el("select",null,target); this.damageRegionSelect.setAttribute("aria-label","损伤目标部位");
+            this.damageRegionSelect.onchange = () => { this.selected = Number(this.damageRegionSelect.value); this.draw(); };
+            this.damagePaint = this.button(damage,"手工定位损伤",b => { this.tool = this.tool === "damage" ? "pan" : "damage"; b.classList.toggle("active",this.tool === "damage"); this.markTools(); });
+            this.button(damage,"删除最后损伤",() => this.removeLast("damage_strokes"));
+            const history = el("div",null,damage,{className:"tb-stocking-candidates"});
+            this.button(history,"撤销",() => this.undo()); this.button(history,"重做",() => this.redo());
+            el("small","点击生成局部损伤，拖动画出路径；右键删除最后损伤。",damage);
+        } else el("small","手工损伤请在上游引导编辑器中绘制，保存后重新运行求解节点。",damage);
+        this.refreshEffectControls();
+    }
+
+    refreshEffectControls() {
+        if (!this.effectControls) return;
+        const cfg = this.effects();
+        this.patternControls.hidden = !PATTERN_STYLES.has(value(this.node,"style","knit")) && !cfg.text.enabled;
+        for (const {input,group,key} of this.effectControls) {
+            if (input.type === "checkbox") input.checked = cfg[group][key];
+            else if (document.activeElement !== input) input.value = cfg[group][key];
+        }
+        this.textPreset.value = ["BALENCIAGA","PARIS"].includes(cfg.text.content) ? cfg.text.content : "custom";
+        if (this.damageRegionSelect) {
+            this.damageRegionSelect.replaceChildren();
+            for (const [i,r] of (this.frame()?.regions || []).entries()) el("option",r.name,this.damageRegionSelect,{value:String(i)});
+            this.damageRegionSelect.value = String(this.selected);
+            this.damagePaint.disabled = !this.region() || this.node.inputs?.some(i => i.name === "effects_json" && i.link != null);
+            this.damagePaint.classList.toggle("active",this.tool === "damage");
+        }
     }
 
     refreshRenderControls(info) {
@@ -402,6 +505,7 @@ class StockingDialog {
             control.slider.value = val;
             if (document.activeElement !== control.number) control.number.value = val;
         }
+        this.refreshEffectControls();
     }
 
     setZoom(scale) {
@@ -530,17 +634,19 @@ class StockingDialog {
     updateDraft() {
         this.flushPlanes(); this.previewBitmap = null;
         if (this.samCandidates) this.samCandidates.visual = null;
-        if (this.saveState) this.saveState.textContent = this.draft.dirty ? "有未保存修改" : "尚未修改";
+        this.updateSaveState();
         this.schedule();
     }
-    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected, index: this.index }); }
+    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected, index: this.index, settings: this.settings }); }
     remember() {
         this.flushPlanes(); this.history.push(this.snapshot()); this.future = [];
         while (this.history.length > 30 || this.history.reduce((sum, s) => sum + s.length, 0) > 16 * 1024 * 1024) this.history.shift();
     }
     restore(raw) {
         const s = JSON.parse(raw); this.doc = s.doc; this.selected = s.selected;
+        if (s.settings) this.settings = s.settings;
         this.draft.mode = s.mode; this.updateDraft(); this.buildRegionControls();
+        if (this.effectControls) this.refreshRenderControls();
         if (s.index !== this.index) {
             this.indexSelect.value = String(s.index); this.loadIndex(s.index).catch(e => this.error(e));
         } else this.loadPlanes().catch(e => this.error(e));
@@ -553,13 +659,13 @@ class StockingDialog {
     down(e) {
         if (!this.base || this.loading || this.planeLoading || this.loadedIndex !== this.index) return;
         this.canvas.setPointerCapture(e.pointerId);
-        if (this.tool === "pan" || this.space || e.button === 1 || this.renderMode) {
+        if (this.tool === "pan" || this.space || e.button === 1 || (this.renderMode && this.tool !== "damage")) {
             this.fitMode = false;
             this.drag = { pan: true, x: e.clientX, y: e.clientY, view: { ...this.view } }; return;
         }
         if (!this.region()) { this.status.textContent = "请先新增部位"; return; }
         if (this.tool === "sam") { this.samClick(this.point(e), e.button === 2).catch(err => this.error(err)); return; }
-        if (e.button === 2) { this.removeLast(this.tool === "wall" ? "walls" : "strokes"); return; }
+        if (e.button === 2) { this.removeLast(this.tool === "damage" ? "damage_strokes" : this.tool === "wall" ? "walls" : "strokes"); return; }
         this.remember(); this.drag = { points: [this.point(e)], tool: this.tool, regionId: this.region().id, index: this.index };
         this.draw();
     }
@@ -577,7 +683,17 @@ class StockingDialog {
         if (d.pan) { if (this.renderMode) this.schedule(); this.draw(); return; }
         if (d.index !== this.index || d.regionId !== this.region()?.id) return;
         const p = this.planes.get(d.regionId), r = this.region();
-        if (["paint", "erase"].includes(d.tool) && p) {
+        if (d.tool === "damage") {
+            const cfg = this.effects().damage;
+            const type = this.manualDamageType || (cfg.type === "mixed" ? ((r.damage_strokes?.length || 0) % 2 ? "ladder" : "snag") : cfg.type);
+            const scale = Math.sqrt(this.payload.width*this.payload.height/(1280*1920));
+            (r.damage_strokes ||= []).push(damageStroke(d.points,type,Math.max(1,4*scale*cfg.width/100)));
+            if (this.unified) {
+                let raw = effectPatch(value(this.node,"effects_json","{}"),"damage","enabled",true);
+                raw = effectPatch(raw,"damage","mode",cfg.mode === "random" ? "both" : cfg.mode);
+                this.settings.effects_json = raw; this.refreshEffectControls();
+            }
+        } else if (["paint", "erase"].includes(d.tool) && p) {
             rasterPaint(p.mask, d.points, this.radius, d.tool === "paint" ? "white" : "black");
             rasterPaint(p.erase, d.points, this.radius, d.tool === "erase" ? "white" : "black");
             p.dirty = true; this.overlays.delete(r.id);
@@ -686,6 +802,7 @@ class StockingDialog {
                 this.drawCoverage(ctx, sam && i === this.selected ? sam.result : this.overlayFor(r, i), i === this.selected ? 0.45 : 0.22, i === this.selected && !sam);
                 this.drawLines(ctx, r.strokes, i === this.selected ? "#ffe563" : COLORS[i % COLORS.length], 2 / this.view.scale);
                 this.drawLines(ctx, r.walls, "#ff795e", 3 / this.view.scale);
+                for (const s of r.damage_strokes || []) this.drawLines(ctx,[s.points],s.type === "ladder" ? "#ef9af2" : "#b9e6ff",Math.max(1/this.view.scale,s.width));
             });
             if (sam) this.drawCoverage(ctx, sam.change, 0.5, true);
         }
@@ -969,9 +1086,9 @@ class StockingDialog {
         if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); this.close(); return; }
         if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
         if (e.code === "Space") { this.space = true; e.preventDefault(); }
-        if (!this.renderMode) {
+        if (!this.renderMode || this.tool === "damage") {
             const key = e.key.toLowerCase();
-            const map = { b: "paint", e: "erase", p: "stroke", w: "wall", s: "sam" };
+            const map = { b: "paint", e: "erase", p: "stroke", w: "wall", s: "sam", d: "damage" };
             if (map[key] && (key !== "s" || this.payload.sam_available)) { this.tool = map[key]; this.markTools(); }
             if ((e.ctrlKey || e.metaKey) && key === "z") { e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); }
         }
@@ -1060,8 +1177,11 @@ app.registerExtension({
         const created = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = created?.apply(this, arguments);
-            const w = widget(this, "guides_json");
-            if (w) { w.type = "hidden"; w.computeSize = () => [0, -4]; if (w.inputEl) w.inputEl.style.display = "none"; }
+            this.__stockingInputWidgetCount = this.widgets?.length || 0;
+            for (const name of ["guides_json", "effects_json"]) {
+                const w = widget(this, name);
+                if (w) { w.type = "hidden"; w.computeSize = () => [0, -4]; if (w.inputEl) w.inputEl.style.display = "none"; }
+            }
             if (nodeData.name === "NFStockingRender") {
                 const strength = widget(this, "strength"), callback = strength?.callback, node = this;
                 if (strength) strength.callback = function () {
@@ -1076,6 +1196,8 @@ app.registerExtension({
                     if (w.inputEl) w.inputEl.style.display = "none";
                 }
                 this.__stockingSummary = this.addWidget("text", translate("状态", app.extensionManager?.setting?.get("Comfy.Locale") || "zh"), "", () => {}, { serialize: false });
+                this.__stockingSummary.serialize = false;
+                this.__stockingSummary.serializeValue = () => undefined;
                 updateSummary(this);
             }
             if (nodeData.name !== "NFStockingRender") this.addWidget("button", translate(unified ? "编辑与预览" : "编辑丝袜引导", app.extensionManager?.setting?.get("Comfy.Locale") || "zh"), null, async () => {
@@ -1098,12 +1220,27 @@ app.registerExtension({
                 } catch (e) { app.extensionManager?.toast?.add({ severity: "error", summary: e.message, life: 8000 }); console.error(e); }
                 finally { this.__stockingPreparing = false; }
             }, { serialize: false });
+            else this.addWidget("button",translate("预览纹理",app.extensionManager?.setting?.get("Comfy.Locale") || "zh"),null,() => {
+                if (!this.__stockingPayload?.preview_available) {
+                    app.extensionManager?.toast?.add({severity:"info",summary:translate("请先运行渲染节点取得底图",app.extensionManager?.setting?.get("Comfy.Locale") || "zh"),life:4000}); return;
+                }
+                this.__stockingDialog?.close(); this.__stockingDialog = new StockingDialog(this,this.__stockingPayload,true);
+            },{serialize:false});
             this.size[0] = Math.max(this.size[0], 300);
             return result;
         };
         const configured = nodeType.prototype.onConfigure;
         nodeType.prototype.onConfigure = function () {
-            const result = configured?.apply(this, arguments); updateSummary(this); return result;
+            const result = configured?.apply(this, arguments);
+            const effects = widget(this,"effects_json");
+            if (effects) effects.value = upgradeEffectsValue(effects.value);
+            updateSummary(this); return result;
+        };
+        const serialized = nodeType.prototype.onSerialize;
+        nodeType.prototype.onSerialize = function (info) {
+            const result = serialized?.apply(this,arguments);
+            if (Array.isArray(info.widgets_values)) info.widgets_values = info.widgets_values.slice(0,this.__stockingInputWidgetCount);
+            return result;
         };
         const executed = nodeType.prototype.onExecuted;
         nodeType.prototype.onExecuted = function (message) {

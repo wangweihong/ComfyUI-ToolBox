@@ -97,6 +97,10 @@
       },
       "model": {
         "name": "Depth model"
+      },
+      "effects_json": {
+        "name": "Pattern, lettering and damage",
+        "tooltip": "Optional version 1 effect configuration; editable in the texture panel."
       }
     },
     "description": "Edit regions, direction and style in one window. SAM3 segments each frame; original point selection is preserved. Failed frames are skipped; source_images aligns with successful outputs.",
@@ -415,6 +419,10 @@
       },
       "model": {
         "name": "Depth model"
+      },
+      "effects_json": {
+        "name": "Pattern, lettering and damage",
+        "tooltip": "Optional version 1 effect configuration; editable in the texture panel."
       }
     }
   },

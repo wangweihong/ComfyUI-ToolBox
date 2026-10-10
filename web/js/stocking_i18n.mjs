@@ -1,3 +1,4 @@
+import { STYLE_REGISTRY } from "./stocking_style_registry.mjs?v=20261010-effects2";
 // Stable style IDs and node keys remain unchanged; only visible text is translated.
 const EN = {
     "手动强度": "Manual strength", "个部位": "regions", "数值": " value",
@@ -62,6 +63,23 @@ const EN = {
     "已取消本次点选，已有选区未改变。": "Point selection cancelled; existing regions unchanged.",
     "保存并关闭后写入工作流。": "Save and close to commit to workflow.", "候选": "candidate", "已": "", "数值": "value",
 };
+
+for (const style of STYLE_REGISTRY) { EN[style.label] = style.label_en; EN[style.hint] = style.hint_en; }
+Object.assign(EN, {
+    "基础样式": "Base style", "花纹": "Pattern", "表现模式": "Appearance", "织物": "Fabric", "印花": "Print",
+    "花纹大小 %": "Pattern size %", "花纹旋转 °": "Pattern rotation °", "花纹颜色": "Pattern color", "花纹不透明度 %": "Pattern opacity %",
+    "英文印花": "English lettering", "启用英文印花": "Enable lettering", "文字预设": "Text preset", "自定义": "Custom", "英文文字": "English text",
+    "文字字号 %": "Text size %", "文字列间距 %": "Text column spacing %", "文字行间距 %": "Text row spacing %", "文字旋转 °": "Text rotation °", "文字颜色": "Text color", "文字不透明度 %": "Text opacity %",
+    "英文错行重复排列，字母不随左右腿镜像。": "Staggered repeating text; letters are never mirrored between legs.",
+    "损伤": "Damage", "启用损伤": "Enable damage", "损伤方式": "Damage placement", "损伤类型": "Damage type", "随机＋手工": "Random + manual", "随机": "Random", "手工": "Manual",
+    "钩丝＋抽丝": "Snags + ladders", "梯状抽丝": "Ladder runs", "钩丝 D": "Snags D", "钩丝": "Snags", "每部位随机数量": "Random count per region",
+    "损伤长度 %": "Damage length %", "损伤宽度 %": "Damage width %", "损伤强度 %": "Damage strength %", "损伤目标部位": "Damage target region",
+    "手工定位损伤": "Draw damage", "删除最后损伤": "Delete last damage", "手工损伤类型": "Manual damage type",
+    "点击生成局部损伤，拖动画出路径；右键删除最后损伤。": "Click to create local damage, drag to draw its path; right-click removes the last mark.",
+    "手工损伤请在上游引导编辑器中绘制，保存后重新运行求解节点。": "Draw manual damage in the upstream guide editor, save and rerun the solver.",
+    "文字仅支持最多 128 个英文、数字、空格和常见标点；数值必须有效。": "Text supports up to 128 ASCII characters; numeric values must be valid.",
+    "预览纹理": "Preview texture", "请先运行渲染节点取得底图": "Run the renderer first to acquire its image",
+});
 
 export function translate(text, locale = "zh") {
     if (!String(locale).toLowerCase().startsWith("en")) return text;

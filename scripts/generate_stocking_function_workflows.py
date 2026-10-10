@@ -11,7 +11,7 @@ import urllib.request
 from PIL import Image
 
 SCALARS = {"STRING", "INT", "FLOAT", "BOOLEAN"}
-STYLES = [("knit", "细线"), ("loops", "针织"), ("lines", "斜单线"), ("grain", "加濑风"), ("oily", "油光（试验）")]
+STYLES = [(s["id"], s["label"]) for s in json.loads((Path(__file__).resolve().parents[1] / "web/js/stocking_styles.json").read_text()) if not s["period"]]
 
 
 def graphs(image_name, guides, prefix, density):

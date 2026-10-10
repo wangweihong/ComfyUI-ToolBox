@@ -221,6 +221,10 @@ def process_one(image, frame, external, depth, painted, params, color_exclude, s
 def process_batch(images, guides_json, source_mode, params, mask=None, depth=None, sparkle_mask=None,
                   sam3_model=None, prompt="stockings", threshold=0.4, failure_mode="skip",
                   auto_direction=True, depth_direction="white_near", auto_walls=True, color_exclude=True, seed=20261005):
+    from .effects import clean_effects
+    from .styles import base_style
+    clean_effects(params.get("effects_json", "{}"))
+    base_style(params.get("style", "knit"))
     if source_mode not in ("semantic", "manual", "mask") or failure_mode not in ("skip", "error"):
         raise ValueError("未知来源或失败处理模式")
     if source_mode == "semantic":

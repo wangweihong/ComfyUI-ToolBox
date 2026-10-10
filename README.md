@@ -4,7 +4,9 @@
 
 ## 丝袜纹理与引导编辑
 
-推荐 `NFStockingTexture` 一体化节点：直接准备底图，在同一窗口编辑部位、走向和五种纹理。
+推荐 `NFStockingTexture` 一体化节点：直接准备底图，在同一窗口编辑部位、走向和十三种纹理/花纹，叠加自定义英文印花及随机/手工钩丝、梯状抽丝。
+
+新增八种花纹支持织物/印花切换；英文印花提供 BALENCIAGA、PARIS 和自由输入。公开工作流位于 `examples/stocking_texture/effects/`，参见 [使用说明](docs/stocking_texture.md) 与 [花纹验收](docs/testing/stocking_effects_2026-10-10.md)。
 保留原有 SAM 点选，支持可选 SAM3 逐图语义识别、基础走向、外部 MASK/深度、批次过滤及透明图层合成。
 手工核心无需模型；旧 Editor/Solve/Render 节点保留为高级流程。
 详见 [安装、工作流与测试说明](docs/stocking_texture.md)，示例位于 [examples/stocking_texture](examples/stocking_texture)。

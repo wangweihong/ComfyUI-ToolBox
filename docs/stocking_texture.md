@@ -1,6 +1,6 @@
 # 丝袜纹理节点
 
-节点位于 `南风节点/丝袜纹理`，由 ComfyUI-ToolBox 注册。五种样式依次为 `knit`（细线）、`loops`（针织）、
+节点位于 `南风节点/丝袜纹理`，由 ComfyUI-ToolBox 注册。原有五种样式依次为 `knit`（细线）、`loops`（针织）、
 `lines`（斜单线）、`grain`（加濑风）、`oily`（油光，试验）。不需要扩散模型；手工流程无需 SAM 或深度模型。
 
 ## 安装和升级
@@ -197,3 +197,30 @@ python -m unittest discover -s tests -p test_stocking_function_workflows.py
 04 已连接 SAM 句柄以支持编辑器点选，五种样式仍共用同一求解结果和其余参数，便于公平比较；05 同时导出透明图层、重合成结果和诊断图。
 
 本次一体化节点的队列、批次及界面验收见 [2026-10-10 一体化验收](testing/stocking_unified_2026-10-10.md)。
+## 花纹、英文印花和钩丝
+
+样式下拉框保留细线、针织、斜单线、加濑风、油光，并新增波点、爱心、菱格、小渔网、大渔网、蕾丝、花卉、豹纹。
+在统一编辑器的「纹理」页调整「基础样式」「花纹」「英文印花」「损伤」。新花纹有织物和印花两种表现：织物结合原图明暗，印花保留指定颜色与清晰轮廓；都会沿腿部弧度变形。
+
+花纹大小与原有织纹密度独立。100% 对应 1280×1920 参考尺寸，随图像面积缩放，支持 25–400%；旋转、颜色与不透明度可单独设置。英文印花默认关闭，内置 BALENCIAGA / PARIS 预设，也可输入最多 128 个英文、数字、空格和常见标点，保留大小写。文字错行重复，字号、行列间距、方向、颜色和不透明度独立可调，字母不会随左右腿镜像。
+
+损伤默认关闭。启用后可选择随机、手工或随机＋手工，以及钩丝、梯状抽丝或混合类型。随机数量按每个部位计算，由现有随机种子和图片身份共同确定。手工定位工具可点击生成一段局部损伤，或拖动画出路径；选择目标部位后再绘制，右键/「删除最后损伤」删除最后一条，支持撤销重做。上游高级引导编辑器也提供「钩丝 D」工具，可选择钩丝或梯状抽丝，保存后重新运行求解与渲染节点。
+
+统一窗口「保存并关闭」保存参数及图片绑定的损伤；取消或 Esc 放弃草稿。高级渲染节点在执行后可点击「预览纹理」，参数按原有方式直接写入节点。当前图像渲染不会生成裸肤底图；渔网、蕾丝和抽丝表现基于原图，不是替换服装或生成破洞。
+
+一体化与高级渲染节点新增末尾可选 `effects_json` 输入，旧工作流省略它即可。格式示例：
+
+```json
+{
+  "version": 1,
+  "pattern": {"mode": "fabric", "size": 100, "rotation": 0, "color": "#000000", "opacity": 70},
+  "text": {"enabled": true, "content": "BALENCIAGA", "size": 100, "spacing_x": 100, "spacing_y": 100, "rotation": -12, "color": "#000000", "opacity": 70},
+  "damage": {"enabled": true, "mode": "both", "type": "mixed", "count": 5, "length": 100, "width": 100, "strength": 60}
+}
+```
+
+引导的每个部位可增加 `damage_strokes`，例如 `[{"type":"ladder","points":[[100,200],[105,260]],"width":3}]`；单点会沿部位走向延伸，坐标为原图像素。缺省为空。修改损伤不会重算几何，效果缓存按参数与路径隔离，最多 128 MiB；花纹/字体图集缓存最多 16 MiB。预览和队列共用渲染，遮罩外原图与透明图层合成约定保持一致。
+
+公开例子位于 `examples/stocking_texture/effects/`：06 花纹总览、07 英文印花、08 钩丝抽丝、09 组合效果。先把 `examples/stocking_texture/assets/tb_stocking_demo.png` 复制到 `ComfyUI/input/`，再加载示例。均使用项目合成图片，不需要 SAM3 或深度模型，不默认保存输出文件。
+
+English: choose one of thirteen styles, then adjust Fabric/Print appearance, English lettering and Snags/Ladder runs in the texture panel. Lettering and damage are disabled by default. Text supports up to 128 printable ASCII characters; BALENCIAGA and PARIS are editable presets. Manual damage follows the selected region and image; Save and close commits the unified draft, while Cancel discards it. All effects preserve pixels outside the mask. The optional version-1 `effects_json` input and `damage_strokes` guide field are backward compatible. A bundled DejaVu Sans Bold font keeps offline lettering reproducible; its license is included with the font.
