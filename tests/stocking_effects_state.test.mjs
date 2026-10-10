@@ -6,8 +6,8 @@ import { GuideDraft } from "../web/js/stocking_editor_state.mjs";
 import { recordsForSave } from "../web/js/stocking_unified_state.mjs";
 import { translate } from "../web/js/stocking_i18n.mjs";
 
-test("thirteen styles retain the original IDs and effects default to disabled", () => {
-    assert.equal(STYLE_REGISTRY.length,13);
+test("fourteen styles retain the original IDs and effects default to disabled", () => {
+    assert.equal(STYLE_REGISTRY.length,14);
     assert.deepEqual(STYLE_REGISTRY.slice(0,5).map(s=>s.id),["knit","loops","lines","grain","oily"]);
     const a = readEffects(); a.text.content = "Changed";
     assert.equal(readEffects().text.content,"BALENCIAGA");

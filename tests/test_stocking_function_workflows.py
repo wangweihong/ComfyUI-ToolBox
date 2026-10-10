@@ -43,7 +43,7 @@ class FunctionalWorkflowsTest(unittest.TestCase):
     def test_style_comparison_shares_geometry_and_all_other_parameters(self):
         prompt = self.graphs[3][1]
         renderers = [p["inputs"] for p in prompt.values() if p["class_type"] == "NFStockingRender"]
-        self.assertEqual({p["style"] for p in renderers}, {"knit", "loops", "lines", "grain", "oily"})
+        self.assertEqual({p["style"] for p in renderers}, {"knit", "loops", "lines", "grain", "oily", "coil"})
         baseline = {k: v for k, v in renderers[0].items() if k != "style"}
         for p in renderers:
             self.assertEqual({k: v for k, v in p.items() if k != "style"}, baseline)

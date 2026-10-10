@@ -1,0 +1,428 @@
+{
+  "last_node_id": 5,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "NFStockingPSDLoad",
+      "title": "tb-丝袜 PSD/PSB 导入",
+      "pos": [
+        0,
+        160
+      ],
+      "size": [
+        330,
+        290
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            1,
+            5,
+            7
+          ]
+        },
+        {
+          "name": "guides_json",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "advanced_guides_json",
+          "type": "STRING",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "links": [
+            3,
+            9
+          ]
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingPSDLoad"
+      },
+      "widgets_values": [
+        "tb_stocking_guides.psd"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        420,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "guides_json",
+          "type": "STRING",
+          "link": 2,
+          "widget": {
+            "name": "guides_json"
+          }
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": 3
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": null
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "coil",
+        100,
+        32,
+        100,
+        true,
+        true,
+        0,
+        0,
+        60,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "manual",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "soft",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "title": "Preview Image",
+      "pos": [
+        840,
+        160
+      ],
+      "size": [
+        330,
+        290
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 3,
+      "type": "NFStockingEditor",
+      "title": "部位与走向编辑 · 先运行再打开",
+      "pos": [
+        1260,
+        160
+      ],
+      "size": [
+        330,
+        290
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "name": "guides_json",
+          "type": "STRING",
+          "link": 6,
+          "widget": {
+            "name": "guides_json"
+          }
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "guides",
+          "type": "NF_STOCKING_GUIDES",
+          "links": [
+            8
+          ]
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "guides_preview",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingEditor"
+      },
+      "widgets_values": [
+        "{}",
+        "shared"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "NFStockingPSDSave",
+      "title": "tb-丝袜引导 PSD 导出",
+      "pos": [
+        0,
+        520
+      ],
+      "size": [
+        330,
+        290
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        },
+        {
+          "name": "guides",
+          "type": "NF_STOCKING_GUIDES",
+          "link": 8
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "files",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingPSDSave"
+      },
+      "widgets_values": [
+        "ToolBoxStocking/upstream/guides-roundtrip",
+        "{}"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      1,
+      1,
+      2,
+      1,
+      "STRING"
+    ],
+    [
+      3,
+      1,
+      3,
+      2,
+      4,
+      "MASK"
+    ],
+    [
+      4,
+      2,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      1,
+      2,
+      3,
+      1,
+      "STRING"
+    ],
+    [
+      7,
+      1,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      3,
+      0,
+      4,
+      1,
+      "NF_STOCKING_GUIDES"
+    ],
+    [
+      9,
+      1,
+      3,
+      4,
+      2,
+      "MASK"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7,
+      "offset": [
+        80,
+        230
+      ]
+    }
+  },
+  "version": 0.4
+}

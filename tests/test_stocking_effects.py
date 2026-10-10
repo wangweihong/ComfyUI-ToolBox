@@ -122,7 +122,8 @@ def test_stroke_validation_and_legacy_widget_order():
     assert NFStockingRender.INPUT_TYPES()["required"]["style"][0] == list(STYLES)
     assert list(NFStockingRender.INPUT_TYPES()["required"])[-1] == "seed"
     assert list(NFStockingTexture.INPUT_TYPES()["required"])[-1] == "failure_mode"
-    assert list(NFStockingTexture.INPUT_TYPES()["optional"])[-1] == "effects_json"
+    assert list(NFStockingTexture.INPUT_TYPES()["optional"])[:6] == ["mask", "depth", "sparkle_mask", "sam", "sam3_model", "effects_json"]
+    assert list(NFStockingRender.INPUT_TYPES()["optional"])[:2] == ["sparkle_mask", "effects_json"]
     image,_,doc = fixture()
     broken = copy.deepcopy(doc)
     broken["frames"][0]["regions"][0]["damage_strokes"] = [{"type":"ladder","points":[[-1,10]],"width":2}]

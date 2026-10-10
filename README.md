@@ -20,7 +20,11 @@
 | 选区与修边 | 支持画笔、橡皮、外部 MASK，以及可选 SAM ViT-B 点选；候选范围可预览、应用或取消 |
 | SAM3 语义识别 | 可选连接 Easy-Sam3 image 模型加载器，按 `stockings` 等文本逐图识别部位，再手工修边 |
 | 走向与深度 | 手绘横向引导控制纹理弧度；缺少手绘引导时可生成基础走向，可选灰度深度辅助贴合与隔开 |
-| 13 种样式 | 原有细线、针织、斜单线、加濑风、油光（试验）；新增波点、爱心、菱格、小渔网、大渔网、蕾丝、花卉、豹纹 |
+| 14 种样式 | 原有细线、针织、斜单线、加濑风、油光（试验）；新版增加透肤自适应 Coil 线圈，以及波点、爱心、菱格、小渔网、大渔网、蕾丝、花卉、豹纹 |
+| 上游新版渲染 | 显式切换至 f74c8ac，使用 Coil、深度摩尔纹及新版连续油光；旧工作流默认保持原输出 |
+| 部位编辑与镜像 | 手画切开、自动贴线分割、合并、清空、走向镜像、指针删除和横／纵引导显示 |
+| 材质预设与恢复 | 按用户保存材质预设；独立自动恢复草稿，仍需保存并关闭才写入节点 |
+| PSD 互通 | 可选 psd-tools 支持 PSD/PSB 导入、引导 PSD 导出，以及成品和柔和透明 PNG |
 | 花纹表现 | 新花纹支持「织物／印花」切换，大小、旋转、颜色和不透明度独立可调 |
 | 英文印花 | 提供 BALENCIAGA、PARIS 预设及自由输入，支持最多 128 个可打印 ASCII 字符；字号、行列间距、方向、颜色和不透明度可调 |
 | 钩丝与抽丝 | 支持随机、手工或混合生成钩丝和梯状抽丝，可调整数量、长度、宽度和强度；手工路径支持删除、撤销和重做 |
@@ -35,7 +39,7 @@
 ### 快速上手
 
 1. 将插件放入 `ComfyUI/custom_nodes/ComfyUI-ToolBox`，按 [安装说明](docs/stocking_texture.md#安装和升级) 安装依赖，然后重启 ComfyUI 并刷新页面。
-2. 将 [公开示例图片](examples/stocking_texture/assets) 中的 `tb_stocking_demo*.png` 复制到 `ComfyUI/input/`。
+2. 将 [公开示例素材](examples/stocking_texture/assets) 中的 `tb_stocking_demo*.png` 复制到 `ComfyUI/input/`。PSD 示例另需复制 `tb_stocking_guides.psd`，并安装 `requirements-stocking-psd.txt`。
 3. 把下表中的普通 `.json` 工作流拖入 ComfyUI。初次体验建议选择 **06-八种花纹总览**，已有合成图选区，无需准备识别或深度模型。
 4. 点击主节点的「编辑与预览」，选择样式、调整参数或绘制损伤；「保存并关闭」后运行工作流生成结果。替换为自己的图片后，需重新建立该图片的选区。
 
@@ -57,6 +61,17 @@
 | [08-钩丝与梯状抽丝](examples/stocking_texture/effects/08-钩丝与梯状抽丝.json) | 随机损伤与预设手工路径组合，可继续编辑；无需识别/深度模型 |
 | [09-花纹文字损伤组合](examples/stocking_texture/effects/09-花纹文字损伤组合.json) | 爱心花纹、PARIS 字样和损伤叠加；无需识别/深度模型 |
 
+新增上游能力示例（无需识别模型）：
+
+| 工作流 | 用途 |
+| --- | --- |
+| [10-Coil透肤线圈](examples/stocking_texture/upstream/10-Coil透肤线圈.json) | 新版线圈与柔和图层 |
+| [11-深度摩尔纹](examples/stocking_texture/upstream/11-深度摩尔纹.json) | 使用公开合成深度图调整强度与面积 |
+| [12-新旧油光对比](examples/stocking_texture/upstream/12-新旧油光对比.json) | 原图、兼容版油光与新版油光 |
+| [13-柔和图层与组合效果](examples/stocking_texture/upstream/13-柔和图层与组合效果.json) | 蕾丝、PARIS、损伤、透明 PNG 和重合成 |
+| [14-PSD引导导入导出](examples/stocking_texture/upstream/14-PSD引导导入导出.json) | 读入引导并在 output 保存新的引导 PSD |
+| [04-六种纹理并排对比](examples/stocking_texture/unified/04-六种纹理并排对比.json) | 原图与六种基础样式；需对应识别模型，旧五样式示例保留 |
+
 高级分步例子：[手工引导](examples/stocking_texture/manual.json)、[外部遮罩与深度](examples/stocking_texture/external-depth.json)、[SAM 点选](examples/stocking_texture/sam.json)、[批次渲染](examples/stocking_texture/batch.json)。这些高级例子包含 SaveImage 节点，执行前可调整保存位置。
 
 ### 效果预览与验证
@@ -65,7 +80,9 @@
 
 ![八种丝袜花纹对比](docs/images/stocking_patterns_overview.png)
 
-验证记录：[一体化编辑与模型验收](docs/testing/stocking_unified_2026-10-10.md)、[花纹、英文印花与钩丝验收](docs/testing/stocking_effects_2026-10-10.md)。
+![上游新版丝袜效果对比](docs/images/stocking_upstream_comparison.png)
+
+验证记录：[上游能力验收](docs/testing/stocking_upstream_2026-10-11.md)、[一体化编辑与模型验收](docs/testing/stocking_unified_2026-10-10.md)、[花纹、英文印花与钩丝验收](docs/testing/stocking_effects_2026-10-10.md)。
 
 ## 🚀 核心功能：尺寸管理 (Size Management)
 ### 1. zimage-latent-size (ToolBoxLatentSize)

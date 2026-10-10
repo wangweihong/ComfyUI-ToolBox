@@ -124,6 +124,16 @@ def parse_guides(text, height, width, batch, mode="shared", external=False):
         if not isinstance(frame, dict) or not isinstance(frame.get("regions"), list):
             raise ValueError("每帧必须包含 regions 数组")
         regions = frame["regions"]
+        erasures = frame.get("wall_erasures", [])
+        if not isinstance(erasures, list) or len(erasures) > 4096:
+            raise ValueError("自动隔开删除记录无效或过多")
+        for xy in erasures:
+            if not isinstance(xy, list) or len(xy) != 2 or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not np.isfinite(v) for v in xy) or not (0 <= xy[0] < width and 0 <= xy[1] < height):
+                raise ValueError("自动隔开删除坐标无效")
+        if not isinstance(frame.get("sparkle", ""), str):
+            raise ValueError("亮点遮罩必须为 PNG base64 字符串")
+        if frame.get("sparkle"):
+            decode_mask(frame["sparkle"], height, width)
         if len(regions) > MAX_REGIONS:
             raise ValueError(f"每帧最多 {MAX_REGIONS} 个部位")
         ids = set()
@@ -134,6 +144,10 @@ def parse_guides(text, height, width, batch, mode="shared", external=False):
             if not isinstance(rid, str) or not rid or rid in ids:
                 raise ValueError("部位 id 必须唯一且非空")
             ids.add(rid)
+            if "color" in region:
+                import re
+                if not isinstance(region["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", region["color"]):
+                    raise ValueError("部位颜色必须为 #RRGGBB")
             if not isinstance(region.get("name"), str):
                 raise ValueError("部位 name 必须为字符串")
             if not isinstance(region.get("external", False), bool):

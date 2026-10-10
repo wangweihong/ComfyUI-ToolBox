@@ -1,6 +1,8 @@
-export { STYLE_LABELS, STYLE_HINTS } from "./stocking_style_registry.mjs?v=20261010-effects2";
-export const PARAM_KEYS = ["style", "density", "tilt", "strength", "strength_auto", "sparkle_depth", "sparkle_bright", "sparkle_painted", "sparkle_even", "effects_json"];
+export { STYLE_LABELS, STYLE_HINTS } from "./stocking_style_registry.mjs?v=20261010-upstream1";
+export const PARAM_KEYS = ["style", "density", "tilt", "strength", "strength_auto", "sparkle_depth", "sparkle_bright", "sparkle_painted", "sparkle_even", "effects_json", "renderer_version", "layer_mode", "moire_on", "moire", "moire_area", "sparkle_link"];
 export const SLIDERS = [
+    {key:"moire", label:"摩尔纹强度",min:0,max:100,unit:"%",hint:"新版渲染，需要有效深度。"},
+    {key:"moire_area", label:"摩尔纹面积",min:0,max:100,unit:"%",hint:"从鼓起处向外扩展。"},
     { key: "density", label: "密度", min: 40, max: 200, unit: "%", hint: "横纹疏密；接近像素大小时会自动限制并衰减。" },
     { key: "strength", label: "纹理强度", min: 0, max: 250, unit: "%", hint: "拖动即切换为手动强度，不影响亮点。" },
     { key: "tilt", label: "斜度", min: 0, max: 75, unit: "°", hint: "斜单线的倾斜角度。" },

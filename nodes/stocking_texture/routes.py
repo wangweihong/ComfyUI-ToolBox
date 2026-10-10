@@ -29,7 +29,7 @@ def image_index(value, session):
 
 
 def preview_sync(session, payload):
-    from .engine import solve_one, render_one, isolines
+    from .engine import solve_one, render_one, isolines, guide_overlays
     i = image_index(payload.get("index", 0), session)
     image = session["images"][i]
     overview = None
@@ -46,6 +46,10 @@ def preview_sync(session, payload):
             bool(settings.get("auto_direction", True)), bool(settings.get("auto_walls", True)))
         output, _, _, diag, _, info, field = rendered
         out = isolines(image, field) if payload.get("view") == "guides" else data.rgb8(diag if payload.get("diagnostics") else output)
+        if payload.get("overlay_settings") is not None:
+            info["overlays"] = guide_overlays(field, payload["overlay_settings"])
+            if payload.get("view") == "guides":
+                out = data.rgb8(image)
         rect = payload.get("rect")
         if rect is not None:
             if not isinstance(rect, list) or len(rect) != 4 or any(not isinstance(v, int) for v in rect):
@@ -70,6 +74,9 @@ def preview_sync(session, payload):
         out = isolines(image, f)
         info = {"solve_seconds": f["solve_seconds"], "cache_hits": f["cache_hits"], "cache_misses": f["cache_misses"],
                 "unguided_pixels": int(f["unguided"].sum()), "notes": f["notes"]}
+        if payload.get("overlay_settings") is not None:
+            info["overlays"] = guide_overlays(f, payload["overlay_settings"])
+            out = data.rgb8(image)
     else:
         f = session["fields"]["frames"][i]
         rect = payload.get("rect")
@@ -234,6 +241,8 @@ def register_routes():
     instance.routes.get("/toolbox/stocking/image")(source)
     instance.routes.post("/toolbox/stocking/preview")(preview)
     instance.routes.post("/toolbox/stocking/sam")(sam)
+    from .feature_routes import register
+    register(instance, get_session, post_body, _workers, _gate)
 
 
 register_routes()

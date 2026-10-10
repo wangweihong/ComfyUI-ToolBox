@@ -101,6 +101,24 @@
       "effects_json": {
         "name": "Pattern, lettering and damage",
         "tooltip": "Optional version 1 effect configuration; editable in the texture panel."
+      },
+      "renderer_version": {
+        "name": "Renderer version"
+      },
+      "layer_mode": {
+        "name": "Layer mode"
+      },
+      "moire_on": {
+        "name": "Moiré"
+      },
+      "moire": {
+        "name": "Moiré strength"
+      },
+      "moire_area": {
+        "name": "Moiré area"
+      },
+      "sparkle_link": {
+        "name": "Link sparkle sliders"
       }
     },
     "description": "Edit regions, direction and style in one window. SAM3 segments each frame; original point selection is preserved. Failed frames are skipped; source_images aligns with successful outputs.",
@@ -423,6 +441,24 @@
       "effects_json": {
         "name": "Pattern, lettering and damage",
         "tooltip": "Optional version 1 effect configuration; editable in the texture panel."
+      },
+      "renderer_version": {
+        "name": "Renderer version"
+      },
+      "layer_mode": {
+        "name": "Layer mode"
+      },
+      "moire_on": {
+        "name": "Moiré"
+      },
+      "moire": {
+        "name": "Moiré strength"
+      },
+      "moire_area": {
+        "name": "Moiré area"
+      },
+      "sparkle_link": {
+        "name": "Link sparkle sliders"
       }
     }
   },
@@ -621,5 +657,16 @@
         "name": "Depth model"
       }
     }
+  },
+  "NFStockingPSDLoad": {
+    "display_name": "tb-Stocking PSD/PSB load",
+    "inputs": {
+      "psd_file": {
+        "name": "PSD/PSB file"
+      }
+    }
+  },
+  "NFStockingPSDSave": {
+    "display_name": "tb-Stocking guide PSD save"
   }
 }

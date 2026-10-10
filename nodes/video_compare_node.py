@@ -6,9 +6,9 @@ import os
 class ParallelVideoComparison:
     @classmethod
     def INPUT_TYPES(s):
-        # 预设 6 个槽位，不连线则不处理
+        # Append the seventh slot; the original input order stays intact.
         optional_inputs = {}
-        for i in range(1, 7):
+        for i in range(1, 8):
             optional_inputs[f"image{i}"] = ("IMAGE",)
             optional_inputs[f"name{i}"] = ("STRING", {"default": f"Video {i}"})
             
@@ -25,7 +25,7 @@ class ParallelVideoComparison:
         active_data = []
 
         # 1. 自动检测连线：过滤出所有连入了 image 信号的槽位
-        for i in range(1, 7):
+        for i in range(1, 8):
             img_key = f"image{i}"
             if img_key in kwargs and kwargs[img_key] is not None:
                 active_data.append({

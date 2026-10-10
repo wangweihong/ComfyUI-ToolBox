@@ -1,4 +1,4 @@
-import registry from "./stocking_styles.json?v=20261010-effects2" with { type: "json" };
+import registry from "./stocking_styles.json?v=20261010-upstream1" with { type: "json" };
 
 export const STYLE_REGISTRY = registry;
 export const STYLE_LABELS = Object.fromEntries(registry.map(s => [s.id, s.label]));

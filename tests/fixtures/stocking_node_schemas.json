@@ -550,6 +550,15 @@
           {
             "default": "Video 6"
           }
+        ],
+        "image7": [
+          "IMAGE"
+        ],
+        "name7": [
+          "STRING",
+          {
+            "default": "Video 7"
+          }
         ]
       }
     },
@@ -567,7 +576,9 @@
         "image5",
         "name5",
         "image6",
-        "name6"
+        "name6",
+        "image7",
+        "name7"
       ]
     },
     "output": [

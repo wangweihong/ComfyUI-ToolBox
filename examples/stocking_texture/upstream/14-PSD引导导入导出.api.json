@@ -1,0 +1,87 @@
+{
+  "1": {
+    "class_type": "NFStockingPSDLoad",
+    "inputs": {
+      "psd_file": "tb_stocking_guides.psd"
+    }
+  },
+  "2": {
+    "class_type": "NFStockingTexture",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": [
+        "1",
+        1
+      ],
+      "source_mode": "manual",
+      "prompt": "stockings",
+      "threshold": 0.4,
+      "auto_direction": true,
+      "depth_direction": "white_near",
+      "auto_walls": true,
+      "failure_mode": "skip",
+      "style": "coil",
+      "density": 100,
+      "tilt": 32,
+      "strength": 100,
+      "strength_auto": true,
+      "color_exclude": true,
+      "sparkle_depth": 0,
+      "sparkle_bright": 0,
+      "sparkle_painted": 60,
+      "sparkle_even": 0,
+      "seed": 20261005,
+      "effects_json": "{}",
+      "renderer_version": "upstream_f74c8ac",
+      "layer_mode": "soft",
+      "sparkle_mask": [
+        "1",
+        3
+      ]
+    }
+  },
+  "5": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "NFStockingEditor",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": [
+        "1",
+        2
+      ],
+      "batch_mode": "shared"
+    }
+  },
+  "4": {
+    "class_type": "NFStockingPSDSave",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides": [
+        "3",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/upstream/guides-roundtrip",
+      "sparkle_mask": [
+        "1",
+        3
+      ]
+    }
+  }
+}

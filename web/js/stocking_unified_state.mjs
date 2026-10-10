@@ -1,5 +1,5 @@
 // Image-specific edits never become a shared mask for an unrelated batch frame.
-export const SETTING_KEYS = ["style", "density", "tilt", "strength", "strength_auto", "color_exclude", "sparkle_depth", "sparkle_bright", "sparkle_painted", "sparkle_even", "seed", "source_mode", "prompt", "threshold", "auto_direction", "depth_direction", "auto_walls", "failure_mode", "effects_json"];
+export const SETTING_KEYS = ["style", "density", "tilt", "strength", "strength_auto", "color_exclude", "sparkle_depth", "sparkle_bright", "sparkle_painted", "sparkle_even", "seed", "source_mode", "prompt", "threshold", "auto_direction", "depth_direction", "auto_walls", "failure_mode", "effects_json", "renderer_version", "layer_mode", "moire_on", "moire", "moire_area", "sparkle_link"];
 
 export function recordsForSave(raw, document, identities, initial = null) {
     const parsed = JSON.parse(raw || "{}");

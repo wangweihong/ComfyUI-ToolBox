@@ -1,4 +1,4 @@
-import { STYLE_REGISTRY } from "./stocking_style_registry.mjs?v=20261010-effects2";
+import { STYLE_REGISTRY } from "./stocking_style_registry.mjs?v=20261010-upstream1";
 // Stable style IDs and node keys remain unchanged; only visible text is translated.
 const EN = {
     "手动强度": "Manual strength", "个部位": "regions", "数值": " value",
@@ -75,10 +75,26 @@ Object.assign(EN, {
     "钩丝＋抽丝": "Snags + ladders", "梯状抽丝": "Ladder runs", "钩丝 D": "Snags D", "钩丝": "Snags", "每部位随机数量": "Random count per region",
     "损伤长度 %": "Damage length %", "损伤宽度 %": "Damage width %", "损伤强度 %": "Damage strength %", "损伤目标部位": "Damage target region",
     "手工定位损伤": "Draw damage", "删除最后损伤": "Delete last damage", "手工损伤类型": "Manual damage type",
-    "点击生成局部损伤，拖动画出路径；右键删除最后损伤。": "Click to create local damage, drag to draw its path; right-click removes the last mark.",
+    "点击生成局部损伤，拖动画出路径；右键删除指针附近的损伤。": "Click to create local damage, drag to draw its path; right-click removes the mark near the pointer.",
     "手工损伤请在上游引导编辑器中绘制，保存后重新运行求解节点。": "Draw manual damage in the upstream guide editor, save and rerun the solver.",
     "文字仅支持最多 128 个英文、数字、空格和常见标点；数值必须有效。": "Text supports up to 128 ASCII characters; numeric values must be valid.",
     "预览纹理": "Preview texture", "请先运行渲染节点取得底图": "Run the renderer first to acquire its image",
+});
+
+Object.assign(EN, {
+ "切开 K":"Cut K", "切线自动贴线":"Snap cut to line art", "自动分割":"Split automatically", "清空选区":"Clear selection", "部位颜色":"Region color",
+ "部位（新绘制取得像素归属）":"Regions (new painting claims pixels)", "合并 / 镜像目标":"Merge / mirror target",
+ "合并到目标":"Merge into target", "镜像走向到目标":"Mirror direction into target", "横向引导":"Courses", "纵向引导":"Wales", "自动隔开":"Detected barriers",
+ "渲染版本":"Renderer version", "兼容旧版":"Legacy compatible", "上游新版 f74c8ac":"Upstream f74c8ac", "透明图层":"Transparent layer",
+ "精确替换图层":"Exact replacement layer", "柔和丝袜图层":"Soft stocking layer", "摩尔纹（需要新版与深度）":"Moiré (new renderer and depth required)",
+ "摩尔纹强度":"Moiré strength", "摩尔纹面积":"Moiré area", "新版渲染，需要有效深度。":"New renderer; valid depth required.", "从鼓起处向外扩展。":"Expand from each bulge crown.",
+ "关联深度 / 亮部亮点":"Link depth / highlight sparkles", "材质预设":"Material presets", "加载预设":"Load preset", "保存 / 覆盖预设":"Save / replace preset", "删除预设":"Delete preset",
+ "恢复材质默认":"Reset material defaults", "不可读取":"Unreadable", "导入 PSD 引导":"Import PSD guides", "导出成品":"Export finished PNG", "导出透明 PNG":"Export transparent PNG",
+ "导出引导 PSD":"Export guide PSD", "发现未保存草稿":"Unsaved draft found", "恢复草稿":"Recover draft", "丢弃草稿":"Discard draft", "撤销预设 / 默认":"Undo preset / reset",
+ "指针附近没有可删除的线":"No removable line near pointer", "已跳过连接输入":"Skipped connected inputs", "镜像完成":"Mirror complete", "轮廓拟合误差":"Outline fit error",
+ "Coil 与摩尔纹需选择上游新版。新版油光增加柔光带、暗边与跨遮挡连续高光，仍为试验样式。":"Coil and moiré require the new renderer. New glossy adds soft bands, dark edges and glints across occlusions; still experimental.",
+ "摩尔纹需要有效灰度深度图，请连接 depth 输入":"Moiré requires valid grayscale depth; connect depth", "Coil / 摩尔纹需要切换到 upstream_f74c8ac 新版渲染":"Coil / moiré require the upstream_f74c8ac renderer",
+ "草稿恢复保存失败；仍可保存节点":"Draft recovery save failed; node saving still works",
 });
 
 export function translate(text, locale = "zh") {

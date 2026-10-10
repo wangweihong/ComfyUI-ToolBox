@@ -102,5 +102,13 @@
     "hint": "不规则斑环与小斑点组成的豹纹。",
     "hint_en": "Irregular rosettes and small spots.",
     "period": 90
+  },
+  {
+    "id": "coil",
+    "label": "线圈",
+    "label_en": "Coil",
+    "hint": "新版渲染：透肤处呈现清晰线圈，不透肤处减弱为细颗粒。",
+    "hint_en": "New renderer: clear loops on sheer fabric and fine grain on opaque fabric.",
+    "period": 0
   }
 ]

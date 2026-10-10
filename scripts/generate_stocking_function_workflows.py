@@ -49,18 +49,19 @@ def graphs(image_name, guides, prefix, density):
     p["8"] = save(["3", 1], "03-depth-guides")
     result.append(("03-深度辅助与贴体纹理", p))
     p = base()
-    p["11"] = {"class_type": "NFStockingSAMLoader", "inputs": {"checkpoint": "sams/sam_vit_b_01ec64.pth", "device": "auto"}}
-    p["2"]["inputs"]["sam"] = ["11", 0]
-    for i, (style, _) in enumerate(STYLES, 4):
-        p[str(i)] = {"class_type": "NFStockingRender", "inputs": dict(params, style=style)}
-        p[str(i + 10)] = save([str(i), 0], "04-" + style)
+    def add(node):
+        key = str(max(map(int, p)) + 1); p[key] = node; return key
+    loader = add({"class_type": "NFStockingSAMLoader", "inputs": {"checkpoint": "sams/sam_vit_b_01ec64.pth", "device": "auto"}})
+    p["2"]["inputs"]["sam"] = [loader, 0]
     compare = {"image1": ["1", 0], "name1": "Original"}
+    names = dict(knit="Fine", loops="Loops", lines="Slant", grain="Grain", oily="Oily", coil="Coil")
     for i, (style, _) in enumerate(STYLES, 2):
-        compare[f"image{i}"] = [str(i + 2), 0]
-        compare[f"name{i}"] = {"knit": "Fine", "loops": "Loops", "lines": "Slant", "grain": "Grain", "oily": "Oily"}[style]
-    p["9"] = {"class_type": "ParallelVideoComparison", "inputs": compare}
-    p["10"] = save(["9", 0], "04-five-styles")
-    result.append(("04-五种纹理并排对比", p))
+        render = add({"class_type": "NFStockingRender", "inputs": dict(params, style=style, renderer_version="upstream_f74c8ac")})
+        add(save([render, 0], "04-" + style))
+        compare[f"image{i}"] = [render, 0]; compare[f"name{i}"] = names[style]
+    comparison = add({"class_type": "ParallelVideoComparison", "inputs": compare})
+    add(save([comparison, 0], "04-six-styles"))
+    result.append(("04-六种纹理并排对比", p))
     p = base()
     p["4"] = {"class_type": "NFStockingRender", "inputs": dict(params, style="loops")}
     p["5"] = {"class_type": "InvertMask", "inputs": {"mask": ["4", 2]}}
@@ -84,10 +85,18 @@ def layout(index, prompt):
     elif index == 3:
         positions.update({"4": [0, 600], "5": [1200, 160], "6": [400, 600], "7": [1600, 160], "8": [800, 600]})
     elif index == 4:
-        for i in range(4, 9):
-            positions[str(i)] = [1200, 160 + (i - 4) * 520]
-            positions[str(i + 10)] = [1600, 160 + (i - 4) * 520]
-        positions["9"] = [2000, 160]; positions["10"] = [2400, 160]; positions["11"] = [0, 600]
+        renderers = [(k, n) for k, n in prompt.items() if n["class_type"] == "NFStockingRender"]
+        for row, (key, _) in enumerate(renderers):
+            positions[key] = [1200, 160 + row * 520]
+            for out, node in prompt.items():
+                if node["class_type"] == "SaveImage" and node["inputs"]["images"] == [key, 0]:
+                    positions[out] = [1600, 160 + row * 520]
+        for key, node in prompt.items():
+            if node["class_type"] == "NFStockingSAMLoader": positions[key] = [0, 600]
+            if node["class_type"] == "ParallelVideoComparison":
+                positions[key] = [2000, 160]
+                for out, saved in prompt.items():
+                    if saved["class_type"] == "SaveImage" and saved["inputs"]["images"] == [key, 0]: positions[out] = [2400, 160]
     else:
         positions.update({"4": [1200, 160], "5": [1200, 720], "6": [1600, 720], "7": [2000, 720],
                           "8": [1600, 160], "9": [2000, 160], "10": [1600, 1150], "11": [2000, 1150]})
@@ -110,7 +119,11 @@ def workflow(prompt, schemas, index, title):
                 is_widget = typ == "COMBO" or isinstance(typ, list) or (typ in SCALARS and not opts.get("forceInput"))
                 if is_widget:
                     default = opts.get("default", typ[0] if isinstance(typ, list) and typ else opts.get("options", [""])[0])
-                    values.append(entry["inputs"].get(name, default))
+                    val = entry["inputs"].get(name, default)
+                    if isinstance(val, list):
+                        inputs.append({"name": name, "type": typ if isinstance(typ, str) else "COMBO", "link": None, "widget": {"name": name}})
+                        val = default
+                    values.append(val)
                     if name in ("seed", "noise_seed"): values.append("fixed")
                 else:
                     inputs.append({"name": name, "type": typ, "link": None})

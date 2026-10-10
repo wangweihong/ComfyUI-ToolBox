@@ -39,12 +39,13 @@ def graphs(image_name, records="{}", density=100):
     p = base(True)
     compare = {"image1": ["2", 5], "name1": "Original"}
     for index, (style, label) in enumerate(STYLES):
-        nid = "2" if index == 0 else str(index + 6)
-        p[nid] = {"class_type": "NFStockingTexture", "inputs": dict(p["2"]["inputs"], style=style)}
+        nid = "2" if index == 0 else str(max(map(int, p)) + 1)
+        p[nid] = {"class_type": "NFStockingTexture", "inputs": dict(p["2"]["inputs"], style=style, renderer_version="upstream_f74c8ac")}
         compare[f"image{index + 2}"] = [nid, 0]
-        compare[f"name{index + 2}"] = dict(knit="Fine", loops="Loops", lines="Slant", grain="Grain", oily="Oily")[style]
-    p["11"] = {"class_type": "ParallelVideoComparison", "inputs": compare}
-    p["5"] = preview(["11", 0]); items.append(("04-五种纹理并排对比", p))
+        compare[f"name{index + 2}"] = dict(knit="Fine", loops="Loops", lines="Slant", grain="Grain", oily="Oily", coil="Coil")[style]
+    comparison = str(max(map(int, p)) + 1)
+    p[comparison] = {"class_type": "ParallelVideoComparison", "inputs": compare}
+    p[str(int(comparison)+1)] = preview([comparison, 0]); items.append(("04-六种纹理并排对比", p))
     p = base(True)
     p["6"] = {"class_type": "ImageCompositeMasked", "inputs": {"destination": ["2", 5], "source": ["2", 1], "mask": ["2", 2], "x": 0, "y": 0, "resize_source": False}}
     p["5"] = preview(["6", 0]); p["7"] = preview(["2", 4])

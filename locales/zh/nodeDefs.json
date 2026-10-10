@@ -101,6 +101,24 @@
       "effects_json": {
         "name": "花纹、文字与损伤",
         "tooltip": "版本 1 效果配置；在纹理编辑面板中调整。"
+      },
+      "renderer_version": {
+        "name": "渲染版本"
+      },
+      "layer_mode": {
+        "name": "透明图层模式"
+      },
+      "moire_on": {
+        "name": "摩尔纹"
+      },
+      "moire": {
+        "name": "摩尔纹强度"
+      },
+      "moire_area": {
+        "name": "摩尔纹面积"
+      },
+      "sparkle_link": {
+        "name": "关联亮点"
       }
     },
     "description": "一个窗口完成部位、走向和样式编辑。SAM3逐图识别；保留原有点选。跳过失败图，source_images与成功输出对应。",
@@ -423,6 +441,24 @@
       "effects_json": {
         "name": "花纹、文字与损伤",
         "tooltip": "版本 1 效果配置；在纹理编辑面板中调整。"
+      },
+      "renderer_version": {
+        "name": "渲染版本"
+      },
+      "layer_mode": {
+        "name": "透明图层模式"
+      },
+      "moire_on": {
+        "name": "摩尔纹"
+      },
+      "moire": {
+        "name": "摩尔纹强度"
+      },
+      "moire_area": {
+        "name": "摩尔纹面积"
+      },
+      "sparkle_link": {
+        "name": "关联亮点"
       }
     }
   },
@@ -621,5 +657,16 @@
         "name": "深度模型"
       }
     }
+  },
+  "NFStockingPSDLoad": {
+    "display_name": "tb-丝袜 PSD/PSB 导入",
+    "inputs": {
+      "psd_file": {
+        "name": "PSD/PSB 文件"
+      }
+    }
+  },
+  "NFStockingPSDSave": {
+    "display_name": "tb-丝袜引导 PSD 导出"
   }
 }

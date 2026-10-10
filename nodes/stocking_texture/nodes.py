@@ -10,6 +10,16 @@ from . import data
 from .cache import SESSION_CACHE
 from .models import SAMHandle, sam_choices, depth_choices, resolve_local
 from .styles import STYLES
+from .render_options import DEFAULTS as RENDER_DEFAULTS
+
+
+def render_inputs():
+    return {"renderer_version": (["legacy", "upstream_f74c8ac"], {"default": "legacy"}),
+            "layer_mode": (["replacement", "soft"], {"default": "replacement"}),
+            "moire_on": ("BOOLEAN", {"default": False}),
+            "moire": ("FLOAT", {"default": 100, "min": 0, "max": 100}),
+            "moire_area": ("FLOAT", {"default": 100, "min": 0, "max": 100}),
+            "sparkle_link": ("BOOLEAN", {"default": False})}
 
 CATEGORY = "南风节点/丝袜纹理"
 _node_sessions = OrderedDict()
@@ -78,10 +88,10 @@ class NFStockingEditor:
             masks.append(soft)
             previews.append(preview / 255)
         payload = session_payload({"kind": "editor", "images": arr, "external": external, "sam": sam,
-                                   "guides": guides, "revisions": {}}, document=guides["document"],
+                                   "guides": guides, "saved_guides_json": guides_json, "revisions": {}}, document=guides["document"],
                                   batch_mode=batch_mode, sam_available=sam is not None,
                                   sam_device=sam.device if sam is not None else None,
-                                  has_mask=mask is not None, node_id=str(unique_id))
+                                  has_mask=mask is not None, node_id=str(unique_id), saved_guides_json=guides_json)
         return {"ui": {"nf_stocking": [payload]}, "result": (guides, tensor(np.stack(masks)), tensor(np.stack(previews)))}
 
 
@@ -126,7 +136,7 @@ class NFStockingRender:
                              "sparkle_depth": amount(100), "sparkle_bright": amount(100),
                              "sparkle_painted": amount(0), "sparkle_even": amount(0),
                              "seed": ("INT", {"default": 20261005, "min": 0, "max": 0xFFFFFFFFFFFFFFFF})},
-                "optional": {"sparkle_mask": ("MASK",), "effects_json": ("STRING", {"default": "{}", "multiline": True})}, "hidden": {"unique_id": "UNIQUE_ID"}}
+                "optional": {"sparkle_mask": ("MASK",), "effects_json": ("STRING", {"default": "{}", "multiline": True}), **render_inputs()}, "hidden": {"unique_id": "UNIQUE_ID"}}
 
     RETURN_TYPES = ("IMAGE", "IMAGE", "MASK", "IMAGE", "STRING")
     RETURN_NAMES = ("image", "stocking_layer", "layer_alpha", "diagnostics", "report")
@@ -136,19 +146,21 @@ class NFStockingRender:
 
     def render(self, images, fields, style="knit", density=100, tilt=32, strength=100, strength_auto=True,
                color_exclude=True, sparkle_depth=100, sparkle_bright=100, sparkle_painted=0, sparkle_even=0,
-               seed=20261005, sparkle_mask=None, unique_id="", effects_json="{}"):
+               seed=20261005, sparkle_mask=None, unique_id="", effects_json="{}", **options):
         from .engine import render_batch, tensor
         if not isinstance(seed, int) or not 0 <= seed <= 0xFFFFFFFFFFFFFFFF:
             raise ValueError("seed 必须为非负 64 位整数")
         arr = data.image_batch(images)
         params = dict(style=style, density=density, tilt=tilt, strength=strength, strength_auto=strength_auto,
                       sparkle_depth=sparkle_depth, sparkle_bright=sparkle_bright, sparkle_painted=sparkle_painted, sparkle_even=sparkle_even,
-                      effects_json=effects_json)
+                      effects_json=effects_json, **options)
         out, layer, alpha, diag, report = render_batch(arr, fields, params, color_exclude, seed, sparkle_mask)
         painted = data.mask_batch(sparkle_mask, len(arr), *arr.shape[1:3])
         payload = session_payload({"kind": "renderer", "images": arr, "fields": fields,
                                    "painted": painted, "params": params, "color_exclude": color_exclude,
-                                   "seed": seed, "revisions": {}}, params=params, seed=seed, node_id=str(unique_id))
+                                   "seed": seed, "revisions": {}}, params=dict(params, seed=seed, color_exclude=color_exclude), seed=seed, node_id=str(unique_id),
+                                   document=fields["guides"]["document"], batch_mode=fields["guides"]["mode"],
+                                   identities=[data.digest(im) for im in arr])
         return {"ui": {"nf_stocking": [payload]}, "result": (tensor(out), tensor(layer), tensor(alpha), tensor(diag),
                                                                  json.dumps(report, ensure_ascii=False, allow_nan=False))}
 
@@ -201,12 +213,12 @@ def prepare_session(images, settings, guides_json="{}", mask=None, sam=None, sam
     session = {"kind": "unified", "images": arr, "external": external, "sam": sam, "sam3_model": sam3_model,
                "depths": depth_batch(depth, arr, settings.get("depth_direction", "white_near")),
                "depth_direction": settings.get("depth_direction", "white_near"),
-               "painted": data.mask_batch(sparkle_mask, len(arr), *arr.shape[1:3]), "settings": settings,
+               "painted": data.mask_batch(sparkle_mask, len(arr), *arr.shape[1:3]), "settings": settings, "saved_guides_json": guides_json,
                "revisions": {}}
     return session_payload(session, document=document, batch_mode="per_image", identities=[data.digest(im) for im in arr],
                            sam_available=sam is not None, sam_device=sam.device if sam else None,
                            sam3_available=sam3_model is not None, has_mask=mask is not None, params=settings,
-                           legacy=records.get("legacy"), node_id=str(unique_id))
+                           legacy=records.get("legacy"), node_id=str(unique_id), saved_guides_json=guides_json)
 
 
 class NFStockingTexture:
@@ -225,7 +237,7 @@ class NFStockingTexture:
                         failure_mode=(["skip", "error"], {"default": "skip"}))
         return {"required": required, "optional": {"mask": ("MASK",), "depth": ("IMAGE",),
                 "sparkle_mask": ("MASK",), "sam": ("NF_STOCKING_SAM",), "sam3_model": ("EASY_SAM3_MODEL",),
-                "effects_json": ("STRING", {"default": "{}", "multiline": True})},
+                "effects_json": ("STRING", {"default": "{}", "multiline": True}), **render_inputs()},
                 "hidden": {"unique_id": "UNIQUE_ID"}}
 
     RETURN_TYPES = ("IMAGE", "IMAGE", "MASK", "MASK", "IMAGE", "IMAGE", "STRING")
@@ -269,7 +281,8 @@ try:
                       io.Custom("NF_STOCKING_SAM").Input("sam", optional=True),
                       io.Custom("EASY_SAM3_MODEL").Input("sam3_model", optional=True),
                       io.String.Input("effects_json", default="{}", optional=True)]
-            for name, spec in NFStockingTexture.INPUT_TYPES()["required"].items():
+            specs = dict(NFStockingTexture.INPUT_TYPES()["required"], **render_inputs())
+            for name, spec in specs.items():
                 if name in ("images", "guides_json"):
                     continue
                 typ, options = spec[0], spec[1] if len(spec) > 1 else {}
@@ -287,7 +300,7 @@ try:
             settings = json.loads(settings_json)
             if "effects_json" in kwargs:
                 settings["effects_json"] = kwargs.pop("effects_json")
-            for name in NFStockingTexture.INPUT_TYPES()["required"]:
+            for name in [*NFStockingTexture.INPUT_TYPES()["required"], *render_inputs()]:
                 if name in kwargs:
                     settings[name] = kwargs.pop(name)
             payload = prepare_session(images, settings, guides_json, **kwargs)
@@ -306,7 +319,14 @@ except ImportError:
             settings = json.loads(settings_json)
             if "effects_json" in kwargs:
                 settings["effects_json"] = kwargs.pop("effects_json")
+            for name in render_inputs():
+                if name in kwargs:
+                    settings[name] = kwargs.pop(name)
             return {"ui": {"nf_stocking": [prepare_session(images, settings, guides_json, **kwargs)]}, "result": ()}
 
 NODE_CLASS_MAPPINGS.update(NFStockingTexture=NFStockingTexture, NFStockingPrepare=NFStockingPrepare)
 NODE_DISPLAY_NAME_MAPPINGS["NFStockingTexture"] = "tb-丝袜纹理 · 一体化编辑与批处理"
+
+from .psd import NFStockingPSDLoad, NFStockingPSDSave
+NODE_CLASS_MAPPINGS.update(NFStockingPSDLoad=NFStockingPSDLoad, NFStockingPSDSave=NFStockingPSDSave)
+NODE_DISPLAY_NAME_MAPPINGS.update(NFStockingPSDLoad="tb-丝袜 PSD/PSB 导入", NFStockingPSDSave="tb-丝袜引导 PSD 导出")

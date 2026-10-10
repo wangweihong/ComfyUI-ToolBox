@@ -223,4 +223,46 @@ python -m unittest discover -s tests -p test_stocking_function_workflows.py
 
 公开例子位于 `examples/stocking_texture/effects/`：06 花纹总览、07 英文印花、08 钩丝抽丝、09 组合效果。先把 `examples/stocking_texture/assets/tb_stocking_demo.png` 复制到 `ComfyUI/input/`，再加载示例。均使用项目合成图片，不需要 SAM3 或深度模型，不默认保存输出文件。
 
-English: choose one of thirteen styles, then adjust Fabric/Print appearance, English lettering and Snags/Ladder runs in the texture panel. Lettering and damage are disabled by default. Text supports up to 128 printable ASCII characters; BALENCIAGA and PARIS are editable presets. Manual damage follows the selected region and image; Save and close commits the unified draft, while Cancel discards it. All effects preserve pixels outside the mask. The optional version-1 `effects_json` input and `damage_strokes` guide field are backward compatible. A bundled DejaVu Sans Bold font keeps offline lettering reproducible; its license is included with the font.
+English: choose one of fourteen styles, then adjust Fabric/Print appearance, English lettering and Snags/Ladder runs in the texture panel. Lettering and damage are disabled by default. Text supports up to 128 printable ASCII characters; BALENCIAGA and PARIS are editable presets. Manual damage follows the selected region and image; Save and close commits the unified draft, while Cancel discards it. All effects preserve pixels outside the mask. The optional version-1 `effects_json` input and `damage_strokes` guide field are backward compatible. A bundled DejaVu Sans Bold font keeps offline lettering reproducible; its license is included with the font.
+
+## 上游新版能力（f74c8ac）
+
+原有十三种样式保持原 ID 与顺序，末尾新增 `coil`（线圈）。选「上游新版 f74c8ac」后，可使用透肤自适应 Coil、摩尔纹，以及新版油光的连续柔光带、黑色暗边与弱高光补偿。遮挡补全只连接高光，遮挡物不被涂上纹理。
+
+一体化与高级渲染节点在原有可选输入后追加如下参数；原必填控件和输出端口顺序不变：
+
+| 参数 | 默认值 | 用途 |
+| --- | --- | --- |
+| `renderer_version` | `legacy` | `legacy` 保持旧结果；`upstream_f74c8ac` 使用新版 |
+| `layer_mode` | `replacement` | 旧精确替换图层；`soft` 输出柔和丝袜图层 |
+| `moire_on` | `false` | 开启主动摩尔纹，需新版和有效灰度深度图 |
+| `moire` / `moire_area` | 100 / 100 | 强度与面积，均为 0–100 |
+| `sparkle_link` | `false` | 关联深度和画面亮部亮点 |
+
+未添加这些参数的旧工作流继续使用旧渲染和旧图层。Coil 或摩尔纹在兼容模式下会提示切换版本。启用摩尔纹但缺少有效深度时，预览提示问题，队列按失败处理选项报告，不能静默跳过。材质调整复用几何求解，版本切换只更换渲染场景缓存。
+
+柔和图层使用覆盖率透明度，并提高必要位置的透明度以使 RGB 保持有效范围；浮点重合成误差不超过 `1e-6`，8 位 PNG 重合成每通道误差不超过一个灰阶。`layer_alpha` 仍为不透明度，连接标准 `JoinImageWithAlpha` 前仍需先反转 MASK。透明区域 RGB 为零。
+
+### 部位编辑与预设
+
+「切开 K」拖动切线，默认贴合附近线稿；也可自动分割。合并和镜像先选择目标部位：合并保留目标名称和颜色，镜像只替换目标走向线，并显示轮廓拟合误差。分割合并维护走向、隔开和手工损伤归属，一次操作可完整撤销。清空选区保留部位；新绘制和 SAM 添加范围从其他部位取得像素归属，加载旧遮罩时不改写原数据。
+
+走向、隔开和损伤工具右键删除指针附近的线；自动隔开以虚线显示，其删除记录保存到每帧 `wall_erasures`，重开和重新求解后继续生效。横向、纵向引导和自动隔开可独立显示。部位可保存 `color`，每帧可保存亮点遮罩 `sparkle`；旧引导缺少字段时使用空值。
+
+材质预设支持保存、覆盖、加载、删除、恢复默认及撤销。预设保存材质、种子、渲染选项与花纹文字损伤配置，不保存选区、图片、模型或手工损伤路径；自动强度在每张图重新计算。已连接的参数输入不会被预设覆盖。未来版本或损坏的预设标记为不可读取，读取不会重写文件。
+
+### PSD 与自动恢复草稿
+
+可选依赖：`python -m pip install -r requirements-stocking-psd.txt`。未安装时其他功能仍可使用。
+
+- `NFStockingPSDLoad` 从 ComfyUI input 目录读取 PSD/PSB，输出底图、一体化 JSON、高级 JSON、亮点 MASK 和报告。识别中英文引导层，排除引导及旧纹理层以取得底图。
+- `NFStockingPSDSave` 从高级引导对象或 JSON 按批次导出新的引导 PSD；不会覆盖原 PSD。导出含原图、部位颜色/遮罩、走向、亮点和手工隔开线。
+- 编辑器支持导入同底图 PSD 引导，以及导出成品 PNG、柔和透明 PNG、引导 PSD。底图不匹配时请通过 PSD 加载节点导入。实验性叠底／减淡纹理 PSD 不开放。
+- PSD 是上游引导交换格式，不保存 ToolBox 的文字、损伤、材质参数或自动隔开删除记录；继续编辑这些内容请保存 ComfyUI 工作流。
+- 编辑 PSD 加载节点连接的引导后，保存修改会将引导转为编辑节点内保存，以便后续队列使用新引导。其他参数连接保持不变。
+
+预设和草稿存入当前 ComfyUI 用户目录的 `toolbox_stocking/`。草稿在停止编辑一秒后独立保存源图、辅助数组、部位和参数，不写入节点；刷新或重启后重开可选择恢复或丢弃。「保存并关闭」、取消和丢弃会清除该草稿。恢复不保存撤销历史或模型对象；SAM 操作需要重新连接并获取模型。每用户最多八份草稿、共 512 MiB，超限按最近使用时间回收；写入失败不阻止正常保存节点。
+
+新增公开工作流在 `examples/stocking_texture/upstream/`：10 Coil、11 摩尔纹、12 新旧油光、13 柔和图层组合、14 PSD 往返。均无需识别模型，11 使用公开合成深度图；14 还需复制 `assets/tb_stocking_guides.psd` 到 input，并会在 output 中保存新引导 PSD。
+
+English: keep `renderer_version=legacy` for unchanged old output, or explicitly select `upstream_f74c8ac` for Coil, moiré and revised glossy shading. Moiré requires valid grayscale depth. Choose `layer_mode=soft` for a transparent stocking layer; floating composition matches within 1e-6 and PNG composition within one level. The editor supports region splitting/merging, snapped cuts, outline-fitted direction mirroring, targeted path deletion, persistent detected-wall deletion and course/wale overlays. Material presets are user-scoped and skip connected inputs. PSD/PSB load and guide PSD save require the optional psd-tools dependency; original files are never overwritten. Drafts are saved separately after one second, with Recover/Discard on reopening; Save and close commits the node, while Cancel removes the draft. Model objects and undo history are not persisted. The PSD interchange format does not carry ToolBox lettering, damage or material settings; save your ComfyUI workflow for those.

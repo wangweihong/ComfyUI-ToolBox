@@ -277,7 +277,7 @@ def damage_maps(scene, field, cfg, scale):
 
 def render_effects(scene, field, base, style, cfg, params):
     damage = field.get("damage_strokes", [])
-    key = data.digest("effects-v1",scene.src,field["signature"],scene.seed,style,cfg,params,damage)
+    key = data.digest("effects-v1",scene.__class__.__module__,scene.src,field["signature"],scene.seed,style,cfg,params,damage)
     hit = EFFECT_CACHE.get(key)
     if hit is not None:
         return hit

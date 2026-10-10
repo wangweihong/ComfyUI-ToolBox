@@ -11,13 +11,15 @@ cp -a "$repo_root/nodes/stocking_texture/." "$stage_root/stocking_texture/"
 find "$stage_root/stocking_texture" -type d -name __pycache__ -prune -exec rm -rf {} +
 docker cp "$stage_root/stocking_texture/." "$container_name:$plugin_root/nodes/stocking_texture/"
 docker cp "$repo_root/node_mappings.py" "$container_name:$plugin_root/node_mappings.py"
+docker cp "$repo_root/nodes/video_compare_node.py" "$container_name:$plugin_root/nodes/video_compare_node.py"
+docker cp "$repo_root/requirements-stocking-psd.txt" "$container_name:$plugin_root/requirements-stocking-psd.txt"
 for file in "$repo_root"/web/js/stocking_*.js "$repo_root"/web/js/stocking_*.mjs "$repo_root"/web/js/stocking_*.json; do
     docker cp "$file" "$container_name:$plugin_root/web/js/"
 done
 # The new entry URL also invalidates stale browser module caches. Archive the
 # former entry so ComfyUI cannot load two copies of the same extension.
-if [ -f "$repo_root/web/js/stocking_texture_effects.js" ]; then
-    docker exec "$container_name" bash -c 'for name in stocking_texture.js stocking_texture_editor.js; do if [ -f "$1/web/js/$name" ]; then mv "$1/web/js/$name" "$1/web/js/$name.legacy"; fi; done' bash "$plugin_root"
+if [ -f "$repo_root/web/js/stocking_texture_upstream.js" ]; then
+    docker exec "$container_name" bash -c 'for name in stocking_texture.js stocking_texture_editor.js stocking_texture_effects.js; do if [ -f "$1/web/js/$name" ]; then mv "$1/web/js/$name" "$1/web/js/$name.legacy"; fi; done' bash "$plugin_root"
 fi
 docker cp "$repo_root/locales" "$container_name:$plugin_root/"
 docker restart "$container_name"

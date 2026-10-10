@@ -1,0 +1,1173 @@
+{
+  "last_node_id": 11,
+  "last_link_id": 26,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "title": "参考图片（替换图片后需重建引导）",
+      "pos": [
+        0,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1,
+            4,
+            7,
+            10,
+            13,
+            16
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "tb_stocking_demo.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        420,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 2
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            20
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": [
+            19
+          ]
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "knit",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "replacement",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 3,
+      "type": "NFStockingSAMLoader",
+      "title": "SAM 点选模型 · 编辑器内点击选区",
+      "pos": [
+        840,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NF_STOCKING_SAM",
+          "type": "NF_STOCKING_SAM",
+          "links": [
+            2,
+            5,
+            8,
+            11,
+            14,
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingSAMLoader"
+      },
+      "widgets_values": [
+        "sams/sam_vit_b_01ec64.pth",
+        "cuda"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "easy sam3ModelLoader",
+      "title": "Load SAM3 Model",
+      "pos": [
+        1260,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "links": [
+            3,
+            6,
+            9,
+            12,
+            15,
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "easy sam3ModelLoader"
+      },
+      "widgets_values": [
+        "sam3.pt",
+        "image",
+        "cuda",
+        "fp32"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        0,
+        510
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 5
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            21
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "loops",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "replacement",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 6,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        420,
+        510
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 8
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            22
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "lines",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "replacement",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 7,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        840,
+        510
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 11
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            23
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "grain",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "replacement",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 8,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        1260,
+        510
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 13
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 14
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            24
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "oily",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "replacement",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 9,
+      "type": "NFStockingTexture",
+      "title": "tb-丝袜纹理 · 一体化编辑与批处理",
+      "pos": [
+        0,
+        860
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 16
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 17
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            25
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "coil",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip",
+        "{}",
+        "upstream_f74c8ac",
+        "replacement",
+        false,
+        100,
+        100,
+        false
+      ]
+    },
+    {
+      "id": 10,
+      "type": "ParallelVideoComparison",
+      "title": "tb-video-comparison",
+      "pos": [
+        420,
+        860
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 19
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 20
+        },
+        {
+          "name": "image3",
+          "type": "IMAGE",
+          "link": 21
+        },
+        {
+          "name": "image4",
+          "type": "IMAGE",
+          "link": 22
+        },
+        {
+          "name": "image5",
+          "type": "IMAGE",
+          "link": 23
+        },
+        {
+          "name": "image6",
+          "type": "IMAGE",
+          "link": 24
+        },
+        {
+          "name": "image7",
+          "type": "IMAGE",
+          "link": 25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ParallelVideoComparison"
+      },
+      "widgets_values": [
+        "Original",
+        "Fine",
+        "Loops",
+        "Slant",
+        "Grain",
+        "Oily",
+        "Coil"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "PreviewImage",
+      "title": "Preview Image",
+      "pos": [
+        840,
+        860
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      3,
+      0,
+      2,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      3,
+      4,
+      0,
+      2,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      4,
+      1,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      3,
+      0,
+      5,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      6,
+      4,
+      0,
+      5,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      7,
+      1,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      3,
+      0,
+      6,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      9,
+      4,
+      0,
+      6,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      10,
+      1,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      11,
+      3,
+      0,
+      7,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      12,
+      4,
+      0,
+      7,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      13,
+      1,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      14,
+      3,
+      0,
+      8,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      15,
+      4,
+      0,
+      8,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      16,
+      1,
+      0,
+      9,
+      0,
+      "IMAGE"
+    ],
+    [
+      17,
+      3,
+      0,
+      9,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      18,
+      4,
+      0,
+      9,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      19,
+      2,
+      5,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      20,
+      2,
+      0,
+      10,
+      1,
+      "IMAGE"
+    ],
+    [
+      21,
+      5,
+      0,
+      10,
+      2,
+      "IMAGE"
+    ],
+    [
+      22,
+      6,
+      0,
+      10,
+      3,
+      "IMAGE"
+    ],
+    [
+      23,
+      7,
+      0,
+      10,
+      4,
+      "IMAGE"
+    ],
+    [
+      24,
+      8,
+      0,
+      10,
+      5,
+      "IMAGE"
+    ],
+    [
+      25,
+      9,
+      0,
+      10,
+      6,
+      "IMAGE"
+    ],
+    [
+      26,
+      10,
+      0,
+      11,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7,
+      "offset": [
+        80,
+        230
+      ]
+    }
+  },
+  "version": 0.4
+}

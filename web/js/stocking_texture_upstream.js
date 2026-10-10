@@ -1,14 +1,15 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261010-effects2";
-import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261010-effects2";
-import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261010-effects2";
-import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261010-effects2";
+import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261010-upstream1";
+import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261010-upstream1";
+import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261010-upstream1";
+import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261010-upstream1";
 
-import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261010-effects2";
-import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261010-effects2";
-import { PATTERN_STYLES } from "./stocking_style_registry.mjs?v=20261010-effects2";
-import { readEffects, effectPatch, damageStroke, upgradeEffectsValue } from "./stocking_effects_state.mjs?v=20261010-effects2";
+import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261010-upstream1";
+import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261010-upstream1";
+import { PATTERN_STYLES } from "./stocking_style_registry.mjs?v=20261010-upstream1";
+import { readEffects, effectPatch, damageStroke, upgradeEffectsValue } from "./stocking_effects_state.mjs?v=20261010-upstream1";
+import { RENDER_DEFAULTS, MATERIAL_DEFAULTS, nearestPath, nearestPoint, claimPixels, linkedSparklePatch } from "./stocking_upstream_controls.mjs?v=20261011-upstream2";
 const CLASSES = new Set(["NFStockingEditor", "NFStockingRender", "NFStockingTexture"]);
 const API_ROOT = "/toolbox/stocking";
 const COLORS = ["#48dfaf", "#ffb45a", "#96aaff", "#ff78c8"];
@@ -100,7 +101,10 @@ class StockingDialog {
     constructor(node, payload, render) {
         this.node = node; this.payload = payload; this.renderMode = render;
         this.unified = node.comfyClass === "NFStockingTexture";
-        this.settings = { ...payload.params };
+        this.settings = { ...RENDER_DEFAULTS, ...payload.params };
+        this.editorId = node.properties.stocking_editor_id ||= crypto.randomUUID();
+        node.properties.stocking_draft_identity = payload.identity;
+        this.overlayOptions = {courses:false,wales:false,auto_walls:true}; this.guideOverlays = {};
         this.initialSettings = JSON.stringify(this.settings);
         if (this.unified && !payload.sam3_available && this.settings.source_mode === "semantic") this.settings.source_mode = "manual";
         this.initialDocument = JSON.stringify(payload.document);
@@ -139,7 +143,7 @@ class StockingDialog {
         const tools = el("div", null, dialog, { className: "tb-stocking-tools" });
         this.tools = tools;
         if (!render) {
-            for (const [key, label] of [["paint", "画笔 B"], ["erase", "橡皮 E"], ["stroke", "走向 P"], ["wall", "隔开 W"], ["sam", "点选 S"], ["damage", "钩丝 D"], ["pan", "平移"]]) {
+            for (const [key, label] of [["cut", "切开 K"], ["paint", "画笔 B"], ["erase", "橡皮 E"], ["stroke", "走向 P"], ["wall", "隔开 W"], ["sam", "点选 S"], ["damage", "钩丝 D"], ["pan", "平移"]]) {
                 const b = this.button(tools, label, () => { this.tool = key; this.markTools(); });
                 b.dataset.tool = key;
                 if (key === "sam") {
@@ -151,6 +155,11 @@ class StockingDialog {
             const size = el("input", null, tools, { type: "number", value: "14", min: "1", max: "256", title: "笔刷半径（图像像素）" });
             size.style.width = "65px"; size.onchange = () => this.radius = Math.max(1, Math.min(256, Number(size.value) || 14));
             this.button(tools, "撤销", () => this.undo()); this.button(tools, "重做", () => this.redo());
+            for (const [key,label] of [["courses","横向引导"],["wales","纵向引导"],["auto_walls","自动隔开"]]) {
+                const l=el("label",label,tools), cb=el("input",null,l,{type:"checkbox",checked:this.overlayOptions[key]});
+                cb.onchange=()=>{this.overlayOptions[key]=cb.checked;this.schedule();};
+            }
+            this.snapCut = el("input",null,el("label","切线自动贴线",tools),{type:"checkbox",checked:true});
             this.button(tools, "删除最后走向", () => this.removeLast("strokes"));
             this.button(tools, "删除最后隔开", () => this.removeLast("walls"));
             this.button(tools, "删除最后损伤", () => this.removeLast("damage_strokes"));
@@ -196,11 +205,12 @@ class StockingDialog {
             this.view = zoomAt(this.view, e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.001)); this.draw();
             if (this.renderMode) this.schedule();
         };
+        this.buildExchangeControls(head);
         this.markTools();
         if (render) this.buildRenderControls(); else this.readDocument();
         if (this.unified) this.buildUnified();
         this.localeObserver = localizeDialog(this.overlay, app.extensionManager?.setting?.get("Comfy.Locale") || app.ui?.settings?.getSettingValue("Comfy.Locale") || "zh");
-        this.loadIndex(0).catch(e => this.error(e));
+        this.loadIndex(0).then(() => this.offerRecovery()).catch(e => this.error(e));
     }
 
     button(parent, label, fn) {
@@ -230,7 +240,7 @@ class StockingDialog {
 
     get doc() { return this.draft?.doc; }
     set doc(doc) { this.draft.doc = doc; }
-    get batchMode() { return this.draft?.mode || "shared"; }
+    get batchMode() { return this.draft?.mode || this.payload.batch_mode || "shared"; }
     frame() { return this.doc?.frames[this.batchMode === "shared" ? 0 : this.index]; }
     region() { return this.frame()?.regions[this.selected]; }
 
@@ -248,10 +258,10 @@ class StockingDialog {
             else this.doc.frames = [structuredClone(this.doc.frames[this.index] || this.doc.frames[0])];
             this.draft.mode = mode.value; this.selected = 0; this.updateDraft(); this.loadPlanes();
         };
-        el("label", "部位（靠后者优先）", this.sidebar);
+        el("label", "部位（新绘制取得像素归属）", this.sidebar);
         this.regionSelect = el("select", null, this.sidebar);
         this.refreshRegions();
-        this.regionSelect.onchange = () => { this.cancelSAM(); this.selected = Number(this.regionSelect.value); this.sourceCheck.checked = !!this.region()?.external; this.draw(); };
+        this.regionSelect.onchange = () => { this.cancelSAM(); this.selected = Number(this.regionSelect.value); this.sourceCheck.checked = !!this.region()?.external; this.refreshTargets(); if(this.regionColor)this.regionColor.value=this.region()?.color||COLORS[this.selected%COLORS.length]; this.draw(); };
         const sourceLabel = el("label", "使用输入 MASK 作底图", this.sidebar);
         this.sourceCheck = el("input", null, sourceLabel, { type: "checkbox", checked: !!this.region()?.external, disabled: !this.payload.has_mask });
         this.sourceCheck.onchange = () => {
@@ -271,6 +281,14 @@ class StockingDialog {
             if (!this.region()) return; this.remember(); this.frame().regions.splice(this.selected, 1);
             this.selected = Math.max(0, this.selected - 1); this.updateDraft(); this.loadPlanes();
         });
+        this.button(this.sidebar,"自动分割",()=>this.regionOperation("split"));
+        this.button(this.sidebar,"清空选区",()=>this.regionOperation("clear"));
+        this.targetRegion = el("select",null,el("label","合并 / 镜像目标",this.sidebar));
+        this.refreshTargets();
+        this.button(this.sidebar,"合并到目标",()=>this.regionOperation("merge"));
+        this.button(this.sidebar,"镜像走向到目标",()=>this.regionOperation("mirror"));
+        this.regionColor=el("input",null,el("label","部位颜色",this.sidebar),{type:"color",value:this.region()?.color||COLORS[this.selected%COLORS.length]});
+        this.regionColor.onchange=()=>{if(!this.region())return;this.remember();this.region().color=this.regionColor.value;this.overlays.delete(this.region().id);this.updateDraft();this.draw();};
         this.samControls = el("div", null, this.sidebar);
         el("small", "走向线横穿部位，决定弧度；隔开线画在折叠交界。滚轮缩放，中键或空格拖动平移。修改先保留在草稿中，自动更新预览；保存并关闭后再运行工作流。取消或 Esc 会放弃本次修改。", this.sidebar);
         if (!this.unified) el("small", "高级分步工作流：在渲染节点设置样式和强度。推荐使用一体化丝袜纹理节点。", this.sidebar);
@@ -282,6 +300,7 @@ class StockingDialog {
         this.regionSelect.replaceChildren();
         this.frame()?.regions.forEach((r, i) => el("option", `${i + 1}. ${r.name}${r.external ? "（输入遮罩）" : ""}`, this.regionSelect, { value: String(i) }));
         this.regionSelect.value = String(this.selected);
+        this.refreshTargets();
         if (this.sourceCheck) this.sourceCheck.checked = !!this.region()?.external;
     }
 
@@ -383,12 +402,14 @@ class StockingDialog {
             else { seed.value = String(value(this.node, "seed", 20261005)); this.status.textContent = "种子请输入有效整数；超出浏览器精确整数范围的种子请使用 API。"; }
         };
         this.refreshRenderControls();
+        this.buildUpstreamControls();
         this.buildEffectControls();
         el("small", this.unified ? "滑杆自动更新草稿预览；保存并关闭后运行工作流得到正式输出。取消不保存参数。整体定位细节，拖动分界线对比原图。" : "拖动滑杆自动预览并写入本渲染节点；关闭后运行工作流得到正式输出。整体点击定位细节，拖分界线对比；细节使用导出的原像素。修改引导后需重新运行工作流。", this.sidebar);
     }
 
     changeParameter(key, raw) {
-        const patch = parameterPatch(key, raw); if (!patch) return;
+        let patch = parameterPatch(key, raw); if (!patch) return;
+        patch = linkedSparklePatch(patch, value(this.node,"sparkle_link",false),value(this.node,"sparkle_depth",100));
         for (const [name, val] of Object.entries(patch)) {
             if (this.unified) {
                 if (this.node.inputs?.some(i => i.name === name && i.link != null)) continue;
@@ -396,7 +417,7 @@ class StockingDialog {
             } else setValue(this.node, name, val);
         }
         this.refreshRenderControls(); this.schedule();
-        this.updateSaveState();
+        this.updateSaveState(); this.scheduleDraftSave();
     }
 
     updateSaveState() {
@@ -469,7 +490,7 @@ class StockingDialog {
             this.button(damage,"删除最后损伤",() => this.removeLast("damage_strokes"));
             const history = el("div",null,damage,{className:"tb-stocking-candidates"});
             this.button(history,"撤销",() => this.undo()); this.button(history,"重做",() => this.redo());
-            el("small","点击生成局部损伤，拖动画出路径；右键删除最后损伤。",damage);
+            el("small","点击生成局部损伤，拖动画出路径；右键删除指针附近的损伤。",damage);
         } else el("small","手工损伤请在上游引导编辑器中绘制，保存后重新运行求解节点。",damage);
         this.refreshEffectControls();
     }
@@ -494,6 +515,7 @@ class StockingDialog {
 
     refreshRenderControls(info) {
         const style = value(this.node, "style", "knit"), auto = value(this.node, "strength_auto", true);
+        this.styleSelect.value = style;
         this.styleHint.textContent = STYLE_HINTS[style] || "";
         this.autoInput.checked = auto;
         this.strengthHint.textContent = auto
@@ -504,6 +526,11 @@ class StockingDialog {
             const val = value(this.node, key, 0);
             control.slider.value = val;
             if (document.activeElement !== control.number) control.number.value = val;
+        }
+        for(const {input,key} of this.upstreamControls||[]) {
+            if(input.type==="checkbox")input.checked=value(this.node,key,RENDER_DEFAULTS[key]);
+            else input.value=value(this.node,key,RENDER_DEFAULTS[key]);
+            input.disabled=this.node.inputs?.some(i=>i.link!=null && (i.name===key || key==="sparkle_link" && ["sparkle_depth","sparkle_bright"].includes(i.name)));
         }
         this.refreshEffectControls();
     }
@@ -592,6 +619,7 @@ class StockingDialog {
                 const external = await imageFrom(path + "&kind=external", this.controller.signal);
                 if (this.closed || serial !== this.requestSerial) { external.close(); return; }
                 this.external?.close(); this.external = external;
+                this.mirrorInfo=null;
                 this.selected = Math.min(this.selected, Math.max(0, (this.frame()?.regions.length || 1) - 1));
                 await this.loadPlanes();
             }
@@ -634,16 +662,19 @@ class StockingDialog {
     updateDraft() {
         this.flushPlanes(); this.previewBitmap = null;
         if (this.samCandidates) this.samCandidates.visual = null;
-        this.updateSaveState();
+        this.updateSaveState(); this.scheduleDraftSave();
         this.schedule();
     }
-    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected, index: this.index, settings: this.settings }); }
+    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected, index: this.index, settings: this.settings,
+        initialDocument:this.initialDocument, initialSettings:this.initialSettings }); }
     remember() {
         this.flushPlanes(); this.history.push(this.snapshot()); this.future = [];
         while (this.history.length > 30 || this.history.reduce((sum, s) => sum + s.length, 0) > 16 * 1024 * 1024) this.history.shift();
     }
     restore(raw) {
         const s = JSON.parse(raw); this.doc = s.doc; this.selected = s.selected;
+        if(s.initialDocument)this.initialDocument=s.initialDocument;
+        if(s.initialSettings)this.initialSettings=s.initialSettings;
         if (s.settings) this.settings = s.settings;
         this.draft.mode = s.mode; this.updateDraft(); this.buildRegionControls();
         if (this.effectControls) this.refreshRenderControls();
@@ -655,6 +686,176 @@ class StockingDialog {
     redo() { if (this.future.length) { this.flushPlanes(); this.history.push(this.snapshot()); this.restore(this.future.pop()); } }
     removeLast(key) { if (this.region()?.[key]?.length) { this.remember(); this.region()[key].pop(); this.updateDraft(); this.draw(); } }
 
+    refreshTargets() {
+        if (!this.targetRegion) return;
+        const prior = this.targetRegion.value;
+        this.targetRegion.replaceChildren();
+        for (const r of this.frame()?.regions || []) if(r.id!==this.region()?.id) el("option",r.name,this.targetRegion,{value:r.id});
+        if ([...this.targetRegion.options].some(o=>o.value===prior)) this.targetRegion.value=prior;
+    }
+
+    async regionOperation(operation, points) {
+        if (!this.region() || this.operationPending) return;
+        this.flushPlanes();
+        const index=this.index, source=this.region().id, before=JSON.stringify(this.frame());
+        this.operationPending=true;
+        try {
+            const result=await post("feature/edit",{session:this.payload.session,index,guides_json:JSON.stringify(this.doc),
+                batch_mode:this.batchMode,operation,source,target:this.targetRegion?.value,points,
+                snap_radius:points && this.snapCut?.checked ? Math.min(80,14/this.view.scale) : 0});
+            if (this.closed || this.index!==index || JSON.stringify(this.frame())!==before) return;
+            this.remember(); this.doc.frames[this.batchMode==="shared"?0:index]=result.frame;
+            this.selected=Math.min(this.selected,result.frame.regions.length-1);
+            await this.loadPlanes(); this.refreshRegions(); this.updateDraft();
+            this.mirrorInfo=result.info.fit_error===undefined?null:result.info;
+            if (result.info.fit_error!==undefined) this.status.textContent=`镜像完成 · 轮廓拟合误差 ${result.info.fit_error.toFixed(2)}px`;
+        } finally {this.operationPending=false;}
+    }
+
+    removeAt(point) {
+        const key=this.tool==="damage"?"damage_strokes":this.tool==="wall"?"walls":"strokes";
+        const paths=this.region()?.[key]||[], i=nearestPath(paths,point,10/this.view.scale);
+        if (i>=0) {this.remember();paths.splice(i,1);this.updateDraft();this.draw();return;}
+        if (this.tool==="wall" && nearestPath(this.guideOverlays.auto_walls||[],point,10/this.view.scale)>=0) {
+            const path=(this.guideOverlays.auto_walls||[])[nearestPath(this.guideOverlays.auto_walls,point,10/this.view.scale)];
+            this.remember();(this.frame().wall_erasures ||= []).push(nearestPoint(path,point));this.updateDraft();
+        } else this.status.textContent="指针附近没有可删除的线";
+    }
+
+    claimStroke(points) {
+        const c=plane(this.payload.width,this.payload.height); rasterPaint(c,points,this.radius,"white");
+        this.claimCoverage(c.getContext("2d").getImageData(0,0,c.width,c.height).data);
+    }
+
+    claimCoverage(rgba) {
+        const coverage=new Uint8Array(rgba.length/4);
+        for(let k=0;k<coverage.length;k++) coverage[k]=rgba[k*4];
+        for(const r of this.frame()?.regions||[]) {
+            if(r.id===this.region()?.id) continue;
+            const pair=this.planes.get(r.id);if(!pair)continue;
+            const w=this.payload.width,h=this.payload.height, mc=pair.mask.getContext("2d"),ec=pair.erase.getContext("2d");
+            const m=mc.getImageData(0,0,w,h),e=ec.getImageData(0,0,w,h);
+            claimPixels(m.data,e.data,coverage);mc.putImageData(m,0,0);ec.putImageData(e,0,0);
+            pair.dirty=true;this.overlays.delete(r.id);
+        }
+    }
+
+    buildUpstreamControls() {
+        this.upstreamControls=[];
+        for(const [key,label,choices] of [
+            ["renderer_version","渲染版本",[["legacy","兼容旧版"],["upstream_f74c8ac","上游新版 f74c8ac"]]],
+            ["layer_mode","透明图层",[["replacement","精确替换图层"],["soft","柔和丝袜图层"]]]]) {
+            const input=el("select",null,el("label",label,this.sidebar));
+            for(const [v,t] of choices)el("option",t,input,{value:v});
+            input.dataset.setting=key;input.value=value(this.node,key,RENDER_DEFAULTS[key]);
+            input.onchange=()=>this.changeParameter(key,input.value);this.upstreamControls.push({input,key});
+        }
+        for(const [key,label] of [["moire_on","摩尔纹（需要新版与深度）"],["sparkle_link","关联深度 / 亮部亮点"]]) {
+            const input=el("input",null,el("label",label,this.sidebar),{type:"checkbox",checked:value(this.node,key,false)});
+            input.dataset.setting=key;
+            input.onchange=()=>this.changeParameter(key,input.checked);this.upstreamControls.push({input,key});
+        }
+        el("small","Coil 与摩尔纹需选择上游新版。新版油光增加柔光带、暗边与跨遮挡连续高光，仍为试验样式。",this.sidebar);
+        const group=el("div",null,this.sidebar);
+        el("strong","材质预设",group);
+        this.presetSelect=el("select",null,group,{title:"材质预设"});
+        this.button(group,"加载预设",()=>this.applyMaterial(this.presets?.find(p=>p.name===this.presetSelect.value)?.params));
+        this.button(group,"保存 / 覆盖预设",async()=>{
+            const name=prompt("预设名称（最多 40 字）",this.presetSelect.value||"");if(!name)return;
+            const existing=this.presets?.some(p=>p.name===name.trim());
+            if(existing&&!confirm("覆盖同名材质预设？"))return;
+            const params=Object.fromEntries(Object.entries(MATERIAL_DEFAULTS).map(([k,v])=>[k,value(this.node,k,v)]));
+            await post("feature/presets",{action:"save",name,params});await this.loadPresets();
+        });
+        this.button(group,"删除预设",async()=>{
+            if(!this.presetSelect.value)return;
+            await post("feature/presets",{action:"delete",name:this.presetSelect.value});await this.loadPresets();
+        });
+        this.button(group,"恢复材质默认",()=>this.applyMaterial(MATERIAL_DEFAULTS));
+        this.loadPresets().catch(e=>this.error(e));
+    }
+
+    async loadPresets() {
+        const result=await post("feature/presets",{action:"list"});if(this.closed)return;
+        this.presets=result.presets;this.presetSelect.replaceChildren();
+        for(const p of this.presets)el("option",p.name+(p.params?"":"（不可读取）"),this.presetSelect,{value:p.name,disabled:!p.params});
+    }
+
+    applyMaterial(params) {
+        if(!params)throw new Error("请选择可读取的预设");
+        if(this.draft)this.remember();
+        else {this.materialHistory ||= [];this.materialHistory.push(Object.fromEntries(Object.entries(MATERIAL_DEFAULTS).map(([k,v])=>[k,value(this.node,k,v)])));}
+        const skipped=[];
+        for(const [k,v] of Object.entries({...MATERIAL_DEFAULTS,...params})) {
+            if(this.node.inputs?.some(i=>i.link!=null && (i.name===k || k==="sparkle_link" && ["sparkle_depth","sparkle_bright"].includes(i.name)))){skipped.push(k);continue;}
+            if(this.unified)this.settings[k]=v;else setValue(this.node,k,v);
+        }
+        this.refreshRenderControls();this.updateSaveState();this.schedule();this.scheduleDraftSave();
+        if(skipped.length)this.status.textContent="已跳过连接输入："+skipped.join(", ");
+    }
+
+    buildExchangeControls(head) {
+        if(!this.renderMode) {
+            const input=el("input",null,head,{type:"file",accept:".psd,.psb",hidden:true});
+            this.button(head,"导入 PSD 引导",()=>input.click());
+            input.onchange=async()=>{
+                try {
+                    const file=input.files[0];if(!file)return;
+                    const form=new FormData();form.append("file",file);form.append("session",this.payload.session);form.append("index",String(this.index));
+                    const response=await api.fetchApi(`${API_ROOT}/psd/import`,{method:"POST",body:form});
+                    const result=await response.json();if(!response.ok)throw new Error(result.error);
+                    this.remember();this.doc.frames[this.batchMode==="shared"?0:this.index]=result.document.frames[0];
+                    this.selected=0;await this.loadPlanes();this.updateDraft();
+                } catch(e){this.error(e);} finally {input.value="";}
+            };
+        }
+        for(const [kind,label] of [["png","导出成品"],["cutout","导出透明 PNG"],["guides","导出引导 PSD"]]) {
+            this.button(head,label,async()=>{
+                this.flushPlanes();const guideDoc=this.doc||this.payload.document;
+                const response=await api.fetchApi(`${API_ROOT}/feature/export`,{method:"POST",headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify({session:this.payload.session,index:this.index,kind,guides_json:JSON.stringify(guideDoc),batch_mode:this.batchMode||this.payload.batch_mode,
+                        settings:this.unified?this.settings:Object.fromEntries(Object.entries(MATERIAL_DEFAULTS).map(([k,v])=>[k,value(this.node,k,v)]))})});
+                if(!response.ok)throw new Error((await response.json()).error);
+                const url=URL.createObjectURL(await response.blob()),a=document.createElement("a");
+                a.href=url;a.download=kind==="guides"?"stocking-guides.psd":`stocking-${kind}.png`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+            });
+        }
+        if(this.renderMode)this.button(head,"撤销预设 / 默认",()=>{
+            const prior=this.materialHistory?.pop();if(prior){this.applyMaterial(prior);this.materialHistory.pop();}
+        });
+    }
+
+    scheduleDraftSave() {
+        if(this.closed || !this.draft || this.recoveryPending)return;
+        clearTimeout(this.draftTimer);
+        this.draftTimer=setTimeout(()=>{
+            this.flushPlanes();const state=JSON.parse(this.snapshot());
+            this.pendingDraft=(this.pendingDraft||Promise.resolve()).catch(()=>{}).then(()=>{
+                if(this.closed)return;
+                return post("feature/draft",{action:"save",editor_id:this.editorId,identity:this.payload.identity,session:this.payload.session,state});
+            });
+            this.pendingDraft.catch(e=>this.error(new Error("草稿恢复保存失败；仍可保存节点："+e.message)));
+        },1000);
+    }
+
+    async offerRecovery() {
+        if(!this.draft || this.closed)return;
+        this.recoveryPending=true;
+        try {
+            const result=await post("feature/draft",{action:"load",editor_id:this.editorId,identity:this.payload.identity,session:this.payload.session});
+            if(this.closed || !result.draft)return;
+            const row=el("div",null,this.head,{className:"tb-stocking-candidates"});
+            el("span","发现未保存草稿",row);
+            this.button(row,"恢复草稿",async()=>{
+                this.payload=result.draft.payload;this.restore(JSON.stringify(result.draft.state));row.remove();this.recoveryPending=false;
+                this.scheduleDraftSave();
+            });
+            this.button(row,"丢弃草稿",async()=>{
+                await post("feature/draft",{action:"delete",editor_id:this.editorId,identity:this.payload.identity});row.remove();this.recoveryPending=false;
+            });
+        } catch(e){this.error(e);} finally {if(!this.head.textContent.includes("发现未保存草稿"))this.recoveryPending=false;}
+    }
+
     point(e) { return imagePoint(e.clientX, e.clientY, this.canvas.getBoundingClientRect(), this.view, this.payload.width, this.payload.height); }
     down(e) {
         if (!this.base || this.loading || this.planeLoading || this.loadedIndex !== this.index) return;
@@ -665,8 +866,8 @@ class StockingDialog {
         }
         if (!this.region()) { this.status.textContent = "请先新增部位"; return; }
         if (this.tool === "sam") { this.samClick(this.point(e), e.button === 2).catch(err => this.error(err)); return; }
-        if (e.button === 2) { this.removeLast(this.tool === "damage" ? "damage_strokes" : this.tool === "wall" ? "walls" : "strokes"); return; }
-        this.remember(); this.drag = { points: [this.point(e)], tool: this.tool, regionId: this.region().id, index: this.index };
+        if (e.button === 2 && ["stroke","wall","damage"].includes(this.tool)) { this.removeAt(this.point(e)); return; }
+        if (this.tool !== "cut") this.remember(); this.drag = { points: [this.point(e)], tool: e.button === 2 && this.tool === "paint" ? "erase" : this.tool, regionId: this.region().id, index: this.index };
         this.draw();
     }
     move(e) {
@@ -683,7 +884,10 @@ class StockingDialog {
         if (d.pan) { if (this.renderMode) this.schedule(); this.draw(); return; }
         if (d.index !== this.index || d.regionId !== this.region()?.id) return;
         const p = this.planes.get(d.regionId), r = this.region();
-        if (d.tool === "damage") {
+        if (d.tool === "cut") {
+            if (d.points.length>1) this.regionOperation("split",d.points).catch(e=>this.error(e));
+            return;
+        } else if (d.tool === "damage") {
             const cfg = this.effects().damage;
             const type = this.manualDamageType || (cfg.type === "mixed" ? ((r.damage_strokes?.length || 0) % 2 ? "ladder" : "snag") : cfg.type);
             const scale = Math.sqrt(this.payload.width*this.payload.height/(1280*1920));
@@ -697,6 +901,7 @@ class StockingDialog {
             rasterPaint(p.mask, d.points, this.radius, d.tool === "paint" ? "white" : "black");
             rasterPaint(p.erase, d.points, this.radius, d.tool === "erase" ? "white" : "black");
             p.dirty = true; this.overlays.delete(r.id);
+            if (d.tool === "paint") this.claimStroke(d.points);
         } else if (d.points.length > 1) r[d.tool === "stroke" ? "strokes" : "walls"].push(d.points);
         this.updateDraft(); this.draw();
     }
@@ -745,7 +950,7 @@ class StockingDialog {
     overlayFor(r, index) {
         if (this.overlays.has(r.id)) return this.overlays.get(r.id);
         const pixels = this.regionPixels(r); if (!pixels) return null;
-        const v = this.coverageVisual(selectionCoverage(pixels.paint, pixels.erased, pixels.external), COLORS[index % COLORS.length]);
+        const v = this.coverageVisual(selectionCoverage(pixels.paint, pixels.erased, pixels.external), r.color || COLORS[index % COLORS.length]);
         this.overlays.set(r.id, v); return v;
     }
 
@@ -809,6 +1014,12 @@ class StockingDialog {
         if (this.unified && !this.renderMode && this.basicLines?.length) {
             ctx.setLineDash([6 / this.view.scale, 4 / this.view.scale]); this.drawLines(ctx, this.basicLines, "#8edcff", 1 / this.view.scale); ctx.setLineDash([]);
         }
+        if (!this.renderMode) {
+            for (const [key,color] of [["courses","#66dbff"],["wales","#e7a3ff"],["auto_walls","#ff795e"]]) {
+                if(key==="auto_walls") ctx.setLineDash([5/this.view.scale,4/this.view.scale]);
+                this.drawLines(ctx,this.guideOverlays[key]||[],color,1/this.view.scale); ctx.setLineDash([]);
+            }
+        }
         if (this.drag?.points) this.drawLines(ctx, [this.drag.points], this.drag.tool === "erase" ? "#ff7777" : "#ffffff", ["paint", "erase"].includes(this.drag.tool) ? this.radius * 2 : 2 / this.view.scale);
         ctx.restore();
         if (this.renderMode) {
@@ -852,10 +1063,12 @@ class StockingDialog {
             }
         } else {
             body.guides_json = JSON.stringify(this.doc); body.batch_mode = this.batchMode; body.advanced = !this.unified;
+            body.overlay_settings = this.overlayOptions;
         }
         if (this.unified) {
             this.flushPlanes(); body.guides_json = JSON.stringify(this.doc); body.settings = this.settings;
             body.view = this.renderMode ? "texture" : "guides";
+            if (!this.renderMode) body.overlay_settings = this.overlayOptions;
             overviewKey = JSON.stringify([this.doc, this.settings, index, this.diagnostics]);
             body.overview = this.renderMode && overviewKey !== this.overviewKey;
             this.previewRect = rect;
@@ -870,10 +1083,12 @@ class StockingDialog {
         this.previewBitmap = bitmap; this.previewRect = rect; this.draw();
         const info = result.info;
         this.basicLines = info.basic_guides || [];
+        this.guideOverlays = info.overlays || {};
         if (this.renderMode) this.refreshRenderControls(info);
         this.status.textContent = this.renderMode
             ? `版本 ${revision} · 周期 ${info.period.toFixed(2)}px · ${body.params.strength_auto ? "自动" : "手动"}强度 ${Number(info.effective_strength).toFixed(1)}% · 过密衰减 ${(100 * info.faded_fraction).toFixed(1)}% · ${(1000 * info.render_seconds).toFixed(0)}ms${info.clamped ? " · 已限制过高密度" : ""}${info.notes?.length ? `\n${info.notes.join("；")}` : ""}`
             : `底图 ${this.payload.identity.slice(0, 10)} · 版本 ${revision} · 求解 ${(1000 * info.solve_seconds).toFixed(0)}ms · 部位缓存 ${info.cache_hits} 命中 / ${info.cache_misses} 重算 · 未引导 ${info.unguided_pixels} 像素`;
+        if (this.mirrorInfo) this.status.textContent += `\n镜像完成 · 轮廓拟合误差 ${this.mirrorInfo.fit_error.toFixed(2)}px`;
         if (this.unified) this.status.textContent += `\n选区 ${(100 * info.coverage_fraction).toFixed(2)}% · 实际变化 ${(100 * info.changed_fraction).toFixed(2)}% · ${info.direction_source === "manual" ? "手绘走向" : "基础走向（虚线）+ 手绘优先"}${info.failure_reason ? " · 未生效：" + info.failure_reason : " · 纹理已生效"}`;
     }
 
@@ -1077,6 +1292,7 @@ class StockingDialog {
         maskContext.putImageData(paint, 0, 0); eraseContext.putImageData(erase, 0, 0);
         p.dirty = true; this.overlays.delete(this.region().id);
         const label = ["小", "中", "大"][group.selected];
+        if (!group.subtract) this.claimCoverage(group.rgba);
         this.cancelSAM(`已${group.subtract ? "减去" : "添加"} SAM ${label}候选；保存并关闭后写入工作流。`);
         this.updateDraft(); this.draw();
     }
@@ -1088,7 +1304,7 @@ class StockingDialog {
         if (e.code === "Space") { this.space = true; e.preventDefault(); }
         if (!this.renderMode || this.tool === "damage") {
             const key = e.key.toLowerCase();
-            const map = { b: "paint", e: "erase", p: "stroke", w: "wall", s: "sam", d: "damage" };
+            const map = { k: "cut", b: "paint", e: "erase", p: "stroke", w: "wall", s: "sam", d: "damage" };
             if (map[key] && (key !== "s" || this.payload.sam_available)) { this.tool = map[key]; this.markTools(); }
             if ((e.ctrlKey || e.metaKey) && key === "z") { e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); }
         }
@@ -1096,9 +1312,14 @@ class StockingDialog {
 
     close(save = false) {
         if (this.closed) return;
+        const guideChanged = this.draft && JSON.stringify(this.doc) !== this.initialDocument;
+        if (save && guideChanged) {
+            const slot = this.node.inputs?.findIndex(i=>i.name==="guides_json" && i.link!=null);
+            if (slot>=0) this.node.disconnectInput(slot);
+        }
         if (save && this.draft && this.unified) {
             this.flushPlanes();
-            setValue(this.node, "guides_json", recordsForSave(widget(this.node, "guides_json")?.value, this.doc, this.payload.identities, JSON.parse(this.initialDocument)));
+            if (guideChanged) setValue(this.node, "guides_json", recordsForSave(this.payload.saved_guides_json || widget(this.node, "guides_json")?.value, this.doc, this.payload.identities, JSON.parse(this.initialDocument)));
             for (const [key, val] of Object.entries(this.settings)) {
                 if (SETTING_KEYS.includes(key) && !this.node.inputs?.some(i => i.name === key && i.link != null)) setValue(this.node, key, val);
             }
@@ -1106,6 +1327,9 @@ class StockingDialog {
             this.flushPlanes(); this.draft.save((name, val) => setValue(this.node, name, val));
         }
         if (this.unified) updateSummary(this.node);
+        clearTimeout(this.draftTimer);
+        this.pendingDraft?.catch(()=>{}).then(()=>post("feature/draft",{action:"delete",editor_id:this.editorId,identity:this.payload.identity}).catch(()=>{}));
+        if(!this.pendingDraft) post("feature/draft",{action:"delete",editor_id:this.editorId,identity:this.payload.identity}).catch(()=>{});
         this.closed = true; clearTimeout(this.timer); this.controller.abort(); this.pending?.abort(); this.resize.disconnect();
         this.cancelSAM(); this.localeObserver?.disconnect();
         document.removeEventListener("keydown", this.keyboard); this.base?.close(); this.external?.close(); this.overlay.remove();
@@ -1177,6 +1401,8 @@ app.registerExtension({
         const created = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = created?.apply(this, arguments);
+            this.properties ||= {};
+            this.properties.stocking_editor_id ||= crypto.randomUUID();
             this.__stockingInputWidgetCount = this.widgets?.length || 0;
             for (const name of ["guides_json", "effects_json"]) {
                 const w = widget(this, name);
@@ -1205,7 +1431,14 @@ app.registerExtension({
                 this.__stockingPreparing = true;
                 app.extensionManager?.toast?.add({ severity: "info", summary: "正在准备当前底图；只执行必要上游，不运行下游保存节点", life: 4000 });
                 try {
-                    let payload = await prepareNode(this);
+                    let payload;
+                    try { payload = await prepareNode(this); }
+                    catch (prepareError) {
+                        const saved = this.properties.stocking_draft_identity && await post("feature/draft", {
+                            action:"load", editor_id:this.properties.stocking_editor_id, identity:this.properties.stocking_draft_identity});
+                        if (!saved?.draft) throw prepareError;
+                        payload=saved.draft.payload;
+                    }
                     if (!unified) {
                         // The advanced editor keeps its v1 schema. A new picture gets
                         // an independent draft; a stale size cannot prevent opening.
