@@ -474,3 +474,180 @@ def test_flat_oily_art_does_not_invent_a_glint():
     scene = engine.scene_for(image, fields["frames"][0], False)
     maps = scene.oily_maps()
     assert not maps[1].any()  # specular core
+
+
+def test_unified_mask_without_hand_guides_produces_texture():
+    from tb_stocking_test.unified import process_batch
+    image, mask, _ = fixture()
+    result = process_batch(image[None], "{}", "mask", dict(OFF, style="knit", strength=160), mask=mask[None], color_exclude=False)
+    out, layer, alpha, diagnostics, regions, sources, report = result
+    assert report[0]["changed_pixels"] > 0
+    assert report[0]["direction_source"] == "basic+manual"
+    assert np.array_equal(out[0][~mask], image[~mask])
+    np.testing.assert_array_equal(layer * alpha[..., None] + sources * (1 - alpha[..., None]), out)
+    assert np.array_equal(regions[0] > 0, mask)
+
+
+def test_unified_identity_and_legacy_never_reuse_same_size_mask():
+    from tb_stocking_test.unified import read_records, manual_frame
+    image, _, doc = fixture()
+    records = read_records(json.dumps({"version": 2, "records": {data.digest(image): doc}}))
+    assert manual_frame(records, image) == doc["frames"][0]
+    assert manual_frame(records, image * 0.9) is None
+    assert manual_frame(read_records(data.dump_guides(doc)), image) is None
+
+
+def test_unified_batch_skips_failed_and_aligns_originals():
+    from tb_stocking_test.unified import process_batch
+    image, mask, _ = fixture()
+    images = np.stack([image * 0.9, image])
+    masks = np.stack([np.zeros_like(mask), mask]).astype(np.float32)
+    result = process_batch(images, "{}", "mask", dict(OFF, style="loops", strength=130), mask=masks, color_exclude=False)
+    assert all(len(x) == 1 for x in result[:6])
+    np.testing.assert_array_equal(result[5][0], image)
+    assert result[6][0]["output_index"] is None
+    assert result[6][1]["input_index"] == 1 and result[6][1]["output_index"] == 0
+    solo = process_batch(image[None], "{}", "mask", dict(OFF, style="loops", strength=130), mask=mask[None], color_exclude=False)
+    np.testing.assert_array_equal(result[0], solo[0])
+
+
+def test_unified_all_fail_and_global_invalid_model():
+    from tb_stocking_test.unified import process_batch
+    image, mask, _ = fixture()
+    with pytest.raises(ValueError, match="所有图像"):
+        process_batch(image[None], "{}", "mask", OFF, mask=np.zeros_like(mask)[None])
+    with pytest.raises(ValueError, match="Easy-Sam3"):
+        process_batch(image[None], "{}", "semantic", OFF)
+
+
+def test_unified_preview_matches_final_and_cache_reused():
+    from tb_stocking_test.unified import process_batch
+    from tb_stocking_test.nodes import prepare_session
+    image, mask, doc = fixture()
+    doc["frames"][0]["regions"][0]["strokes"] = []
+    raw = json.dumps({"version": 2, "records": {data.digest(image): doc}})
+    params = dict(OFF, style="grain", strength=140, seed=20261005, color_exclude=False)
+    payload = prepare_session(torch.from_numpy(image[None]), params, raw)
+    session = SESSION_CACHE.get(payload["session"])
+    p = dict(guides_json=data.dump_guides(payload["document"]), index=0, revision=0, params=params, settings=params)
+    preview = routes.preview_sync(session, p)
+    out = process_batch(image[None], raw, "manual", params, color_exclude=False)[0][0]
+    import base64, io
+    from PIL import Image
+    np.testing.assert_array_equal(np.asarray(Image.open(io.BytesIO(base64.b64decode(preview["png"])))), data.rgb8(out))
+    p["params"] = dict(params, style="loops")
+    next_preview = routes.preview_sync(session, p)
+    assert next_preview["info"]["cache_hits"] == 1
+    for i in range(100):
+        p["revision"] = i
+        routes.preview_sync(session, p)
+    assert REGION_CACHE.bytes <= REGION_CACHE.max_bytes and SCENE_CACHE.bytes <= SCENE_CACHE.max_bytes
+
+
+def test_unified_manual_guides_take_precedence():
+    from tb_stocking_test.unified import basic_guides
+    image, mask, doc = fixture()
+    frame, generated = basic_guides(doc["frames"][0], [mask.astype(np.float32)])
+    assert not generated
+    assert frame == doc["frames"][0]
+
+
+def test_semantic_adapter_caches_by_model_image_prompt_and_restores_device_on_failure():
+    from types import SimpleNamespace
+    from tb_stocking_test.unified import semantic_regions, SEMANTIC_CACHE
+    SEMANTIC_CACHE.clear()
+    class Model:
+        def __init__(self): self.moves = []
+        def to(self, device): self.moves.append(str(device)); return self
+    class Processor:
+        device = "cpu"
+        confidence_threshold = 0.3
+        def __init__(self):
+            self.calls = 0
+            self.fail = False
+            self.find_stage = SimpleNamespace(img_ids=torch.tensor([0]))
+        def set_image(self, image): return {"size": image.size}
+        def set_text_prompt(self, prompt, state):
+            self.calls += 1
+            if self.fail: raise RuntimeError("inference failed")
+            w, h = state["size"]
+            masks = torch.zeros((1, 1, h, w)); masks[..., 10:40, 10:40] = 1
+            return {"masks": masks, "scores": torch.tensor([0.8])}
+    model, processor = Model(), Processor()
+    handle = dict(model=model, processor=processor, segmentor="image", device="cpu", dtype=torch.float32)
+    image, _, _ = fixture()
+    result = semantic_regions(image, handle)
+    assert len(result["regions"]) == 1 and model.moves[-1] == "cpu"
+    assert processor.device == "cpu" and processor.confidence_threshold == 0.3
+    semantic_regions(image, handle)
+    assert processor.calls == 1
+    result["regions"].clear()
+    assert len(semantic_regions(image, handle)["regions"]) == 1
+    semantic_regions(image * 0.9, handle)
+    assert processor.calls == 2
+    processor.fail = True
+    with pytest.raises(RuntimeError, match="inference failed"):
+        semantic_regions(image, handle, prompt="tights")
+    assert model.moves[-1] == "cpu" and processor.confidence_threshold == 0.3
+    assert SEMANTIC_CACHE.bytes <= SEMANTIC_CACHE.max_bytes
+
+
+def test_prepare_stale_dimensions_acquires_new_source_without_parsing_old_masks():
+    from tb_stocking_test.nodes import prepare_session
+    image, _, doc = fixture()
+    payload = prepare_session(torch.from_numpy(image[None, ::2, ::2].copy()), {}, data.dump_guides(doc))
+    assert payload["width"] == image.shape[1] // 2 and payload["height"] == image.shape[0] // 2
+    assert payload["legacy"] == doc
+    assert payload["document"]["frames"][0]["regions"][0]["mask"] == ""
+
+
+def test_sam3_coordinate_device_patch_restores_caches_even_on_failure():
+    from types import SimpleNamespace, ModuleType
+    from tb_stocking_test.unified import coordinate_device
+    class Coordinate:
+        def __init__(self, device): self.device = torch.device(device)
+        def to(self, device): return Coordinate(device)
+    original = (Coordinate("cuda"), Coordinate("cuda"))
+    decoder = SimpleNamespace(compilable_cord_cache=original, coord_cache={(63, 63): original})
+    model = SimpleNamespace(transformer=SimpleNamespace(decoder=decoder))
+    class Patcher:
+        def __init__(self, model, load_device, offload_device): self.patches = {}; self.backup = {}
+        def add_object_patch(self, name, value): self.patches[name.split(".")[-1]] = value
+        def patch_model(self, load_weights):
+            assert not load_weights
+            for key, val in self.patches.items(): self.backup[key] = getattr(decoder, key); setattr(decoder, key, val)
+        def unpatch_model(self, unpatch_weights):
+            assert not unpatch_weights
+            for key, val in self.backup.items(): setattr(decoder, key, val)
+    module = ModuleType("comfy.model_patcher"); module.ModelPatcher = Patcher
+    with patch.dict(sys.modules, {"comfy": ModuleType("comfy"), "comfy.model_patcher": module}):
+        with pytest.raises(RuntimeError, match="failure"):
+            with coordinate_device(model, torch.device("cpu")):
+                assert all(v.device.type == "cpu" for v in decoder.compilable_cord_cache)
+                assert all(v.device.type == "cpu" for pair in decoder.coord_cache.values() for v in pair)
+                raise RuntimeError("failure")
+    assert decoder.compilable_cord_cache is original
+    assert decoder.coord_cache[(63, 63)] is original
+
+
+def test_identical_batch_frames_keep_independent_reports_and_match_pixels():
+    from tb_stocking_test.unified import process_batch
+    image, mask, _ = fixture()
+    images = np.stack([image, image])
+    out = process_batch(images, "{}", "mask", dict(OFF, style="loops", strength=140), mask=mask[None], color_exclude=False)
+    assert [r["input_index"] for r in out[6]] == [0, 1]
+    assert [r["output_index"] for r in out[6]] == [0, 1]
+    assert out[6][0] is not out[6][1]
+    assert out[6][0]["cache_misses"] == 1 and out[6][1]["cache_hits"] == 1
+    np.testing.assert_array_equal(out[0][0], out[0][1])
+    np.testing.assert_array_equal(out[5], images)
+
+
+def test_semantic_preparation_does_not_implicitly_apply_external_mask():
+    from tb_stocking_test.nodes import prepare_session
+    image, mask, _ = fixture()
+    images = torch.from_numpy(image[None])
+    semantic = prepare_session(images, {"source_mode": "semantic"}, mask=mask[None], sam3_model={})
+    assert semantic["has_mask"] and not semantic["document"]["frames"][0]["regions"][0]["external"]
+    manual = prepare_session(images, {"source_mode": "manual"}, mask=mask[None])
+    assert manual["document"]["frames"][0]["regions"][0]["external"]

@@ -46,7 +46,7 @@ test("an empty widget's fallback document is not mutated by a draft", () => {
 test("SAM hints distinguish unconnected, pending and ready models", () => {
     assert.match(samHint(false), /未连接 SAM/);
     assert.match(samHint(false), /sam 输入/);
-    assert.match(samHint(false, true), /重新执行/);
+    assert.match(samHint(false, true), /重新打开/);
     assert.match(samHint(true, true), /左键添加，右键减去/);
 });
 
@@ -55,7 +55,7 @@ test("isoline preview updates and painting do not invalidate SAM candidates", ()
     const token = requests.begin(0, region);
     region.mask = "painted while encoding"; region.strokes.push([[1, 2], [3, 4]]);
     assert.equal(requests.matches(token, false, 0, region), true);
-    assert.match(samHint(true, true, "cuda"), /cuda.*重新执行/);
+    assert.match(samHint(true, true, "cuda"), /cuda.*重新打开/);
 });
 
 test("SAM results cannot cross images, regions, undo replacements, cancellation or newer requests", () => {

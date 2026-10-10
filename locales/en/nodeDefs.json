@@ -1,0 +1,617 @@
+{
+  "NFStockingTexture": {
+    "display_name": "tb-Stocking texture · Unified editor and batch",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "mask": {
+        "name": "Application mask"
+      },
+      "depth": {
+        "name": "Grayscale depth"
+      },
+      "sam": {
+        "name": "Original SAM point model",
+        "tooltip": "Preserves ViT-B add/subtract clicks, Small/Medium/Large candidates and wipe comparison."
+      },
+      "sam3_model": {
+        "name": "SAM3 semantic model"
+      },
+      "guides_json": {
+        "name": "Image-bound guides"
+      },
+      "source_mode": {
+        "name": "Region source",
+        "tooltip": "semantic: per-image SAM3; manual: image-bound edits; mask: external region mask."
+      },
+      "prompt": {
+        "name": "SAM3 prompt"
+      },
+      "threshold": {
+        "name": "Confidence threshold"
+      },
+      "auto_direction": {
+        "name": "Basic direction"
+      },
+      "failure_mode": {
+        "name": "Failure handling",
+        "tooltip": "skip: report and skip empty/no-effect frames; error: stop immediately. All failed frames raise an error."
+      },
+      "style": {
+        "name": "Style"
+      },
+      "density": {
+        "name": "Density"
+      },
+      "tilt": {
+        "name": "Tilt"
+      },
+      "strength": {
+        "name": "Texture strength"
+      },
+      "strength_auto": {
+        "name": "Automatic strength"
+      },
+      "color_exclude": {
+        "name": "Color exclusion"
+      },
+      "sparkle_depth": {
+        "name": "Depth sparkles"
+      },
+      "sparkle_bright": {
+        "name": "Highlight sparkles"
+      },
+      "sparkle_even": {
+        "name": "Uniform sparkles"
+      },
+      "sparkle_painted": {
+        "name": "Mask sparkles"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "sparkle_mask": {
+        "name": "Sparkle mask"
+      },
+      "depth_direction": {
+        "name": "Depth direction"
+      },
+      "auto_walls": {
+        "name": "Automatic barriers"
+      },
+      "fields": {
+        "name": "Solved fields"
+      },
+      "guides": {
+        "name": "Guides"
+      },
+      "batch_mode": {
+        "name": "Batch mode"
+      },
+      "checkpoint": {
+        "name": "Local point checkpoint"
+      },
+      "device": {
+        "name": "Device"
+      },
+      "model": {
+        "name": "Depth model"
+      }
+    },
+    "description": "Edit regions, direction and style in one window. SAM3 segments each frame; original point selection is preserved. Failed frames are skipped; source_images aligns with successful outputs.",
+    "outputs": {
+      "0": {
+        "name": "Result"
+      },
+      "1": {
+        "name": "Stocking layer"
+      },
+      "2": {
+        "name": "Layer alpha"
+      },
+      "3": {
+        "name": "Regions mask"
+      },
+      "4": {
+        "name": "Diagnostics"
+      },
+      "5": {
+        "name": "Successful source images"
+      },
+      "6": {
+        "name": "Per-image report"
+      }
+    }
+  },
+  "NFStockingEditor": {
+    "display_name": "tb-Stocking guides (advanced)",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "mask": {
+        "name": "Application mask"
+      },
+      "depth": {
+        "name": "Grayscale depth"
+      },
+      "sam": {
+        "name": "Original SAM point model"
+      },
+      "sam3_model": {
+        "name": "SAM3 semantic model"
+      },
+      "guides_json": {
+        "name": "Image-bound guides"
+      },
+      "source_mode": {
+        "name": "Region source"
+      },
+      "prompt": {
+        "name": "SAM3 prompt"
+      },
+      "threshold": {
+        "name": "Confidence threshold"
+      },
+      "auto_direction": {
+        "name": "Basic direction"
+      },
+      "failure_mode": {
+        "name": "Failure handling"
+      },
+      "style": {
+        "name": "Style"
+      },
+      "density": {
+        "name": "Density"
+      },
+      "tilt": {
+        "name": "Tilt"
+      },
+      "strength": {
+        "name": "Texture strength"
+      },
+      "strength_auto": {
+        "name": "Automatic strength"
+      },
+      "color_exclude": {
+        "name": "Color exclusion"
+      },
+      "sparkle_depth": {
+        "name": "Depth sparkles"
+      },
+      "sparkle_bright": {
+        "name": "Highlight sparkles"
+      },
+      "sparkle_even": {
+        "name": "Uniform sparkles"
+      },
+      "sparkle_painted": {
+        "name": "Mask sparkles"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "sparkle_mask": {
+        "name": "Sparkle mask"
+      },
+      "depth_direction": {
+        "name": "Depth direction"
+      },
+      "auto_walls": {
+        "name": "Automatic barriers"
+      },
+      "fields": {
+        "name": "Solved fields"
+      },
+      "guides": {
+        "name": "Guides"
+      },
+      "batch_mode": {
+        "name": "Batch mode"
+      },
+      "checkpoint": {
+        "name": "Local point checkpoint"
+      },
+      "device": {
+        "name": "Device"
+      },
+      "model": {
+        "name": "Depth model"
+      }
+    }
+  },
+  "NFStockingSolve": {
+    "display_name": "tb-Stocking field solver (advanced)",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "mask": {
+        "name": "Application mask"
+      },
+      "depth": {
+        "name": "Grayscale depth"
+      },
+      "sam": {
+        "name": "Original SAM point model"
+      },
+      "sam3_model": {
+        "name": "SAM3 semantic model"
+      },
+      "guides_json": {
+        "name": "Image-bound guides"
+      },
+      "source_mode": {
+        "name": "Region source"
+      },
+      "prompt": {
+        "name": "SAM3 prompt"
+      },
+      "threshold": {
+        "name": "Confidence threshold"
+      },
+      "auto_direction": {
+        "name": "Basic direction"
+      },
+      "failure_mode": {
+        "name": "Failure handling"
+      },
+      "style": {
+        "name": "Style"
+      },
+      "density": {
+        "name": "Density"
+      },
+      "tilt": {
+        "name": "Tilt"
+      },
+      "strength": {
+        "name": "Texture strength"
+      },
+      "strength_auto": {
+        "name": "Automatic strength"
+      },
+      "color_exclude": {
+        "name": "Color exclusion"
+      },
+      "sparkle_depth": {
+        "name": "Depth sparkles"
+      },
+      "sparkle_bright": {
+        "name": "Highlight sparkles"
+      },
+      "sparkle_even": {
+        "name": "Uniform sparkles"
+      },
+      "sparkle_painted": {
+        "name": "Mask sparkles"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "sparkle_mask": {
+        "name": "Sparkle mask"
+      },
+      "depth_direction": {
+        "name": "Depth direction"
+      },
+      "auto_walls": {
+        "name": "Automatic barriers"
+      },
+      "fields": {
+        "name": "Solved fields"
+      },
+      "guides": {
+        "name": "Guides"
+      },
+      "batch_mode": {
+        "name": "Batch mode"
+      },
+      "checkpoint": {
+        "name": "Local point checkpoint"
+      },
+      "device": {
+        "name": "Device"
+      },
+      "model": {
+        "name": "Depth model"
+      }
+    }
+  },
+  "NFStockingRender": {
+    "display_name": "tb-Stocking renderer (advanced)",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "mask": {
+        "name": "Application mask"
+      },
+      "depth": {
+        "name": "Grayscale depth"
+      },
+      "sam": {
+        "name": "Original SAM point model"
+      },
+      "sam3_model": {
+        "name": "SAM3 semantic model"
+      },
+      "guides_json": {
+        "name": "Image-bound guides"
+      },
+      "source_mode": {
+        "name": "Region source"
+      },
+      "prompt": {
+        "name": "SAM3 prompt"
+      },
+      "threshold": {
+        "name": "Confidence threshold"
+      },
+      "auto_direction": {
+        "name": "Basic direction"
+      },
+      "failure_mode": {
+        "name": "Failure handling"
+      },
+      "style": {
+        "name": "Style"
+      },
+      "density": {
+        "name": "Density"
+      },
+      "tilt": {
+        "name": "Tilt"
+      },
+      "strength": {
+        "name": "Texture strength"
+      },
+      "strength_auto": {
+        "name": "Automatic strength"
+      },
+      "color_exclude": {
+        "name": "Color exclusion"
+      },
+      "sparkle_depth": {
+        "name": "Depth sparkles"
+      },
+      "sparkle_bright": {
+        "name": "Highlight sparkles"
+      },
+      "sparkle_even": {
+        "name": "Uniform sparkles"
+      },
+      "sparkle_painted": {
+        "name": "Mask sparkles"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "sparkle_mask": {
+        "name": "Sparkle mask"
+      },
+      "depth_direction": {
+        "name": "Depth direction"
+      },
+      "auto_walls": {
+        "name": "Automatic barriers"
+      },
+      "fields": {
+        "name": "Solved fields"
+      },
+      "guides": {
+        "name": "Guides"
+      },
+      "batch_mode": {
+        "name": "Batch mode"
+      },
+      "checkpoint": {
+        "name": "Local point checkpoint"
+      },
+      "device": {
+        "name": "Device"
+      },
+      "model": {
+        "name": "Depth model"
+      }
+    }
+  },
+  "NFStockingSAMLoader": {
+    "display_name": "tb-Stocking SAM point model",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "mask": {
+        "name": "Application mask"
+      },
+      "depth": {
+        "name": "Grayscale depth"
+      },
+      "sam": {
+        "name": "Original SAM point model"
+      },
+      "sam3_model": {
+        "name": "SAM3 semantic model"
+      },
+      "guides_json": {
+        "name": "Image-bound guides"
+      },
+      "source_mode": {
+        "name": "Region source"
+      },
+      "prompt": {
+        "name": "SAM3 prompt"
+      },
+      "threshold": {
+        "name": "Confidence threshold"
+      },
+      "auto_direction": {
+        "name": "Basic direction"
+      },
+      "failure_mode": {
+        "name": "Failure handling"
+      },
+      "style": {
+        "name": "Style"
+      },
+      "density": {
+        "name": "Density"
+      },
+      "tilt": {
+        "name": "Tilt"
+      },
+      "strength": {
+        "name": "Texture strength"
+      },
+      "strength_auto": {
+        "name": "Automatic strength"
+      },
+      "color_exclude": {
+        "name": "Color exclusion"
+      },
+      "sparkle_depth": {
+        "name": "Depth sparkles"
+      },
+      "sparkle_bright": {
+        "name": "Highlight sparkles"
+      },
+      "sparkle_even": {
+        "name": "Uniform sparkles"
+      },
+      "sparkle_painted": {
+        "name": "Mask sparkles"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "sparkle_mask": {
+        "name": "Sparkle mask"
+      },
+      "depth_direction": {
+        "name": "Depth direction"
+      },
+      "auto_walls": {
+        "name": "Automatic barriers"
+      },
+      "fields": {
+        "name": "Solved fields"
+      },
+      "guides": {
+        "name": "Guides"
+      },
+      "batch_mode": {
+        "name": "Batch mode"
+      },
+      "checkpoint": {
+        "name": "Local point checkpoint"
+      },
+      "device": {
+        "name": "Device"
+      },
+      "model": {
+        "name": "Depth model"
+      }
+    }
+  },
+  "NFStockingDepth": {
+    "display_name": "tb-Stocking depth helper",
+    "inputs": {
+      "images": {
+        "name": "Images"
+      },
+      "mask": {
+        "name": "Application mask"
+      },
+      "depth": {
+        "name": "Grayscale depth"
+      },
+      "sam": {
+        "name": "Original SAM point model"
+      },
+      "sam3_model": {
+        "name": "SAM3 semantic model"
+      },
+      "guides_json": {
+        "name": "Image-bound guides"
+      },
+      "source_mode": {
+        "name": "Region source"
+      },
+      "prompt": {
+        "name": "SAM3 prompt"
+      },
+      "threshold": {
+        "name": "Confidence threshold"
+      },
+      "auto_direction": {
+        "name": "Basic direction"
+      },
+      "failure_mode": {
+        "name": "Failure handling"
+      },
+      "style": {
+        "name": "Style"
+      },
+      "density": {
+        "name": "Density"
+      },
+      "tilt": {
+        "name": "Tilt"
+      },
+      "strength": {
+        "name": "Texture strength"
+      },
+      "strength_auto": {
+        "name": "Automatic strength"
+      },
+      "color_exclude": {
+        "name": "Color exclusion"
+      },
+      "sparkle_depth": {
+        "name": "Depth sparkles"
+      },
+      "sparkle_bright": {
+        "name": "Highlight sparkles"
+      },
+      "sparkle_even": {
+        "name": "Uniform sparkles"
+      },
+      "sparkle_painted": {
+        "name": "Mask sparkles"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "sparkle_mask": {
+        "name": "Sparkle mask"
+      },
+      "depth_direction": {
+        "name": "Depth direction"
+      },
+      "auto_walls": {
+        "name": "Automatic barriers"
+      },
+      "fields": {
+        "name": "Solved fields"
+      },
+      "guides": {
+        "name": "Guides"
+      },
+      "batch_mode": {
+        "name": "Batch mode"
+      },
+      "checkpoint": {
+        "name": "Local point checkpoint"
+      },
+      "device": {
+        "name": "Device"
+      },
+      "model": {
+        "name": "Depth model"
+      }
+    }
+  }
+}

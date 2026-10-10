@@ -185,3 +185,119 @@ NODE_CLASS_MAPPINGS = {cls.__name__: cls for cls in (NFStockingEditor, NFStockin
 NODE_DISPLAY_NAME_MAPPINGS = {"NFStockingEditor": "tb-丝袜引导编辑器", "NFStockingSolve": "tb-丝袜走向求解",
                               "NFStockingRender": "tb-丝袜纹理（油光为试验）", "NFStockingSAMLoader": "tb-丝袜 SAM 点选模型",
                               "NFStockingDepth": "tb-丝袜深度辅助 Small"}
+
+
+def prepare_session(images, settings, guides_json="{}", mask=None, sam=None, sam3_model=None, depth=None, sparkle_mask=None, unique_id=""):
+    from .unified import read_records, manual_frame, empty_frame
+    from .engine import depth_batch
+    arr = data.image_batch(images)
+    external = data.mask_batch(mask, len(arr), *arr.shape[1:3])
+    records = read_records(guides_json)
+    frames = [manual_frame(records, image, external[i]) or empty_frame(external[i] is not None and (settings.get("source_mode") != "semantic" or sam3_model is None))
+              for i, image in enumerate(arr)]
+    document = {"version": 1, "height": arr.shape[1], "width": arr.shape[2], "frames": frames}
+    session = {"kind": "unified", "images": arr, "external": external, "sam": sam, "sam3_model": sam3_model,
+               "depths": depth_batch(depth, arr, settings.get("depth_direction", "white_near")),
+               "depth_direction": settings.get("depth_direction", "white_near"),
+               "painted": data.mask_batch(sparkle_mask, len(arr), *arr.shape[1:3]), "settings": settings,
+               "revisions": {}}
+    return session_payload(session, document=document, batch_mode="per_image", identities=[data.digest(im) for im in arr],
+                           sam_available=sam is not None, sam_device=sam.device if sam else None,
+                           sam3_available=sam3_model is not None, has_mask=mask is not None, params=settings,
+                           legacy=records.get("legacy"), node_id=str(unique_id))
+
+
+class NFStockingTexture:
+    """Unified manual/semantic workflow. No unprocessed failures in image outputs."""
+    @classmethod
+    def INPUT_TYPES(cls):
+        render = NFStockingRender.INPUT_TYPES()
+        required = dict(render["required"])
+        required.pop("fields")
+        required.update(guides_json=("STRING", {"default": "{}", "multiline": True}),
+                        source_mode=(["semantic", "manual", "mask"], {"default": "semantic"}),
+                        prompt=("STRING", {"default": "stockings"}),
+                        threshold=("FLOAT", {"default": 0.4, "min": 0, "max": 1, "step": 0.01}),
+                        auto_direction=("BOOLEAN", {"default": True}),
+                        depth_direction=(["white_near", "black_near"],), auto_walls=("BOOLEAN", {"default": True}),
+                        failure_mode=(["skip", "error"], {"default": "skip"}))
+        return {"required": required, "optional": {"mask": ("MASK",), "depth": ("IMAGE",),
+                "sparkle_mask": ("MASK",), "sam": ("NF_STOCKING_SAM",), "sam3_model": ("EASY_SAM3_MODEL",)},
+                "hidden": {"unique_id": "UNIQUE_ID"}}
+
+    RETURN_TYPES = ("IMAGE", "IMAGE", "MASK", "MASK", "IMAGE", "IMAGE", "STRING")
+    RETURN_NAMES = ("image", "stocking_layer", "layer_alpha", "regions_mask", "diagnostics", "source_images", "report")
+    FUNCTION = "execute"
+    CATEGORY = CATEGORY
+    DESCRIPTION = "在一个窗口编辑部位、走向及纹理。SAM3 逐图语义识别；可选 ViT-B 点选修边。只输出成功图像；source_images 与成功输出一一对应。"
+
+    def execute(self, images, guides_json="{}", source_mode="semantic", prompt="stockings", threshold=0.4,
+                auto_direction=True, depth_direction="white_near", auto_walls=True, failure_mode="skip",
+                mask=None, sam=None, sam3_model=None, depth=None, sparkle_mask=None, unique_id="", **params):
+        from .unified import process_batch
+        from .engine import tensor
+        settings = dict(params, source_mode=source_mode, prompt=prompt, threshold=threshold,
+                        auto_direction=auto_direction, depth_direction=depth_direction, auto_walls=auto_walls,
+                        failure_mode=failure_mode)
+        color = params.pop("color_exclude", True)
+        seed = params.pop("seed", 20261005)
+        arr = data.image_batch(images)
+        result = process_batch(arr, guides_json, source_mode, params, mask, depth, sparkle_mask, sam3_model,
+                               prompt, threshold, failure_mode, auto_direction, depth_direction, auto_walls, color, seed)
+        # Output port order deliberately differs from process_batch's internal tuple.
+        out, layer, alpha, diag, regions, sources, report = result
+        payload = prepare_session(images, settings, guides_json, mask, sam, sam3_model, depth, sparkle_mask, unique_id)
+        payload["report"] = report
+        return {"ui": {"nf_stocking": [payload]}, "result": (tensor(out), tensor(layer), tensor(alpha), tensor(regions),
+                tensor(diag), tensor(sources), json.dumps(report, ensure_ascii=False, allow_nan=False))}
+
+
+# V3's dev-only schema hides the capture sink from ordinary node menus. It is used
+# solely as the target of a partial execution that acquires upstream tensors/models.
+try:
+    from comfy_api.latest import io
+
+    class NFStockingPrepare(io.ComfyNode):
+        @classmethod
+        def define_schema(cls):
+            inputs = [io.Image.Input("images"), io.String.Input("settings_json", default="{}"),
+                      io.String.Input("guides_json", default="{}"), io.Mask.Input("mask", optional=True),
+                      io.Image.Input("depth", optional=True), io.Mask.Input("sparkle_mask", optional=True),
+                      io.Custom("NF_STOCKING_SAM").Input("sam", optional=True),
+                      io.Custom("EASY_SAM3_MODEL").Input("sam3_model", optional=True)]
+            for name, spec in NFStockingTexture.INPUT_TYPES()["required"].items():
+                if name in ("images", "guides_json"):
+                    continue
+                typ, options = spec[0], spec[1] if len(spec) > 1 else {}
+                if isinstance(typ, list):
+                    inputs.append(io.Combo.Input(name, options=typ, default=options.get("default", typ[0]), optional=True))
+                else:
+                    cls_type = {"STRING": io.String, "FLOAT": io.Float, "INT": io.Int, "BOOLEAN": io.Boolean}[typ]
+                    inputs.append(cls_type.Input(name, default=options.get("default"), optional=True))
+            return io.Schema(node_id="NFStockingPrepare", display_name="Stocking preview capture (internal)",
+                category="_ToolBox/internal", is_dev_only=True, is_output_node=True,
+                inputs=inputs, outputs=[])
+
+        @classmethod
+        def execute(cls, images, settings_json="{}", guides_json="{}", **kwargs):
+            settings = json.loads(settings_json)
+            for name in NFStockingTexture.INPUT_TYPES()["required"]:
+                if name in kwargs:
+                    settings[name] = kwargs.pop(name)
+            payload = prepare_session(images, settings, guides_json, **kwargs)
+            return io.NodeOutput(ui={"nf_stocking": [payload]})
+except ImportError:
+    class NFStockingPrepare:
+        @classmethod
+        def INPUT_TYPES(cls):
+            return {"required": {"images": ("IMAGE",), "settings_json": ("STRING", {"default": "{}"}),
+                    "guides_json": ("STRING", {"default": "{}"})}, "optional": NFStockingTexture.INPUT_TYPES()["optional"]}
+        RETURN_TYPES = ()
+        FUNCTION = "execute"
+        CATEGORY = "_ToolBox/internal"
+        OUTPUT_NODE = True
+        def execute(self, images, settings_json="{}", guides_json="{}", **kwargs):
+            return {"ui": {"nf_stocking": [prepare_session(images, json.loads(settings_json), guides_json, **kwargs)]}, "result": ()}
+
+NODE_CLASS_MAPPINGS.update(NFStockingTexture=NFStockingTexture, NFStockingPrepare=NFStockingPrepare)
+NODE_DISPLAY_NAME_MAPPINGS["NFStockingTexture"] = "tb-丝袜纹理 · 一体化编辑与批处理"

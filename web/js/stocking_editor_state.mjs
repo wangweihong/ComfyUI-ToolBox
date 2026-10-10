@@ -17,9 +17,9 @@ export class GuideDraft {
 }
 
 export function samHint(available, connected = false, device = "auto") {
-    if (available) return `点选已就绪，当前会话设备选项 ${device}：首次点击加载本地 SAM；左键添加，右键减去，自动预览推荐范围；选小/中/大后点击“应用选区”。修改模型或设备后需重新执行工作流。`;
-    if (connected) return "点选尚未就绪：SAM 已连接，请先重新执行工作流取得模型句柄。";
-    return "点选不可用：未连接 SAM 模型。请把「tb-丝袜 SAM 点选模型」连接到本节点的 sam 输入，再运行一次工作流。";
+    if (available) return `点选已就绪，当前会话设备选项 ${device}：首次点击加载本地 SAM；左键添加，右键减去，自动预览推荐范围；选小/中/大后点击“应用选区”。修改模型或设备后重新打开编辑器以准备底图。`;
+    if (connected) return "点选尚未就绪：SAM 已连接，请重新打开编辑器准备模型句柄。";
+    return "点选不可用：未连接 SAM 模型。请把「tb-丝袜 SAM 点选模型」连接到本节点的 sam 输入，再重新打开编辑器。";
 }
 
 // SAM depends on the base image and target region, not the isoline preview revision.

@@ -1,0 +1,617 @@
+{
+  "NFStockingTexture": {
+    "display_name": "tb-丝袜纹理 · 一体化编辑与批处理",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "mask": {
+        "name": "应用遮罩"
+      },
+      "depth": {
+        "name": "灰度深度"
+      },
+      "sam": {
+        "name": "原有 SAM 点选模型",
+        "tooltip": "保留ViT-B的左键添加、右键减去、小/中/大候选和左右对比。"
+      },
+      "sam3_model": {
+        "name": "SAM3 语义模型"
+      },
+      "guides_json": {
+        "name": "图像绑定引导"
+      },
+      "source_mode": {
+        "name": "选区来源",
+        "tooltip": "semantic：逐图SAM3；manual：图片绑定手工引导；mask：外部遮罩。"
+      },
+      "prompt": {
+        "name": "SAM3 提示词"
+      },
+      "threshold": {
+        "name": "识别阈值"
+      },
+      "auto_direction": {
+        "name": "基础走向"
+      },
+      "failure_mode": {
+        "name": "失败处理",
+        "tooltip": "skip：跳过无目标或未生效图并报告；error：立即停止。所有图失败时报错。"
+      },
+      "style": {
+        "name": "样式"
+      },
+      "density": {
+        "name": "密度"
+      },
+      "tilt": {
+        "name": "斜度"
+      },
+      "strength": {
+        "name": "纹理强度"
+      },
+      "strength_auto": {
+        "name": "自动强度"
+      },
+      "color_exclude": {
+        "name": "颜色排除"
+      },
+      "sparkle_depth": {
+        "name": "深度亮点"
+      },
+      "sparkle_bright": {
+        "name": "高光亮点"
+      },
+      "sparkle_even": {
+        "name": "均匀亮点"
+      },
+      "sparkle_painted": {
+        "name": "遮罩亮点"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "sparkle_mask": {
+        "name": "亮点遮罩"
+      },
+      "depth_direction": {
+        "name": "深度方向"
+      },
+      "auto_walls": {
+        "name": "自动隔开"
+      },
+      "fields": {
+        "name": "求解结果"
+      },
+      "guides": {
+        "name": "引导数据"
+      },
+      "batch_mode": {
+        "name": "批次模式"
+      },
+      "checkpoint": {
+        "name": "本地点选权重"
+      },
+      "device": {
+        "name": "设备"
+      },
+      "model": {
+        "name": "深度模型"
+      }
+    },
+    "description": "一个窗口完成部位、走向和样式编辑。SAM3逐图识别；保留原有点选。跳过失败图，source_images与成功输出对应。",
+    "outputs": {
+      "0": {
+        "name": "成品图"
+      },
+      "1": {
+        "name": "丝袜图层"
+      },
+      "2": {
+        "name": "图层透明度"
+      },
+      "3": {
+        "name": "部位遮罩"
+      },
+      "4": {
+        "name": "诊断图"
+      },
+      "5": {
+        "name": "成功图片原图"
+      },
+      "6": {
+        "name": "逐图报告"
+      }
+    }
+  },
+  "NFStockingEditor": {
+    "display_name": "tb-丝袜引导编辑器（高级）",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "mask": {
+        "name": "应用遮罩"
+      },
+      "depth": {
+        "name": "灰度深度"
+      },
+      "sam": {
+        "name": "原有 SAM 点选模型"
+      },
+      "sam3_model": {
+        "name": "SAM3 语义模型"
+      },
+      "guides_json": {
+        "name": "图像绑定引导"
+      },
+      "source_mode": {
+        "name": "选区来源"
+      },
+      "prompt": {
+        "name": "SAM3 提示词"
+      },
+      "threshold": {
+        "name": "识别阈值"
+      },
+      "auto_direction": {
+        "name": "基础走向"
+      },
+      "failure_mode": {
+        "name": "失败处理"
+      },
+      "style": {
+        "name": "样式"
+      },
+      "density": {
+        "name": "密度"
+      },
+      "tilt": {
+        "name": "斜度"
+      },
+      "strength": {
+        "name": "纹理强度"
+      },
+      "strength_auto": {
+        "name": "自动强度"
+      },
+      "color_exclude": {
+        "name": "颜色排除"
+      },
+      "sparkle_depth": {
+        "name": "深度亮点"
+      },
+      "sparkle_bright": {
+        "name": "高光亮点"
+      },
+      "sparkle_even": {
+        "name": "均匀亮点"
+      },
+      "sparkle_painted": {
+        "name": "遮罩亮点"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "sparkle_mask": {
+        "name": "亮点遮罩"
+      },
+      "depth_direction": {
+        "name": "深度方向"
+      },
+      "auto_walls": {
+        "name": "自动隔开"
+      },
+      "fields": {
+        "name": "求解结果"
+      },
+      "guides": {
+        "name": "引导数据"
+      },
+      "batch_mode": {
+        "name": "批次模式"
+      },
+      "checkpoint": {
+        "name": "本地点选权重"
+      },
+      "device": {
+        "name": "设备"
+      },
+      "model": {
+        "name": "深度模型"
+      }
+    }
+  },
+  "NFStockingSolve": {
+    "display_name": "tb-丝袜走向求解（高级）",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "mask": {
+        "name": "应用遮罩"
+      },
+      "depth": {
+        "name": "灰度深度"
+      },
+      "sam": {
+        "name": "原有 SAM 点选模型"
+      },
+      "sam3_model": {
+        "name": "SAM3 语义模型"
+      },
+      "guides_json": {
+        "name": "图像绑定引导"
+      },
+      "source_mode": {
+        "name": "选区来源"
+      },
+      "prompt": {
+        "name": "SAM3 提示词"
+      },
+      "threshold": {
+        "name": "识别阈值"
+      },
+      "auto_direction": {
+        "name": "基础走向"
+      },
+      "failure_mode": {
+        "name": "失败处理"
+      },
+      "style": {
+        "name": "样式"
+      },
+      "density": {
+        "name": "密度"
+      },
+      "tilt": {
+        "name": "斜度"
+      },
+      "strength": {
+        "name": "纹理强度"
+      },
+      "strength_auto": {
+        "name": "自动强度"
+      },
+      "color_exclude": {
+        "name": "颜色排除"
+      },
+      "sparkle_depth": {
+        "name": "深度亮点"
+      },
+      "sparkle_bright": {
+        "name": "高光亮点"
+      },
+      "sparkle_even": {
+        "name": "均匀亮点"
+      },
+      "sparkle_painted": {
+        "name": "遮罩亮点"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "sparkle_mask": {
+        "name": "亮点遮罩"
+      },
+      "depth_direction": {
+        "name": "深度方向"
+      },
+      "auto_walls": {
+        "name": "自动隔开"
+      },
+      "fields": {
+        "name": "求解结果"
+      },
+      "guides": {
+        "name": "引导数据"
+      },
+      "batch_mode": {
+        "name": "批次模式"
+      },
+      "checkpoint": {
+        "name": "本地点选权重"
+      },
+      "device": {
+        "name": "设备"
+      },
+      "model": {
+        "name": "深度模型"
+      }
+    }
+  },
+  "NFStockingRender": {
+    "display_name": "tb-丝袜纹理渲染（高级）",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "mask": {
+        "name": "应用遮罩"
+      },
+      "depth": {
+        "name": "灰度深度"
+      },
+      "sam": {
+        "name": "原有 SAM 点选模型"
+      },
+      "sam3_model": {
+        "name": "SAM3 语义模型"
+      },
+      "guides_json": {
+        "name": "图像绑定引导"
+      },
+      "source_mode": {
+        "name": "选区来源"
+      },
+      "prompt": {
+        "name": "SAM3 提示词"
+      },
+      "threshold": {
+        "name": "识别阈值"
+      },
+      "auto_direction": {
+        "name": "基础走向"
+      },
+      "failure_mode": {
+        "name": "失败处理"
+      },
+      "style": {
+        "name": "样式"
+      },
+      "density": {
+        "name": "密度"
+      },
+      "tilt": {
+        "name": "斜度"
+      },
+      "strength": {
+        "name": "纹理强度"
+      },
+      "strength_auto": {
+        "name": "自动强度"
+      },
+      "color_exclude": {
+        "name": "颜色排除"
+      },
+      "sparkle_depth": {
+        "name": "深度亮点"
+      },
+      "sparkle_bright": {
+        "name": "高光亮点"
+      },
+      "sparkle_even": {
+        "name": "均匀亮点"
+      },
+      "sparkle_painted": {
+        "name": "遮罩亮点"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "sparkle_mask": {
+        "name": "亮点遮罩"
+      },
+      "depth_direction": {
+        "name": "深度方向"
+      },
+      "auto_walls": {
+        "name": "自动隔开"
+      },
+      "fields": {
+        "name": "求解结果"
+      },
+      "guides": {
+        "name": "引导数据"
+      },
+      "batch_mode": {
+        "name": "批次模式"
+      },
+      "checkpoint": {
+        "name": "本地点选权重"
+      },
+      "device": {
+        "name": "设备"
+      },
+      "model": {
+        "name": "深度模型"
+      }
+    }
+  },
+  "NFStockingSAMLoader": {
+    "display_name": "tb-丝袜 SAM 点选模型",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "mask": {
+        "name": "应用遮罩"
+      },
+      "depth": {
+        "name": "灰度深度"
+      },
+      "sam": {
+        "name": "原有 SAM 点选模型"
+      },
+      "sam3_model": {
+        "name": "SAM3 语义模型"
+      },
+      "guides_json": {
+        "name": "图像绑定引导"
+      },
+      "source_mode": {
+        "name": "选区来源"
+      },
+      "prompt": {
+        "name": "SAM3 提示词"
+      },
+      "threshold": {
+        "name": "识别阈值"
+      },
+      "auto_direction": {
+        "name": "基础走向"
+      },
+      "failure_mode": {
+        "name": "失败处理"
+      },
+      "style": {
+        "name": "样式"
+      },
+      "density": {
+        "name": "密度"
+      },
+      "tilt": {
+        "name": "斜度"
+      },
+      "strength": {
+        "name": "纹理强度"
+      },
+      "strength_auto": {
+        "name": "自动强度"
+      },
+      "color_exclude": {
+        "name": "颜色排除"
+      },
+      "sparkle_depth": {
+        "name": "深度亮点"
+      },
+      "sparkle_bright": {
+        "name": "高光亮点"
+      },
+      "sparkle_even": {
+        "name": "均匀亮点"
+      },
+      "sparkle_painted": {
+        "name": "遮罩亮点"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "sparkle_mask": {
+        "name": "亮点遮罩"
+      },
+      "depth_direction": {
+        "name": "深度方向"
+      },
+      "auto_walls": {
+        "name": "自动隔开"
+      },
+      "fields": {
+        "name": "求解结果"
+      },
+      "guides": {
+        "name": "引导数据"
+      },
+      "batch_mode": {
+        "name": "批次模式"
+      },
+      "checkpoint": {
+        "name": "本地点选权重"
+      },
+      "device": {
+        "name": "设备"
+      },
+      "model": {
+        "name": "深度模型"
+      }
+    }
+  },
+  "NFStockingDepth": {
+    "display_name": "tb-丝袜深度辅助",
+    "inputs": {
+      "images": {
+        "name": "图像"
+      },
+      "mask": {
+        "name": "应用遮罩"
+      },
+      "depth": {
+        "name": "灰度深度"
+      },
+      "sam": {
+        "name": "原有 SAM 点选模型"
+      },
+      "sam3_model": {
+        "name": "SAM3 语义模型"
+      },
+      "guides_json": {
+        "name": "图像绑定引导"
+      },
+      "source_mode": {
+        "name": "选区来源"
+      },
+      "prompt": {
+        "name": "SAM3 提示词"
+      },
+      "threshold": {
+        "name": "识别阈值"
+      },
+      "auto_direction": {
+        "name": "基础走向"
+      },
+      "failure_mode": {
+        "name": "失败处理"
+      },
+      "style": {
+        "name": "样式"
+      },
+      "density": {
+        "name": "密度"
+      },
+      "tilt": {
+        "name": "斜度"
+      },
+      "strength": {
+        "name": "纹理强度"
+      },
+      "strength_auto": {
+        "name": "自动强度"
+      },
+      "color_exclude": {
+        "name": "颜色排除"
+      },
+      "sparkle_depth": {
+        "name": "深度亮点"
+      },
+      "sparkle_bright": {
+        "name": "高光亮点"
+      },
+      "sparkle_even": {
+        "name": "均匀亮点"
+      },
+      "sparkle_painted": {
+        "name": "遮罩亮点"
+      },
+      "seed": {
+        "name": "种子"
+      },
+      "sparkle_mask": {
+        "name": "亮点遮罩"
+      },
+      "depth_direction": {
+        "name": "深度方向"
+      },
+      "auto_walls": {
+        "name": "自动隔开"
+      },
+      "fields": {
+        "name": "求解结果"
+      },
+      "guides": {
+        "name": "引导数据"
+      },
+      "batch_mode": {
+        "name": "批次模式"
+      },
+      "checkpoint": {
+        "name": "本地点选权重"
+      },
+      "device": {
+        "name": "设备"
+      },
+      "model": {
+        "name": "深度模型"
+      }
+    }
+  }
+}

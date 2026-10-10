@@ -1,15 +1,18 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs";
-import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs";
-import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs";
-import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs";
+import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261010-unified";
+import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261010-unified";
+import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261010-unified";
+import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261010-unified";
 
-const CLASSES = new Set(["NFStockingEditor", "NFStockingRender"]);
+import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261010-unified";
+import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261010-unified";
+const CLASSES = new Set(["NFStockingEditor", "NFStockingRender", "NFStockingTexture"]);
 const API_ROOT = "/toolbox/stocking";
 const COLORS = ["#48dfaf", "#ffb45a", "#96aaff", "#ff78c8"];
 const widget = (node, name) => node.widgets?.find(w => w.name === name);
-const value = (node, name, fallback) => widget(node, name)?.value ?? fallback;
+const value = (node, name, fallback) => node.__stockingDialog?.unified && name in node.__stockingDialog.settings
+    ? node.__stockingDialog.settings[name] : widget(node, name)?.value ?? fallback;
 
 function setValue(node, name, val) {
     const w = widget(node, name);
@@ -94,6 +97,11 @@ function styles() {
 class StockingDialog {
     constructor(node, payload, render) {
         this.node = node; this.payload = payload; this.renderMode = render;
+        this.unified = node.comfyClass === "NFStockingTexture";
+        this.settings = { ...payload.params };
+        if (this.unified && !payload.sam3_available && this.settings.source_mode === "semantic") this.settings.source_mode = "manual";
+        this.initialDocument = JSON.stringify(payload.document);
+        if (this.unified) node.__stockingDialog = this;
         this.index = 0; this.revision = 0; this.planeSerial = 0; this.client = crypto.randomUUID(); this.closed = false;
         this.selected = 0; this.tool = render ? "pan" : "paint"; this.radius = 14;
         this.draft = null;
@@ -105,13 +113,14 @@ class StockingDialog {
         this.overlay = el("div", null, document.body, { className: "tb-stocking-overlay" });
         const dialog = el("div", null, this.overlay, { className: "tb-stocking-dialog" });
         dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
-        dialog.setAttribute("aria-label", render ? "丝袜纹理预览" : "丝袜引导编辑器");
+        dialog.setAttribute("aria-label", this.unified ? "丝袜纹理 · 编辑与预览" : render ? "丝袜纹理预览" : "丝袜引导编辑器");
         const head = el("div", null, dialog, { className: "tb-stocking-head" });
-        el("strong", render ? "丝袜纹理 · 选样式、调参数" : "丝袜引导 · 部位、走向与隔开", head);
+        el("strong", this.unified ? "丝袜纹理 · 编辑与预览" : render ? "丝袜纹理 · 选样式、调参数" : "丝袜引导 · 部位、走向与隔开", head);
+        this.head = head;
         this.indexSelect = el("select", null, head, { title: "当前图像" });
         for (let i = 0; i < payload.batch; i++) el("option", `图像 ${i + 1}/${payload.batch}`, this.indexSelect, { value: String(i) });
         this.indexSelect.onchange = () => this.loadIndex(Number(this.indexSelect.value)).catch(e => this.error(e));
-        this.button(head, "适应", () => { this.fitMode = true; this.view = fitView(payload.width, payload.height, this.stage.clientWidth, this.stage.clientHeight); this.draw(); if (render) this.schedule(); });
+        this.button(head, "适应", () => { this.fitMode = true; this.view = fitView(payload.width, payload.height, this.stage.clientWidth, this.stage.clientHeight); this.draw(); if (this.renderMode) this.schedule(); });
         this.button(head, "100%", () => this.setZoom(1));
         this.button(head, "200%", () => this.setZoom(2));
         if (render) this.button(head, "关闭", () => this.close());
@@ -125,6 +134,7 @@ class StockingDialog {
             dismiss.title = "关闭编辑器，不保存本次修改";
         }
         const tools = el("div", null, dialog, { className: "tb-stocking-tools" });
+        this.tools = tools;
         if (!render) {
             for (const [key, label] of [["paint", "画笔 B"], ["erase", "橡皮 E"], ["stroke", "走向 P"], ["wall", "隔开 W"], ["sam", "点选 S"], ["pan", "平移"]]) {
                 const b = this.button(tools, label, () => { this.tool = key; this.markTools(); });
@@ -154,10 +164,11 @@ class StockingDialog {
             this.samCancel.style.marginLeft = "12px";
         }
         const body = el("div", null, dialog, { className: "tb-stocking-body" });
+        this.body = body;
         this.sidebar = el("div", null, body, { className: "tb-stocking-sidebar" });
         if (render) this.buildOverview(body);
         const detail = el("div", null, body, { className: "tb-stocking-detail" });
-        if (render) this.detailTitle = el("div", "细节 · 100% · 拖动平移，滚轮缩放", detail, { className: "tb-stocking-pane-title" });
+        if (render || this.unified) this.detailTitle = el("div", "细节 · 拖动平移，滚轮缩放", detail, { className: "tb-stocking-pane-title" });
         this.stage = el("div", null, detail, { className: "tb-stocking-stage" });
         this.canvas = el("canvas", null, this.stage);
         if (!render) this.buildEditorComparison(tools, detail);
@@ -166,7 +177,7 @@ class StockingDialog {
         if (render) this.view = { scale: 1, x: (this.stage.clientWidth - payload.width) / 2, y: (this.stage.clientHeight - payload.height) / 2 };
         this.resize = new ResizeObserver(() => {
             if (this.fitMode) this.view = fitView(payload.width, payload.height, this.stage.clientWidth, this.stage.clientHeight);
-            this.draw(); if (this.base && render) this.schedule();
+            this.draw(); if (this.base && this.renderMode) this.schedule();
         }); this.resize.observe(this.stage);
         if (this.overviewArea) this.resize.observe(this.overviewArea);
         this.keyboard = e => this.key(e); document.addEventListener("keydown", this.keyboard);
@@ -180,12 +191,14 @@ class StockingDialog {
         };
         this.markTools();
         if (render) this.buildRenderControls(); else this.readDocument();
+        if (this.unified) this.buildUnified();
+        this.localeObserver = localizeDialog(this.overlay, app.extensionManager?.setting?.get("Comfy.Locale") || app.ui?.settings?.getSettingValue("Comfy.Locale") || "zh");
         this.loadIndex(0).catch(e => this.error(e));
     }
 
     button(parent, label, fn) {
         const b = el("button", label, parent, { type: "button" });
-        b.onclick = () => { Promise.resolve(fn(b)).catch(e => this.error(e)); };
+        b.onclick = async () => { try { await fn(b); } catch (e) { this.error(e); } };
         return b;
     }
 
@@ -193,8 +206,10 @@ class StockingDialog {
     markTools() { for (const b of this.overlay.querySelectorAll("[data-tool]")) b.classList.toggle("active", b.dataset.tool === this.tool); }
 
     readDocument() {
-        const raw = value(this.node, "guides_json", "{}");
-        try { this.draft = new GuideDraft(raw, value(this.node, "batch_mode", "shared"), this.payload.document); }
+        let raw = this.unified ? "{}" : value(this.node, "guides_json", "{}");
+        const prior = JSON.parse(raw || "{}");
+        if (prior.width && (prior.width !== this.payload.width || prior.height !== this.payload.height)) raw = "{}";
+        try { this.draft = new GuideDraft(raw, this.unified ? "per_image" : value(this.node, "batch_mode", "shared"), this.payload.document); }
         catch { throw new Error("引导 JSON 无效，请修正后重新打开"); }
         if (this.doc.width !== this.payload.width || this.doc.height !== this.payload.height) {
             this.sidebar.textContent = "底图尺寸改变，原引导不能自动拉伸。";
@@ -213,8 +228,10 @@ class StockingDialog {
     region() { return this.frame()?.regions[this.selected]; }
 
     buildRegionControls() {
+        this.unifiedControls?.remove();
         this.sidebar.replaceChildren();
         const modeLabel = el("label", "批次引导", this.sidebar);
+        modeLabel.hidden = this.unified;
         const mode = el("select", null, modeLabel);
         el("option", "共享引导", mode, { value: "shared" }); el("option", "逐图引导", mode, { value: "per_image" });
         mode.value = this.batchMode;
@@ -249,7 +266,8 @@ class StockingDialog {
         });
         this.samControls = el("div", null, this.sidebar);
         el("small", "走向线横穿部位，决定弧度；隔开线画在折叠交界。滚轮缩放，中键或空格拖动平移。修改先保留在草稿中，自动更新预览；保存并关闭后再运行工作流。取消或 Esc 会放弃本次修改。", this.sidebar);
-        el("small", "选样式、调强度和亮点：保存引导并运行后，在后续纹理渲染节点点击「选样式 / 调参数 / 预览」。", this.sidebar);
+        if (!this.unified) el("small", "高级分步工作流：在渲染节点设置样式和强度。推荐使用一体化丝袜纹理节点。", this.sidebar);
+        if (this.unifiedControls) this.sidebar.append(this.unifiedControls);
     }
 
     refreshRegions() {
@@ -311,22 +329,25 @@ class StockingDialog {
         this.styleSelect = el("select", null, label, { value: value(this.node, "style", "knit") });
         for (const [val, text] of Object.entries(STYLE_LABELS)) el("option", text, this.styleSelect, { value: val });
         this.styleSelect.value = value(this.node, "style", "knit");
+        this.styleSelect.dataset.setting = "style";
         this.styleSelect.onchange = () => this.changeParameter("style", this.styleSelect.value);
         this.styleSelect.setAttribute("aria-label", "样式");
         this.styleHint = el("small", "", this.sidebar);
         const autoLabel = el("label", "自动强度（按丝袜深浅）", this.sidebar);
         this.autoInput = el("input", null, autoLabel, { type: "checkbox", checked: value(this.node, "strength_auto", true) });
         this.autoInput.setAttribute("aria-label", "自动强度");
+        this.autoInput.dataset.setting = "strength_auto";
         this.autoInput.onchange = () => this.changeParameter("strength_auto", this.autoInput.checked);
         this.strengthHint = el("small", "", this.sidebar);
         this.renderSliders = new Map();
         for (const spec of SLIDERS) {
-            if (!widget(this.node, spec.key)) continue;
+            if (!widget(this.node, spec.key) && !(spec.key in this.settings)) continue;
             const group = el("label", `${spec.label} ${spec.unit}`, this.sidebar);
             const row = el("span", null, group, { className: "tb-stocking-slider-row" });
             const attrs = { min: String(spec.min), max: String(spec.max), step: "1", value: String(value(this.node, spec.key, 0)), title: spec.hint };
             const slider = el("input", null, row, { ...attrs, type: "range" });
             const number = el("input", null, row, { ...attrs, type: "number" });
+            slider.dataset.setting = number.dataset.setting = spec.key;
             slider.setAttribute("aria-label", spec.label); number.setAttribute("aria-label", `${spec.label}数值`);
             slider.oninput = () => this.changeParameter(spec.key, slider.value);
             number.oninput = () => {
@@ -340,24 +361,31 @@ class StockingDialog {
         const colorLabel = el("label", "颜色排除", this.sidebar);
         const color = el("input", null, colorLabel, { type: "checkbox", checked: value(this.node, "color_exclude", true) });
         color.setAttribute("aria-label", "颜色排除");
+        color.dataset.setting = "color_exclude";
         color.onchange = () => this.changeParameter("color_exclude", color.checked);
         el("small", "排除金边、皮肤等异色；透肤膝盖被误排除时可关闭。", this.sidebar);
         const seedLabel = el("label", "随机种子", this.sidebar);
         // Reject rounded integers instead of silently changing the random field.
         const seed = el("input", null, seedLabel, { type: "text", inputMode: "numeric", value: String(value(this.node, "seed", 20261005)) });
         seed.setAttribute("aria-label", "随机种子");
+        seed.dataset.setting = "seed";
         seed.onchange = () => {
             const n = Number(seed.value);
             if (/^\d+$/.test(seed.value) && Number.isSafeInteger(n)) this.changeParameter("seed", n);
             else { seed.value = String(value(this.node, "seed", 20261005)); this.status.textContent = "种子请输入有效整数；超出浏览器精确整数范围的种子请使用 API。"; }
         };
         this.refreshRenderControls();
-        el("small", "拖动滑杆自动预览并写入本渲染节点；关闭后运行工作流得到正式输出。整体点击定位细节，拖分界线对比；细节使用导出的原像素。修改引导后需重新运行工作流。", this.sidebar);
+        el("small", this.unified ? "滑杆自动更新草稿预览；保存并关闭后运行工作流得到正式输出。取消不保存参数。整体定位细节，拖动分界线对比原图。" : "拖动滑杆自动预览并写入本渲染节点；关闭后运行工作流得到正式输出。整体点击定位细节，拖分界线对比；细节使用导出的原像素。修改引导后需重新运行工作流。", this.sidebar);
     }
 
     changeParameter(key, raw) {
         const patch = parameterPatch(key, raw); if (!patch) return;
-        for (const [name, val] of Object.entries(patch)) setValue(this.node, name, val);
+        for (const [name, val] of Object.entries(patch)) {
+            if (this.unified) {
+                if (this.node.inputs?.some(i => i.name === name && i.link != null)) continue;
+                this.settings[name] = val;
+            } else setValue(this.node, name, val);
+        }
         this.refreshRenderControls(); this.schedule();
     }
 
@@ -446,14 +474,17 @@ class StockingDialog {
         try {
             this.cancelSAM();
             this.externalRaster = null;
-            this.flushPlanes(); this.index = index; this.revision++; this.pending?.abort(); this.previewBitmap = null;
+            this.flushPlanes();
+            this.base?.close(); this.base = null; this.external?.close(); this.external = null;
+            this.planes.clear(); this.overlays.clear(); this.basicLines = [];
+            this.index = index; this.revision++; this.pending?.abort(); this.previewBitmap = null;
             this.overviewBitmap = null; this.overviewKey = null;
             this.samControls?.replaceChildren();
             const path = `${API_ROOT}/image?session=${this.payload.session}&index=${index}`;
             const bitmap = await imageFrom(path, this.controller.signal);
             if (this.closed || serial !== this.requestSerial) { bitmap.close(); return; }
             this.base?.close(); this.base = bitmap;
-            if (!this.renderMode) {
+            if (!this.renderMode || this.unified) {
                 const external = await imageFrom(path + "&kind=external", this.controller.signal);
                 if (this.closed || serial !== this.requestSerial) { external.close(); return; }
                 this.external?.close(); this.external = external;
@@ -464,7 +495,10 @@ class StockingDialog {
             this.loadedIndex = index;
             this.draw(); this.status.textContent = `底图 ${this.payload.identity.slice(0, 10)} · ${this.payload.width}×${this.payload.height} · 图像 ${index + 1}`;
             this.schedule();
-        } finally { if (serial === this.requestSerial) this.loading = false; }
+            if (this.unified && this.settings.source_mode === "semantic" && this.payload.sam3_available && !this.frame()?.regions.some(r => r.mask || r.external)) {
+                this.semantic().catch(e => this.error(e));
+            }
+        } finally { if (serial === this.requestSerial) { this.loading = false; this.draw(); } }
     }
 
     async loadPlanes() {
@@ -499,14 +533,17 @@ class StockingDialog {
         if (this.saveState) this.saveState.textContent = this.draft.dirty ? "有未保存修改" : "尚未修改";
         this.schedule();
     }
-    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected }); }
+    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected, index: this.index }); }
     remember() {
         this.flushPlanes(); this.history.push(this.snapshot()); this.future = [];
         while (this.history.length > 30 || this.history.reduce((sum, s) => sum + s.length, 0) > 16 * 1024 * 1024) this.history.shift();
     }
     restore(raw) {
         const s = JSON.parse(raw); this.doc = s.doc; this.selected = s.selected;
-        this.draft.mode = s.mode; this.updateDraft(); this.buildRegionControls(); this.loadPlanes();
+        this.draft.mode = s.mode; this.updateDraft(); this.buildRegionControls();
+        if (s.index !== this.index) {
+            this.indexSelect.value = String(s.index); this.loadIndex(s.index).catch(e => this.error(e));
+        } else this.loadPlanes().catch(e => this.error(e));
     }
     undo() { if (this.history.length) { this.flushPlanes(); this.future.push(this.snapshot()); this.restore(this.history.pop()); } }
     redo() { if (this.future.length) { this.flushPlanes(); this.history.push(this.snapshot()); this.restore(this.future.pop()); } }
@@ -621,19 +658,29 @@ class StockingDialog {
         }
         const ctx = this.canvas.getContext("2d");
         ctx.setTransform(metrics.scaleX, 0, 0, metrics.scaleY, 0, 0); ctx.clearRect(0, 0, w, h);
+        if (!this.base || this.loading) return;
         ctx.save(); ctx.translate(this.view.x, this.view.y); ctx.scale(this.view.scale, this.view.scale);
         ctx.imageSmoothingEnabled = this.view.scale < 1;
         if (this.base) ctx.drawImage(this.base, 0, 0);
         ctx.restore();
         ctx.save();
-        if (!this.renderMode && this.editorCompareEnabled) {
+        if (this.editorCompareEnabled && (!this.renderMode || this.unified)) {
             const split = w * this.editorCompare;
             ctx.beginPath(); ctx.rect(split, 0, w - split, h); ctx.clip();
         }
         ctx.translate(this.view.x, this.view.y); ctx.scale(this.view.scale, this.view.scale);
         ctx.imageSmoothingEnabled = this.view.scale < 1;
         const sam = this.renderMode ? null : this.samVisual();
-        if (this.previewBitmap && !this.showOriginal && !sam) ctx.drawImage(this.previewBitmap, ...(this.previewRect ? [this.previewRect[0], this.previewRect[1]] : [0, 0]));
+        if (this.semanticMaskPreview && !this.renderMode) {
+            const c = this.semanticMaskPreview, ctxMask = c.getContext("2d");
+            const image = ctxMask.getImageData(0, 0, c.width, c.height);
+            for (let k = 0; k < image.data.length; k += 4) {
+                const alpha = image.data[k]; image.data[k] = 70; image.data[k + 1] = 230; image.data[k + 2] = 160; image.data[k + 3] = alpha / 2;
+            }
+            const overlay = document.createElement("canvas"); overlay.width = c.width; overlay.height = c.height;
+            overlay.getContext("2d").putImageData(image, 0, 0); ctx.drawImage(overlay, 0, 0);
+        }
+        if (this.previewBitmap && !this.showOriginal && !sam && !this.semanticMaskPreview) ctx.drawImage(this.previewBitmap, ...(this.previewRect ? [this.previewRect[0], this.previewRect[1]] : [0, 0]));
         if (!this.renderMode && this.doc) {
             this.frame()?.regions.forEach((r, i) => {
                 this.drawCoverage(ctx, sam && i === this.selected ? sam.result : this.overlayFor(r, i), i === this.selected ? 0.45 : 0.22, i === this.selected && !sam);
@@ -641,6 +688,9 @@ class StockingDialog {
                 this.drawLines(ctx, r.walls, "#ff795e", 3 / this.view.scale);
             });
             if (sam) this.drawCoverage(ctx, sam.change, 0.5, true);
+        }
+        if (this.unified && !this.renderMode && this.basicLines?.length) {
+            ctx.setLineDash([6 / this.view.scale, 4 / this.view.scale]); this.drawLines(ctx, this.basicLines, "#8edcff", 1 / this.view.scale); ctx.setLineDash([]);
         }
         if (this.drag?.points) this.drawLines(ctx, [this.drag.points], this.drag.tool === "erase" ? "#ff7777" : "#ffffff", ["paint", "erase"].includes(this.drag.tool) ? this.radius * 2 : 2 / this.view.scale);
         ctx.restore();
@@ -684,7 +734,14 @@ class StockingDialog {
                 body.rect = rect;
             }
         } else {
-            body.guides_json = JSON.stringify(this.doc); body.batch_mode = this.batchMode;
+            body.guides_json = JSON.stringify(this.doc); body.batch_mode = this.batchMode; body.advanced = !this.unified;
+        }
+        if (this.unified) {
+            this.flushPlanes(); body.guides_json = JSON.stringify(this.doc); body.settings = this.settings;
+            body.view = this.renderMode ? "texture" : "guides";
+            overviewKey = JSON.stringify([this.doc, this.settings, index, this.diagnostics]);
+            body.overview = this.renderMode && overviewKey !== this.overviewKey;
+            this.previewRect = rect;
         }
         this.status.textContent = `底图 ${this.payload.identity.slice(0, 10)} · 计算版本 ${revision}…`;
         const result = await post("preview", body, controller.signal);
@@ -695,15 +752,137 @@ class StockingDialog {
         if (overview) { this.overviewBitmap = overview; this.overviewKey = overviewKey; }
         this.previewBitmap = bitmap; this.previewRect = rect; this.draw();
         const info = result.info;
+        this.basicLines = info.basic_guides || [];
         if (this.renderMode) this.refreshRenderControls(info);
         this.status.textContent = this.renderMode
             ? `版本 ${revision} · 周期 ${info.period.toFixed(2)}px · ${body.params.strength_auto ? "自动" : "手动"}强度 ${Number(info.effective_strength).toFixed(1)}% · 过密衰减 ${(100 * info.faded_fraction).toFixed(1)}% · ${(1000 * info.render_seconds).toFixed(0)}ms${info.clamped ? " · 已限制过高密度" : ""}${info.notes?.length ? `\n${info.notes.join("；")}` : ""}`
             : `底图 ${this.payload.identity.slice(0, 10)} · 版本 ${revision} · 求解 ${(1000 * info.solve_seconds).toFixed(0)}ms · 部位缓存 ${info.cache_hits} 命中 / ${info.cache_misses} 重算 · 未引导 ${info.unguided_pixels} 像素`;
+        if (this.unified) this.status.textContent += `\n选区 ${(100 * info.coverage_fraction).toFixed(2)}% · 实际变化 ${(100 * info.changed_fraction).toFixed(2)}% · ${info.direction_source === "manual" ? "手绘走向" : "基础走向（虚线）+ 手绘优先"}${info.failure_reason ? " · 未生效：" + info.failure_reason : " · 纹理已生效"}`;
+    }
+
+    buildUnified() {
+        this.tabs = el("div", null, this.head, { className: "tb-stocking-candidates" });
+        for (const [tab, title] of [["parts", "部位"], ["guides", "走向"], ["texture", "纹理"]]) {
+            this.button(this.tabs, title, () => this.switchTab(tab)).dataset.tab = tab;
+        }
+        this.regionPanel = this.sidebar;
+        this.texturePanel = el("div", null, this.body, { className: "tb-stocking-sidebar", hidden: true });
+        this.body.insertBefore(this.texturePanel, this.regionPanel);
+        this.sidebar = this.texturePanel; this.buildRenderControls(); this.sidebar = this.regionPanel;
+        this.buildOverview(this.body); this.overviewPane = this.overviewArea.parentElement;
+        this.body.insertBefore(this.overviewPane, this.stage.parentElement);
+        this.resize.observe(this.overviewArea);
+        const group = el("div", null, this.regionPanel); this.unifiedControls = group;
+        const sourceLabel = el("label", "选区来源（未编辑图片逐图处理）", group);
+        this.sourceInput = el("select", null, sourceLabel);
+        for (const [v, label] of [["semantic", "SAM3 语义识别"], ["manual", "手工 / 原有点选"], ["mask", "外部 MASK"]]) el("option", label, this.sourceInput, { value: v });
+        this.sourceInput.dataset.setting = "source_mode";
+        this.sourceInput.value = this.settings.source_mode;
+        this.sourceInput.onchange = () => { this.settings.source_mode = this.sourceInput.value; };
+        const promptLabel = el("label", "SAM3 提示词", group);
+        this.promptInput = el("input", null, promptLabel, { value: this.settings.prompt || "stockings" });
+        this.promptInput.dataset.setting = "prompt";
+        this.promptInput.onchange = () => this.settings.prompt = this.promptInput.value;
+        const thresholdLabel = el("label", "识别阈值", group);
+        this.thresholdInput = el("input", null, thresholdLabel, { type: "number", min: 0, max: 1, step: 0.01, value: this.settings.threshold ?? 0.4 });
+        this.thresholdInput.dataset.setting = "threshold";
+        this.thresholdInput.onchange = () => this.settings.threshold = Number(this.thresholdInput.value);
+        this.semanticButton = this.button(group, "SAM3 识别当前图片", () => this.semantic());
+        this.semanticButton.disabled = !this.payload.sam3_available;
+        el("small", this.payload.sam3_available ? "stockings / pantyhose / tights；识别结果先预览，应用后可用原有点选和画笔修边。" : "语义识别需连接 Easy-Sam3 image 模型；原有 ViT-B 点选和画笔可独立使用。", group);
+        const autoLabel = el("label", "无手绘走向时生成基础走向", group);
+        const auto = el("input", null, autoLabel, { type: "checkbox", checked: this.settings.auto_direction !== false });
+        auto.dataset.setting = "auto_direction";
+        auto.onchange = () => { this.settings.auto_direction = auto.checked; this.schedule(); };
+        if (this.payload.legacy) this.button(group, "导入旧引导并绑定当前图片", () => {
+            if (this.payload.legacy.width !== this.payload.width || this.payload.legacy.height !== this.payload.height) throw new Error("旧引导尺寸不同，不能自动拉伸");
+            if (!confirm("请确认旧引导属于当前底图。导入后检查选区，并保存以绑定图片。")) return;
+            this.remember(); this.doc.frames[this.index] = structuredClone(this.payload.legacy.frames[0]); this.updateDraft(); this.loadPlanes();
+        });
+        const failureLabel = el("label", "失败图片处理", group);
+        const failure = el("select", null, failureLabel); failure.dataset.setting = "failure_mode";
+        el("option", "跳过并报告（默认）", failure, { value: "skip" }); el("option", "立即停止", failure, { value: "error" });
+        failure.value = this.settings.failure_mode || "skip"; failure.onchange = () => this.settings.failure_mode = failure.value;
+        const directionLabel = el("label", "深度方向", group);
+        const direction = el("select", null, directionLabel); direction.dataset.setting = "depth_direction";
+        el("option", "白色更近", direction, { value: "white_near" }); el("option", "黑色更近", direction, { value: "black_near" });
+        direction.value = this.settings.depth_direction || "white_near";
+        direction.onchange = () => { this.settings.depth_direction = direction.value; this.schedule(); };
+        const wallsLabel = el("label", "深度自动隔开", group);
+        const walls = el("input", null, wallsLabel, { type: "checkbox", checked: this.settings.auto_walls !== false }); walls.dataset.setting = "auto_walls";
+        walls.onchange = () => { this.settings.auto_walls = walls.checked; this.schedule(); };
+        for (const control of this.overlay.querySelectorAll("[data-setting]")) {
+            if (this.node.inputs?.some(i => i.name === control.dataset.setting && i.link != null)) {
+                control.disabled = true; control.title = "由上游输入控制；预览使用已解析值";
+            }
+        }
+        this.switchTab("texture");
+    }
+
+    switchTab(tab) {
+        this.flushPlanes(); this.tab = tab; this.renderMode = tab === "texture";
+        this.regionPanel.hidden = this.renderMode; this.texturePanel.hidden = !this.renderMode;
+        this.overviewPane.hidden = !this.renderMode;
+        this.tools.hidden = this.renderMode;
+        this.tool = this.renderMode ? "pan" : tab === "guides" ? "stroke" : "paint";
+        this.previewBitmap = null; this.overviewKey = null;
+        if (this.renderMode) this.setEditorCompare(true);
+        this.editorRightLabel.textContent = this.renderMode ? "纹理效果" : "选区预览";
+        for (const b of this.tabs.querySelectorAll("button")) b.classList.toggle("active", b.dataset.tab === tab);
+        this.markTools(); this.draw(); this.schedule();
+    }
+
+    async semantic() {
+        if (this.samPending) return;
+        this.cancelSAM();
+        const index = this.index, region = this.region(), token = this.samRequests.begin(index, region);
+        const current = () => this.samRequests.matches(token, this.closed, this.index, this.region());
+        this.samController = new AbortController(); this.samStatus.hidden = false; this.samCancel.hidden = false; this.samPending = true;
+        this.samText.textContent = "SAM3 语义识别中；可继续画笔编辑，GPU 正式队列忙时等待。";
+        this.samTimeout = setTimeout(() => this.cancelSAM("SAM3 等待超过 120 秒，请检查模型和队列；可继续手工编辑。"), 120000);
+        let result;
+        try {
+            result = await post("semantic", { session: this.payload.session, index, prompt: this.settings.prompt, threshold: this.settings.threshold }, this.samController.signal);
+        } catch (e) {
+            if (current()) this.samText.textContent = `SAM3 失败：${e.message}；可继续手工编辑。`;
+            return;
+        } finally {
+            if (current()) { clearTimeout(this.samTimeout); this.samPending = false; this.samCancel.hidden = true; }
+        }
+        if (!current()) return;
+        if (!result.regions.length) { this.samText.textContent = "没有检测到目标；可修改提示词/阈值，或使用原有点选与画笔。"; return; }
+        this.switchTab("parts"); this.semanticPreview = result.regions;
+        this.samText.textContent = `SAM3 检测到 ${result.regions.length} 个部位 · ${result.seconds.toFixed(2)}s；选择要应用的实例。`;
+        this.samControls.replaceChildren();
+        const picks = result.regions.map(r => {
+            const row = el("label", r.name, this.samControls);
+            return el("input", null, row, { type: "checkbox", checked: true });
+        });
+        let serial = 0;
+        const refresh = async () => {
+            const revision = ++serial, preview = plane(this.payload.width, this.payload.height);
+            for (let i = 0; i < result.regions.length; i++) if (picks[i].checked) {
+                const image = await decodePNG(result.regions[i].mask);
+                if (!current() || revision !== serial) return;
+                const ctx = preview.getContext("2d"); ctx.globalCompositeOperation = "lighten"; ctx.drawImage(image, 0, 0);
+            }
+            if (!current() || revision !== serial) return;
+            this.semanticMaskPreview = preview; this.setEditorCompare(true); this.draw();
+        };
+        for (const pick of picks) pick.onchange = () => refresh().catch(e => this.error(e));
+        await refresh();
+        if (!current()) return;
+        this.button(this.samControls, "应用语义选区", () => {
+            if (!current()) return;
+            this.remember(); this.frame().regions.push(...result.regions.filter((r, i) => picks[i].checked).map(r => ({ ...r, id: crypto.randomUUID() })));
+            this.selected = this.frame().regions.length - 1; this.cancelSAM(); this.updateDraft(); this.loadPlanes();
+        });
+        this.button(this.samControls, "取消语义选区", () => this.cancelSAM());
     }
 
     cancelSAM(message = "") {
         this.samRequests.invalidate(); this.samController?.abort(); this.samPending = false;
-        this.samCandidates = null;
+        this.samCandidates = null; this.semanticMaskPreview = null; this.semanticPreview = null;
         clearTimeout(this.samTimeout); clearInterval(this.samTicker);
         this.samControls?.replaceChildren();
         if (this.samStatus) { this.samStatus.hidden = !message; this.samText.textContent = message; this.samCancel.hidden = true; }
@@ -800,14 +979,78 @@ class StockingDialog {
 
     close(save = false) {
         if (this.closed) return;
-        if (!this.renderMode && save && this.draft) {
+        if (save && this.draft && this.unified) {
+            this.flushPlanes();
+            setValue(this.node, "guides_json", recordsForSave(widget(this.node, "guides_json")?.value, this.doc, this.payload.identities, JSON.parse(this.initialDocument)));
+            for (const [key, val] of Object.entries(this.settings)) {
+                if (SETTING_KEYS.includes(key) && !this.node.inputs?.some(i => i.name === key && i.link != null)) setValue(this.node, key, val);
+            }
+        } else if (!this.renderMode && save && this.draft) {
             this.flushPlanes(); this.draft.save((name, val) => setValue(this.node, name, val));
         }
+        if (this.unified) updateSummary(this.node);
         this.closed = true; clearTimeout(this.timer); this.controller.abort(); this.pending?.abort(); this.resize.disconnect();
-        this.cancelSAM();
+        this.cancelSAM(); this.localeObserver?.disconnect();
         document.removeEventListener("keydown", this.keyboard); this.base?.close(); this.external?.close(); this.overlay.remove();
         if (this.node.__stockingDialog === this) this.node.__stockingDialog = null;
     }
+}
+
+function updateSummary(node) {
+    const summary = node.__stockingSummary;
+    if (!summary) return;
+    const locale = app.extensionManager?.setting?.get("Comfy.Locale") || "zh";
+    const style = widget(node, "style")?.value || "knit";
+    const mode = widget(node, "source_mode")?.value || "semantic";
+    const source = { semantic: "SAM3 语义识别", manual: "手工 / 原有点选", mask: "外部 MASK" }[mode];
+    summary.value = translate(`${source} · ${STYLE_LABELS[style]} · ${widget(node, "strength_auto")?.value ? "自动强度" : "手动强度 " + widget(node, "strength")?.value + "%"}`, locale);
+    node.graph?.setDirtyCanvas?.(true, true);
+}
+
+async function prepareNode(node, attempt = 0) {
+    const graph = await app.graphToPrompt();
+    const inputs = graph.output[String(node.id)]?.inputs;
+    if (!inputs?.images) throw new Error("请连接 IMAGE 底图");
+    const settings = Object.fromEntries(SETTING_KEYS.map(k => [k, inputs[k]]).filter(([, v]) => v !== undefined && !Array.isArray(v)));
+    const source = Array.isArray(inputs.images) ? graph.output[inputs.images[0]] : null;
+    const sampler = Array.isArray(inputs.sam) ? graph.output[inputs.sam[0]] : null;
+    const direct = source?.class_type === "LoadImage" && typeof source.inputs.image === "string"
+        && !["mask", "depth", "sparkle_mask", "sam3_model"].some(k => inputs[k] !== undefined)
+        && !SETTING_KEYS.some(k => Array.isArray(inputs[k]))
+        && (!inputs.sam || sampler?.class_type === "NFStockingSAMLoader");
+    const assertCurrent = async payload => {
+        const latest = (await app.graphToPrompt()).output;
+        const actual = latest[String(node.id)]?.inputs;
+        const signature = (graph, resolved) => JSON.stringify(capturePrompt(graph, { ...resolved }, "recipe"));
+        if (!actual || signature(latest, actual) !== signature(graph.output, inputs)) {
+            if (attempt >= 2) throw new Error("上游持续变化，请稳定底图后重新打开编辑器");
+            return prepareNode(node, attempt + 1);
+        }
+        return payload;
+    };
+    if (direct) return assertCurrent(await post("prepare", { image: source.inputs.image, settings, guides_json: inputs.guides_json || "{}", sam: sampler?.inputs }));
+    const captureId = `stocking-prepare-${crypto.randomUUID()}`;
+    const captureInputs = { images: inputs.images, guides_json: inputs.guides_json || "{}", settings_json: JSON.stringify(settings) };
+    for (const k of ["mask", "depth", "sparkle_mask", "sam", "sam3_model", ...SETTING_KEYS]) if (inputs[k] !== undefined) captureInputs[k] = inputs[k];
+    const prompt = capturePrompt(graph.output, captureInputs, captureId);
+    const response = await api.fetchApi("/prompt", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, client_id: api.clientId, partial_execution_targets: [captureId] }) });
+    const queued = await response.json();
+    if (!response.ok) throw new Error(queued.error?.message || JSON.stringify(queued.node_errors || queued));
+    const deadline = Date.now() + 300000;
+    while (Date.now() < deadline) {
+        if (node.__stockingPrepareCancelled) throw new Error("已取消准备");
+        const history = await (await api.fetchApi(`/history/${queued.prompt_id}`)).json();
+        const entry = history[queued.prompt_id];
+        if (entry) {
+            const payload = entry.outputs?.[captureId]?.nf_stocking?.[0];
+            if (payload) return assertCurrent(payload);
+            const error = entry.status?.messages?.find(m => m[0] === "execution_error")?.[1];
+            throw new Error(error?.exception_message || "底图准备失败；请检查上游节点");
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    throw new Error("底图准备超时，请检查 ComfyUI 队列");
 }
 
 app.registerExtension({
@@ -826,24 +1069,47 @@ app.registerExtension({
                     return callback?.apply(this, arguments);
                 };
             }
-            this.addWidget("button", nodeData.name === "NFStockingEditor" ? "编辑丝袜引导" : "选样式 / 调参数 / 预览", null, () => {
-                if (!this.__stockingPayload) { app.extensionManager?.toast?.add({ severity: "info", summary: "先执行一次此节点，获取上游底图", life: 5000 }); return; }
-                if (this.__stockingPayload.preview_available === false) { app.extensionManager?.toast?.add({ severity: "info", summary: "批次超过预览内存上限，请分批执行后编辑或预览", life: 5000 }); return; }
-                this.__stockingDialog?.close();
-                try { this.__stockingDialog = new StockingDialog(this, this.__stockingPayload, nodeData.name === "NFStockingRender"); }
-                catch (e) { console.error(e); }
-            }, { serialize: false });
-            if (nodeData.name === "NFStockingEditor") this.addWidget("button", "清空引导（底图尺寸改变时）", null, () => {
-                this.__stockingDialog?.close(); setValue(this, "guides_json", "{}"); this.__stockingPayload = null;
+            const unified = nodeData.name === "NFStockingTexture";
+            if (unified) {
+                for (const w of this.widgets || []) {
+                    w.type = "hidden"; w.computeSize = () => [0, -4];
+                    if (w.inputEl) w.inputEl.style.display = "none";
+                }
+                this.__stockingSummary = this.addWidget("text", translate("状态", app.extensionManager?.setting?.get("Comfy.Locale") || "zh"), "", () => {}, { serialize: false });
+                updateSummary(this);
+            }
+            if (nodeData.name !== "NFStockingRender") this.addWidget("button", translate(unified ? "编辑与预览" : "编辑丝袜引导", app.extensionManager?.setting?.get("Comfy.Locale") || "zh"), null, async () => {
+                if (this.__stockingPreparing) return;
+                this.__stockingPreparing = true;
+                app.extensionManager?.toast?.add({ severity: "info", summary: "正在准备当前底图；只执行必要上游，不运行下游保存节点", life: 4000 });
+                try {
+                    let payload = await prepareNode(this);
+                    if (!unified) {
+                        // The advanced editor keeps its v1 schema. A new picture gets
+                        // an independent draft; a stale size cannot prevent opening.
+                        const raw = JSON.parse(value(this, "guides_json", "{}"));
+                        if (raw.version === 1 && raw.width === payload.width && raw.height === payload.height) payload.document = raw;
+                        else if (value(this, "batch_mode", "shared") === "shared") payload.document.frames = [payload.document.frames[0]];
+                    }
+                    if (payload.preview_available === false) throw new Error("底图超过预览内存上限，请用单图编辑或缩小预览批次；正式批次仍可运行");
+                    this.__stockingPayload = payload;
+                    this.__stockingDialog?.close();
+                    this.__stockingDialog = new StockingDialog(this, payload, false);
+                } catch (e) { app.extensionManager?.toast?.add({ severity: "error", summary: e.message, life: 8000 }); console.error(e); }
+                finally { this.__stockingPreparing = false; }
             }, { serialize: false });
             this.size[0] = Math.max(this.size[0], 300);
             return result;
+        };
+        const configured = nodeType.prototype.onConfigure;
+        nodeType.prototype.onConfigure = function () {
+            const result = configured?.apply(this, arguments); updateSummary(this); return result;
         };
         const executed = nodeType.prototype.onExecuted;
         nodeType.prototype.onExecuted = function (message) {
             const result = executed?.apply(this, arguments);
             const payload = message?.nf_stocking?.[0];
-            if (payload) { this.__stockingDialog?.close(); this.__stockingPayload = payload; }
+            if (payload) { this.__stockingDialog?.close(); this.__stockingPayload = payload; updateSummary(this); }
             return result;
         };
         const removed = nodeType.prototype.onRemoved;

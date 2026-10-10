@@ -1,0 +1,248 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "tb_stocking_demo.png"
+    }
+  },
+  "2": {
+    "class_type": "NFStockingTexture",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": "{}",
+      "source_mode": "semantic",
+      "prompt": "stockings",
+      "threshold": 0.4,
+      "auto_direction": true,
+      "depth_direction": "white_near",
+      "auto_walls": true,
+      "failure_mode": "skip",
+      "style": "knit",
+      "density": 100,
+      "tilt": 32,
+      "strength": 100,
+      "strength_auto": true,
+      "color_exclude": true,
+      "sparkle_depth": 100,
+      "sparkle_bright": 100,
+      "sparkle_painted": 0,
+      "sparkle_even": 0,
+      "seed": 20261005,
+      "sam": [
+        "3",
+        0
+      ],
+      "sam3_model": [
+        "4",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "NFStockingSAMLoader",
+    "inputs": {
+      "checkpoint": "sams/sam_vit_b_01ec64.pth",
+      "device": "cuda"
+    }
+  },
+  "4": {
+    "class_type": "easy sam3ModelLoader",
+    "inputs": {
+      "model": "sam3.pt",
+      "segmentor": "image",
+      "device": "cuda",
+      "precision": "fp32"
+    }
+  },
+  "7": {
+    "class_type": "NFStockingTexture",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": "{}",
+      "source_mode": "semantic",
+      "prompt": "stockings",
+      "threshold": 0.4,
+      "auto_direction": true,
+      "depth_direction": "white_near",
+      "auto_walls": true,
+      "failure_mode": "skip",
+      "style": "loops",
+      "density": 100,
+      "tilt": 32,
+      "strength": 100,
+      "strength_auto": true,
+      "color_exclude": true,
+      "sparkle_depth": 100,
+      "sparkle_bright": 100,
+      "sparkle_painted": 0,
+      "sparkle_even": 0,
+      "seed": 20261005,
+      "sam": [
+        "3",
+        0
+      ],
+      "sam3_model": [
+        "4",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "NFStockingTexture",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": "{}",
+      "source_mode": "semantic",
+      "prompt": "stockings",
+      "threshold": 0.4,
+      "auto_direction": true,
+      "depth_direction": "white_near",
+      "auto_walls": true,
+      "failure_mode": "skip",
+      "style": "lines",
+      "density": 100,
+      "tilt": 32,
+      "strength": 100,
+      "strength_auto": true,
+      "color_exclude": true,
+      "sparkle_depth": 100,
+      "sparkle_bright": 100,
+      "sparkle_painted": 0,
+      "sparkle_even": 0,
+      "seed": 20261005,
+      "sam": [
+        "3",
+        0
+      ],
+      "sam3_model": [
+        "4",
+        0
+      ]
+    }
+  },
+  "9": {
+    "class_type": "NFStockingTexture",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": "{}",
+      "source_mode": "semantic",
+      "prompt": "stockings",
+      "threshold": 0.4,
+      "auto_direction": true,
+      "depth_direction": "white_near",
+      "auto_walls": true,
+      "failure_mode": "skip",
+      "style": "grain",
+      "density": 100,
+      "tilt": 32,
+      "strength": 100,
+      "strength_auto": true,
+      "color_exclude": true,
+      "sparkle_depth": 100,
+      "sparkle_bright": 100,
+      "sparkle_painted": 0,
+      "sparkle_even": 0,
+      "seed": 20261005,
+      "sam": [
+        "3",
+        0
+      ],
+      "sam3_model": [
+        "4",
+        0
+      ]
+    }
+  },
+  "10": {
+    "class_type": "NFStockingTexture",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "guides_json": "{}",
+      "source_mode": "semantic",
+      "prompt": "stockings",
+      "threshold": 0.4,
+      "auto_direction": true,
+      "depth_direction": "white_near",
+      "auto_walls": true,
+      "failure_mode": "skip",
+      "style": "oily",
+      "density": 100,
+      "tilt": 32,
+      "strength": 100,
+      "strength_auto": true,
+      "color_exclude": true,
+      "sparkle_depth": 100,
+      "sparkle_bright": 100,
+      "sparkle_painted": 0,
+      "sparkle_even": 0,
+      "seed": 20261005,
+      "sam": [
+        "3",
+        0
+      ],
+      "sam3_model": [
+        "4",
+        0
+      ]
+    }
+  },
+  "11": {
+    "class_type": "ParallelVideoComparison",
+    "inputs": {
+      "image1": [
+        "2",
+        5
+      ],
+      "name1": "Original",
+      "image2": [
+        "2",
+        0
+      ],
+      "name2": "Fine",
+      "image3": [
+        "7",
+        0
+      ],
+      "name3": "Loops",
+      "image4": [
+        "8",
+        0
+      ],
+      "name4": "Slant",
+      "image5": [
+        "9",
+        0
+      ],
+      "name5": "Grain",
+      "image6": [
+        "10",
+        0
+      ],
+      "name6": "Oily"
+    }
+  },
+  "5": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "11",
+        0
+      ]
+    }
+  }
+}

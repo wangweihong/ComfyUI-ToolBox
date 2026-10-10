@@ -1,0 +1,302 @@
+{
+  "last_node_id": 5,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "title": "图片 · 替换后直接打开编辑器",
+      "pos": [
+        0,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "tb_stocking_demo.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "NFStockingTexture",
+      "pos": [
+        420,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "depth",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "sparkle_mask",
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "name": "sam",
+          "type": "NF_STOCKING_SAM",
+          "link": 2
+        },
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "stocking_layer",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "layer_alpha",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "regions_mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "diagnostics",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "source_images",
+          "type": "IMAGE",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingTexture"
+      },
+      "widgets_values": [
+        "knit",
+        100,
+        32,
+        100,
+        true,
+        true,
+        100,
+        100,
+        0,
+        0,
+        20261005,
+        "fixed",
+        "{}",
+        "semantic",
+        "stockings",
+        0.4,
+        true,
+        "white_near",
+        true,
+        "skip"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "NFStockingSAMLoader",
+      "pos": [
+        840,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NF_STOCKING_SAM",
+          "type": "NF_STOCKING_SAM",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "NFStockingSAMLoader"
+      },
+      "widgets_values": [
+        "sams/sam_vit_b_01ec64.pth",
+        "cuda"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "easy sam3ModelLoader",
+      "title": "Load SAM3 Model",
+      "pos": [
+        1260,
+        160
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "sam3_model",
+          "type": "EASY_SAM3_MODEL",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "easy sam3ModelLoader"
+      },
+      "widgets_values": [
+        "sam3.pt",
+        "image",
+        "cuda",
+        "fp32"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "title": "Preview Image",
+      "pos": [
+        0,
+        510
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      3,
+      0,
+      2,
+      4,
+      "NF_STOCKING_SAM"
+    ],
+    [
+      3,
+      4,
+      0,
+      2,
+      5,
+      "EASY_SAM3_MODEL"
+    ],
+    [
+      4,
+      2,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.65,
+      "offset": [
+        80,
+        230
+      ]
+    }
+  },
+  "version": 0.4
+}

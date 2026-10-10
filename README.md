@@ -4,8 +4,9 @@
 
 ## 丝袜纹理与引导编辑
 
-新增五个 `NFStocking` 节点：部位/走向/隔开线编辑器、走向求解、五样式纹理渲染、可选 SAM 点选和 Small 深度辅助。
-支持外部 MASK、灰度深度、静态批次、自动细节预览、透明图层与问题诊断；核心流程无需模型下载。
+推荐 `NFStockingTexture` 一体化节点：直接准备底图，在同一窗口编辑部位、走向和五种纹理。
+保留原有 SAM 点选，支持可选 SAM3 逐图语义识别、基础走向、外部 MASK/深度、批次过滤及透明图层合成。
+手工核心无需模型；旧 Editor/Solve/Render 节点保留为高级流程。
 详见 [安装、工作流与测试说明](docs/stocking_texture.md)，示例位于 [examples/stocking_texture](examples/stocking_texture)。
 
 ## 🚀 核心功能：尺寸管理 (Size Management)

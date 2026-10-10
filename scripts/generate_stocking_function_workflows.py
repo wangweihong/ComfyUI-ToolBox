@@ -107,9 +107,9 @@ def workflow(prompt, schemas, index, title):
             for name in schema.get("input_order", {}).get(group, list(schema["input"].get(group, {}))):
                 spec = schema["input"][group][name]; typ = spec[0]
                 opts = spec[1] if len(spec) > 1 else {}
-                is_widget = isinstance(typ, list) or (typ in SCALARS and not opts.get("forceInput"))
+                is_widget = typ == "COMBO" or isinstance(typ, list) or (typ in SCALARS and not opts.get("forceInput"))
                 if is_widget:
-                    default = opts.get("default", typ[0] if isinstance(typ, list) and typ else "")
+                    default = opts.get("default", typ[0] if isinstance(typ, list) and typ else opts.get("options", [""])[0])
                     values.append(entry["inputs"].get(name, default))
                     if name in ("seed", "noise_seed"): values.append("fixed")
                 else:
@@ -121,7 +121,7 @@ def workflow(prompt, schemas, index, title):
         node_title = labels.get(entry["class_type"], schema.get("display_name", entry["class_type"]))
         if entry["class_type"] == "NFStockingRender": node_title = dict(STYLES)[entry["inputs"]["style"]] + " · 自动强度，独立亮点"
         if entry["class_type"] == "SaveImage": node_title = "保存 " + entry["inputs"]["filename_prefix"].split("/")[-1]
-        nodes.append({"id": int(key), "type": entry["class_type"], "title": node_title, "pos": positions[key],
+        nodes.append({"id": int(key), "type": entry["class_type"], "title": node_title, "pos": positions.get(key, [400 * (len(nodes) % 4), 160 + 500 * (len(nodes) // 4)]),
                       "size": [330, 460 if entry["class_type"] == "NFStockingRender" else 290], "flags": {},
                       "order": len(nodes), "mode": 0, "inputs": inputs, "outputs": outputs,
                       "properties": {"Node name for S&R": entry["class_type"]}, "widgets_values": values})

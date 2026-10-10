@@ -33,7 +33,34 @@ def preview_sync(session, payload):
     i = image_index(payload.get("index", 0), session)
     image = session["images"][i]
     overview = None
-    if session["kind"] == "editor":
+    if session["kind"] == "unified" and not payload.get("advanced"):
+        from .unified import process_one
+        settings = dict(session["settings"], **payload.get("settings", {}))
+        doc = data.parse_guides(payload.get("guides_json", "{}"), *image.shape[:2], len(session["images"]), "per_image", external=session["external"][i] is not None)
+        frame = doc["frames"][i]
+        depth = session["depths"][i]
+        if depth is not None and settings.get("depth_direction", "white_near") != session["depth_direction"]:
+            depth = 1 - depth
+        rendered = process_one(image, frame, session["external"][i], depth, session["painted"][i],
+            payload.get("params", settings), bool(settings.get("color_exclude", True)), settings.get("seed", 20261005),
+            bool(settings.get("auto_direction", True)), bool(settings.get("auto_walls", True)))
+        output, _, _, diag, _, info, field = rendered
+        out = isolines(image, field) if payload.get("view") == "guides" else data.rgb8(diag if payload.get("diagnostics") else output)
+        rect = payload.get("rect")
+        if rect is not None:
+            if not isinstance(rect, list) or len(rect) != 4 or any(not isinstance(v, int) for v in rect):
+                raise ValueError("预览 rect 必须为四个整数")
+            x0, y0, x1, y1 = rect
+            if not (0 <= x0 < x1 <= image.shape[1] and 0 <= y0 < y1 <= image.shape[0]):
+                raise ValueError("预览区域超出图像")
+        if payload.get("overview"):
+            from PIL import Image
+            thumb = Image.fromarray(out)
+            thumb.thumbnail((640, 640), Image.Resampling.LANCZOS)
+            overview = base64.b64encode(data.png_bytes(np.asarray(thumb))).decode()
+        if rect:
+            out = out[y0:y1, x0:x1]
+    elif session["kind"] == "editor" or payload.get("advanced"):
         # Work on only the selected image, while validating all per-image guide entries.
         doc = data.parse_guides(payload.get("guides_json", "{}"), image.shape[0], image.shape[1],
                                 len(session["images"]), payload.get("batch_mode", "shared"), external=session["external"][i] is not None)
@@ -93,7 +120,7 @@ def register_routes():
             s = get_session(request.query.get("session", ""))
             i = image_index(request.query.get("index", 0), s)
             kind = request.query.get("kind", "image")
-            if kind == "external" and s["kind"] == "editor":
+            if kind == "external" and s["kind"] in ("editor", "unified"):
                 arr = s["external"][i]
                 if arr is None:
                     import numpy as np
@@ -167,6 +194,43 @@ def register_routes():
             logging.getLogger(__name__).exception("ToolBox SAM request failed")
             return web.json_response({"error": str(exc)}, status=500)
 
+    async def prepare(request):
+        try:
+            p = await post_body(request)
+            import nodes
+            from .nodes import prepare_session
+            def load():
+                images, _ = nodes.LoadImage().load_image(p["image"])
+                handle = None
+                if p.get("sam"):
+                    from .nodes import NFStockingSAMLoader
+                    handle = NFStockingSAMLoader().load(**p["sam"])[0]
+                return prepare_session(images, p.get("settings", {}), p.get("guides_json", "{}"), sam=handle)
+            async with _gate:
+                result = await asyncio.get_running_loop().run_in_executor(_workers, load)
+            return web.json_response(result)
+        except Exception as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+    async def semantic(request):
+        try:
+            p = await post_body(request)
+            s = get_session(p.get("session", ""))
+            i = image_index(p.get("index", 0), s)
+            from .unified import semantic_regions
+            while instance.prompt_queue.get_current_queue()[0]:
+                await asyncio.sleep(0.2)
+                if request.transport is None or request.transport.is_closing():
+                    return web.json_response({"error": "请求已关闭"}, status=499)
+            async with _gate:
+                result = await asyncio.get_running_loop().run_in_executor(_workers, functools.partial(
+                    semantic_regions, s["images"][i], s.get("sam3_model"), p.get("prompt", "stockings"), float(p.get("threshold", 0.4))))
+            return web.json_response(result)
+        except Exception as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+    instance.routes.post("/toolbox/stocking/prepare")(prepare)
+    instance.routes.post("/toolbox/stocking/semantic")(semantic)
     instance.routes.get("/toolbox/stocking/image")(source)
     instance.routes.post("/toolbox/stocking/preview")(preview)
     instance.routes.post("/toolbox/stocking/sam")(sam)

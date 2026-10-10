@@ -216,6 +216,8 @@ def render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=Non
     sl = (slice(None), slice(None)) if rect is None else (slice(rect[1], rect[3]), slice(rect[0], rect[2]))
     if scene.R.any():
         out_bgr, info = scene.render(q, rect=rect)
+        # Scene caches geometry metadata; per-frame diagnostics must not mutate it.
+        info = dict(info)
         fraction, fade = scene.fade(q)
     else:
         # Empty/unguided domains need no render, including images too small for np.gradient.
