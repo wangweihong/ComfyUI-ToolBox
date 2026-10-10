@@ -4,12 +4,68 @@
 
 ## 丝袜纹理与引导编辑
 
-推荐 `NFStockingTexture` 一体化节点：直接准备底图，在同一窗口编辑部位、走向和十三种纹理/花纹，叠加自定义英文印花及随机/手工钩丝、梯状抽丝。
+为图片中的丝袜添加沿腿部弧度贴合的织物纹理、花纹、英文印花和钩丝效果。推荐使用 `NFStockingTexture` 一体化节点，在同一窗口完成部位选区、走向编辑和纹理预览。
 
-新增八种花纹支持织物/印花切换；英文印花提供 BALENCIAGA、PARIS 和自由输入。公开工作流位于 `examples/stocking_texture/effects/`，参见 [使用说明](docs/stocking_texture.md) 与 [花纹验收](docs/testing/stocking_effects_2026-10-10.md)。
-保留原有 SAM 点选，支持可选 SAM3 逐图语义识别、基础走向、外部 MASK/深度、批次过滤及透明图层合成。
-手工核心无需模型；旧 Editor/Solve/Render 节点保留为高级流程。
-详见 [安装、工作流与测试说明](docs/stocking_texture.md)，示例位于 [examples/stocking_texture](examples/stocking_texture)。
+### 开源来源与致谢
+
+**本功能的核心算法来源于开源项目 [silvermoong/stocking-texture-tool](https://github.com/silvermoong/stocking-texture-tool)**，包括走向求解、织物纹理渲染和抗摩尔纹处理。感谢原作者 Silvermoong 的开源贡献；原项目采用 MIT 许可证，本仓库保留了原作者版权声明及完整许可，详见 [来源与移植说明](nodes/stocking_texture/UPSTREAM.md) 和 [上游 MIT 许可证](nodes/stocking_texture/LICENSE)。
+
+本项目在该核心算法基础上实现了 ComfyUI 节点、编辑器、预览接口、模型适配及示例工作流，并扩展了八种花纹、英文印花和钩丝/抽丝效果。
+
+### 功能介绍
+
+| 功能 | 说明 |
+| --- | --- |
+| 一体化编辑 | 「部位／走向／纹理」三页完成编辑；打开窗口只准备必要上游，无需先运行完整工作流 |
+| 选区与修边 | 支持画笔、橡皮、外部 MASK，以及可选 SAM ViT-B 点选；候选范围可预览、应用或取消 |
+| SAM3 语义识别 | 可选连接 Easy-Sam3 image 模型加载器，按 `stockings` 等文本逐图识别部位，再手工修边 |
+| 走向与深度 | 手绘横向引导控制纹理弧度；缺少手绘引导时可生成基础走向，可选灰度深度辅助贴合与隔开 |
+| 13 种样式 | 原有细线、针织、斜单线、加濑风、油光（试验）；新增波点、爱心、菱格、小渔网、大渔网、蕾丝、花卉、豹纹 |
+| 花纹表现 | 新花纹支持「织物／印花」切换，大小、旋转、颜色和不透明度独立可调 |
+| 英文印花 | 提供 BALENCIAGA、PARIS 预设及自由输入，支持最多 128 个可打印 ASCII 字符；字号、行列间距、方向、颜色和不透明度可调 |
+| 钩丝与抽丝 | 支持随机、手工或混合生成钩丝和梯状抽丝，可调整数量、长度、宽度和强度；手工路径支持删除、撤销和重做 |
+| 实时预览与保存 | 支持整体、100%/200% 细节及原图分界对比；统一窗口「保存并关闭」写入工作流，「取消」放弃草稿 |
+| 图片绑定与批处理 | 手工选区和损伤按图片内容绑定，避免换图误用；批次只输出成功图像，保留输入/输出索引报告 |
+| 图层与诊断 | 输出成品、丝袜图层、alpha、部位遮罩、诊断及报告；图层可精确叠回对应原图，遮罩外原始像素保留 |
+
+手工选区与纹理渲染无需扩散模型、SAM 或深度模型；SAM/SAM3 和深度辅助按需连接。英文印花与损伤默认关闭，油光为试验样式。渔网、蕾丝及抽丝效果基于原图渲染，不生成新的裸肤底图。
+
+保留 `NFStockingEditor → NFStockingSolve → NFStockingRender` 高级分步流程，兼容原有工作流。安装依赖、模型准备、参数及输出说明见 [完整使用文档](docs/stocking_texture.md)。
+
+### 快速上手
+
+1. 将插件放入 `ComfyUI/custom_nodes/ComfyUI-ToolBox`，按 [安装说明](docs/stocking_texture.md#安装和升级) 安装依赖，然后重启 ComfyUI 并刷新页面。
+2. 将 [公开示例图片](examples/stocking_texture/assets) 中的 `tb_stocking_demo*.png` 复制到 `ComfyUI/input/`。
+3. 把下表中的普通 `.json` 工作流拖入 ComfyUI。初次体验建议选择 **06-八种花纹总览**，已有合成图选区，无需准备识别或深度模型。
+4. 点击主节点的「编辑与预览」，选择样式、调整参数或绘制损伤；「保存并关闭」后运行工作流生成结果。替换为自己的图片后，需重新建立该图片的选区。
+
+自行搭建最简流程：`LoadImage → NFStockingTexture → PreviewImage / SaveImage`。图层合成时，一体化节点的 `source_images` 输出与成功处理的图片一一对应，可用作原图输入。
+
+### 示例工作流
+
+以下链接为可直接加载的 ComfyUI `.json` 工作流；同目录中的同名 `.api.json` 用于 API 队列调用。示例使用项目生成的公开合成图片，推荐的一体化与效果示例默认通过 PreviewImage 预览，不自动保存成品文件。
+
+| 工作流 | 用途与准备 |
+| --- | --- |
+| [01-手工点选与统一编辑](examples/stocking_texture/unified/01-手工点选与统一编辑.json) | 画笔选区、走向与统一纹理编辑；默认选区为空，需要先编辑选区 |
+| [02-SAM3语义识别与点选修边](examples/stocking_texture/unified/02-SAM3语义识别与点选修边.json) | SAM3 文本识别，再用 SAM ViT-B 点选修边；需准备对应本地模型 |
+| [03-深度辅助与逐图批处理](examples/stocking_texture/unified/03-深度辅助与逐图批处理.json) | 两张图片组成真实批次，逐图识别并使用 Small 深度辅助；需 SAM3、SAM ViT-B 和 Small 深度模型 |
+| [04-五种纹理并排对比](examples/stocking_texture/unified/04-五种纹理并排对比.json) | 比较原有五种织物纹理，共用图片与识别来源；需对应识别模型 |
+| [05-图层合成与效果诊断](examples/stocking_texture/unified/05-图层合成与效果诊断.json) | 对应原图合成、透明图层及诊断预览；需对应识别模型 |
+| [06-八种花纹总览](examples/stocking_texture/effects/06-八种花纹总览.json) | 并行预览八种新增花纹，内置合成图选区，无需识别/深度模型 |
+| [07-英文错行印花](examples/stocking_texture/effects/07-英文错行印花.json) | BALENCIAGA 英文重复印花，可修改文本和排列参数；无需识别/深度模型 |
+| [08-钩丝与梯状抽丝](examples/stocking_texture/effects/08-钩丝与梯状抽丝.json) | 随机损伤与预设手工路径组合，可继续编辑；无需识别/深度模型 |
+| [09-花纹文字损伤组合](examples/stocking_texture/effects/09-花纹文字损伤组合.json) | 爱心花纹、PARIS 字样和损伤叠加；无需识别/深度模型 |
+
+高级分步例子：[手工引导](examples/stocking_texture/manual.json)、[外部遮罩与深度](examples/stocking_texture/external-depth.json)、[SAM 点选](examples/stocking_texture/sam.json)、[批次渲染](examples/stocking_texture/batch.json)。这些高级例子包含 SaveImage 节点，执行前可调整保存位置。
+
+### 效果预览与验证
+
+下图为八种新增花纹在公开合成图片上的实际渲染结果：
+
+![八种丝袜花纹对比](docs/images/stocking_patterns_overview.png)
+
+验证记录：[一体化编辑与模型验收](docs/testing/stocking_unified_2026-10-10.md)、[花纹、英文印花与钩丝验收](docs/testing/stocking_effects_2026-10-10.md)。
 
 ## 🚀 核心功能：尺寸管理 (Size Management)
 ### 1. zimage-latent-size (ToolBoxLatentSize)
