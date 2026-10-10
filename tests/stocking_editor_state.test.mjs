@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { GuideDraft, samHint } from "../web/js/stocking_editor_state.mjs";
+import { GuideDraft, samHint, SAMRequests } from "../web/js/stocking_editor_state.mjs";
 
 const document = () => ({ version: 1, width: 100, height: 200,
     frames: [{ regions: [{ id: "left", name: "左腿", mask: "", erase: "", strokes: [], walls: [] }] }] });
@@ -48,4 +48,25 @@ test("SAM hints distinguish unconnected, pending and ready models", () => {
     assert.match(samHint(false), /sam 输入/);
     assert.match(samHint(false, true), /重新执行/);
     assert.match(samHint(true, true), /左键添加，右键减去/);
+});
+
+test("isoline preview updates and painting do not invalidate SAM candidates", () => {
+    const requests = new SAMRequests(), region = { mask: "before", strokes: [] };
+    const token = requests.begin(0, region);
+    region.mask = "painted while encoding"; region.strokes.push([[1, 2], [3, 4]]);
+    assert.equal(requests.matches(token, false, 0, region), true);
+    assert.match(samHint(true, true, "cuda"), /cuda.*重新执行/);
+});
+
+test("SAM results cannot cross images, regions, undo replacements, cancellation or newer requests", () => {
+    const requests = new SAMRequests(), region = { id: "left" };
+    const token = requests.begin(0, region);
+    assert.equal(requests.matches(token, false, 1, region), false);
+    assert.equal(requests.matches(token, false, 0, { ...region }), false);
+    assert.equal(requests.matches(token, true, 0, region), false);
+    requests.invalidate();
+    assert.equal(requests.matches(token, false, 0, region), false);
+    const newer = requests.begin(0, region);
+    assert.equal(requests.matches(token, false, 0, region), false);
+    assert.equal(requests.matches(newer, false, 0, region), true);
 });

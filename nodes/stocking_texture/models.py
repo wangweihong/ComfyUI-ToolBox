@@ -1,12 +1,15 @@
 """Local-only optional models; nothing is loaded or downloaded at node import."""
 from pathlib import Path
+import logging
 import threading
+import time
 
 import numpy as np
 
 _model_lock = threading.RLock()
 _sam_cache = None
 _depth_cache = None
+_log = logging.getLogger(__name__)
 
 
 def model_root():
@@ -48,7 +51,10 @@ def device_for(requested):
     if requested == "cpu" or not torch.cuda.is_available():
         return torch.device("cpu")
     import comfy.model_management as mm
-    return mm.get_torch_device()
+    dev = mm.get_torch_device()
+    if requested == "cuda" and dev.type != "cuda":
+        return torch.device("cuda", torch.cuda.current_device())
+    return dev
 
 
 class SAMHandle:
@@ -67,22 +73,30 @@ class SAMHandle:
         key = (str(path), path.stat().st_mtime_ns)
         with _model_lock:
             if _sam_cache is None or _sam_cache[0] != key:
+                _log.info("[ToolBox SAM] Loading local ViT-B checkpoint %s on CPU", path.name)
                 model = sam_model_registry["vit_b"](checkpoint=str(path)).eval()
                 _sam_cache = (key, SamPredictor(model), None)
             predictor = _sam_cache[1]
             return predictor, torch, key
 
-    def segment(self, rgb, identity, x, y):
+    def segment(self, rgb, identity, x, y, with_info=False):
         if not 0 <= x < rgb.shape[1] or not 0 <= y < rgb.shape[0]:
             raise ValueError("SAM 点击坐标超出图像范围")
         global _sam_cache
+        start = time.perf_counter()
+        _log.info("[ToolBox SAM] Request started: requested=%s image=%s", self.device, identity[:10])
         with _model_lock:
             predictor, torch, key = self.candidates(rgb, identity)
             dev = device_for(self.device)
-            predictor.model.to(dev)
+            cached = _sam_cache[2] == identity
+            _log.info("[ToolBox SAM] Using %s; image embedding cached=%s", dev, cached)
             try:
+                predictor.model.to(dev)
                 with torch.inference_mode():
-                    if _sam_cache[2] != identity:
+                    if not cached:
+                        # Failed encoding must not leave an old identity pointing
+                        # to reset/partially updated predictor features.
+                        _sam_cache = (key, predictor, None)
                         predictor.set_image(rgb)
                         _sam_cache = (key, predictor, identity)
                     else:
@@ -90,11 +104,15 @@ class SAMHandle:
                     masks, scores, _ = predictor.predict(point_coords=np.array([[x, y]], np.float32),
                                                          point_labels=np.array([1]), multimask_output=True)
                 order = np.argsort(masks.sum(axis=(1, 2)), kind="stable")
-                return masks[order], scores[order]
             finally:
                 predictor.model.to("cpu")
                 if predictor.features is not None:
                     predictor.features = predictor.features.to("cpu")
+            info = {"requested_device": self.device, "device": str(dev), "embedding_cached": cached,
+                    "seconds": time.perf_counter() - start, "offloaded_to_cpu": True}
+            _log.info("[ToolBox SAM] Completed on %s in %.3fs; model and embedding returned to CPU", dev, info["seconds"])
+            result = (masks[order], scores[order])
+            return (*result, info) if with_info else result
 
 
 def estimate_depth(images, relative, device="auto"):

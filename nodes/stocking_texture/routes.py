@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import functools
 import json
 
+import numpy as np
+
 from . import data
 from .cache import SESSION_CACHE, REGION_CACHE, SCENE_CACHE
 
@@ -30,6 +32,7 @@ def preview_sync(session, payload):
     from .engine import solve_one, render_one, isolines
     i = image_index(payload.get("index", 0), session)
     image = session["images"][i]
+    overview = None
     if session["kind"] == "editor":
         # Work on only the selected image, while validating all per-image guide entries.
         doc = data.parse_guides(payload.get("guides_json", "{}"), image.shape[0], image.shape[1],
@@ -55,11 +58,24 @@ def preview_sync(session, payload):
         seed = payload.get("seed", session["seed"])
         if not isinstance(seed, int) or not 0 <= seed <= 0xFFFFFFFFFFFFFFFF:
             raise ValueError("seed 必须为非负 64 位整数")
+        # An updated overview and detail come from the same full render. Pan-only
+        # requests keep the crop path; no second render or solver pass is needed.
+        with_overview = payload.get("overview") is True
         out, _, _, diag, info = render_one(image, f, params, bool(payload.get("color_exclude", session["color_exclude"])),
-                                          seed, session["painted"][i], rect=rect)
+                                          seed, session["painted"][i], rect=None if with_overview else rect)
         out = data.rgb8(diag if payload.get("diagnostics") else out)
-    return {"png": base64.b64encode(data.png_bytes(out)).decode(), "info": info,
-            "revision": payload["revision"], "index": i}
+        if with_overview:
+            from PIL import Image
+            thumb = Image.fromarray(out)
+            thumb.thumbnail((640, 640), Image.Resampling.LANCZOS)
+            overview = base64.b64encode(data.png_bytes(np.asarray(thumb))).decode()
+            if rect is not None:
+                out = out[y0:y1, x0:x1]
+    result = {"png": base64.b64encode(data.png_bytes(out)).decode(), "info": info,
+              "revision": payload["revision"], "index": i}
+    if overview is not None:
+        result["overview_png"] = overview
+    return result
 
 
 def register_routes():
@@ -140,13 +156,15 @@ def register_routes():
             rgb = data.rgb8(s["images"][i])
             identity = data.digest(rgb)
             async with _gate:
-                masks, scores = await asyncio.get_running_loop().run_in_executor(
-                    _workers, functools.partial(handle.segment, rgb, identity, float(p["x"]), float(p["y"])))
+                masks, scores, info = await asyncio.get_running_loop().run_in_executor(
+                    _workers, functools.partial(handle.segment, rgb, identity, float(p["x"]), float(p["y"]), with_info=True))
             return web.json_response({"masks": [data.encode_mask(m.astype("float32")) for m in masks],
-                                      "scores": scores.tolist(), "best": int(scores.argmax()), "identity": identity})
+                                      "scores": scores.tolist(), "best": int(scores.argmax()), "identity": identity, "info": info})
         except (ValueError, TypeError, KeyError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
         except Exception as exc:
+            import logging
+            logging.getLogger(__name__).exception("ToolBox SAM request failed")
             return web.json_response({"error": str(exc)}, status=500)
 
     instance.routes.get("/toolbox/stocking/image")(source)

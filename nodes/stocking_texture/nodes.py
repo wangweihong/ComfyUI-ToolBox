@@ -78,7 +78,9 @@ class NFStockingEditor:
             previews.append(preview / 255)
         payload = session_payload({"kind": "editor", "images": arr, "external": external, "sam": sam,
                                    "guides": guides, "revisions": {}}, document=guides["document"],
-                                  batch_mode=batch_mode, sam_available=sam is not None, has_mask=mask is not None, node_id=str(unique_id))
+                                  batch_mode=batch_mode, sam_available=sam is not None,
+                                  sam_device=sam.device if sam is not None else None,
+                                  has_mask=mask is not None, node_id=str(unique_id))
         return {"ui": {"nf_stocking": [payload]}, "result": (guides, tensor(np.stack(masks)), tensor(np.stack(previews)))}
 
 

@@ -275,6 +275,111 @@ def test_optional_models_do_not_download_or_block_import(tmp_path):
         assert models.sam_choices() == ["sams/sam_vit_b_01ec64.pth"]
 
 
+def test_explicit_cuda_does_not_follow_comfy_cpu_preference():
+    from types import ModuleType
+    comfy = ModuleType("comfy")
+    mm = ModuleType("comfy.model_management")
+    mm.get_torch_device = lambda: torch.device("cpu")
+    comfy.model_management = mm
+    with patch.dict(sys.modules, {"comfy": comfy, "comfy.model_management": mm}), \
+         patch.object(torch.cuda, "is_available", return_value=True), \
+         patch.object(torch.cuda, "current_device", return_value=2):
+        assert str(models.device_for("cuda")) == "cuda:2"
+        assert str(models.device_for("auto")) == "cpu"
+        assert str(models.device_for("cpu")) == "cpu"
+    with patch.object(torch.cuda, "is_available", return_value=False):
+        assert str(models.device_for("cuda")) == "cpu"
+
+
+def test_sam_reports_actual_device_isolates_embeddings_and_offloads_on_failure(tmp_path):
+    from types import SimpleNamespace
+    checkpoint = tmp_path / "sam_vit_b.pth"
+    checkpoint.touch()
+    movements, encodings = [], []
+
+    class TensorStandIn:
+        def to(self, dev):
+            movements.append(str(dev))
+            return self
+
+    class Model(TensorStandIn):
+        def eval(self): return self
+
+    class Predictor:
+        def __init__(self, model):
+            self.model = model
+            self.features = None
+        def set_image(self, rgb):
+            self.features = TensorStandIn()
+            encodings.append(int(rgb[0, 0, 0]))
+            if rgb[0, 0, 0] == 99: raise RuntimeError("encoding failed")
+        def predict(self, **kwargs):
+            masks = np.zeros((3, 8, 8), bool)
+            masks[0, :6] = True; masks[1, :2] = True; masks[2, :4] = True
+            return masks, np.array([0.9, 0.7, 0.8]), None
+
+    sam_module = SimpleNamespace(SamPredictor=Predictor, sam_model_registry={"vit_b": lambda **kw: Model()})
+    rgb = np.zeros((8, 8, 3), np.uint8)
+    with patch.dict(sys.modules, {"segment_anything": sam_module}), \
+         patch.object(models, "resolve_local", return_value=checkpoint), \
+         patch.object(models, "device_for", return_value=torch.device("cuda:1")), \
+         patch.object(models, "_sam_cache", None):
+        handle = models.SAMHandle("sam_vit_b.pth", "cuda")
+        masks, scores, info = handle.segment(rgb, "image-a", 3, 4, with_info=True)
+        assert info["device"] == "cuda:1" and info["requested_device"] == "cuda"
+        assert not info["embedding_cached"] and info["offloaded_to_cpu"]
+        assert masks.sum(axis=(1, 2)).tolist() == [16, 32, 48]
+        assert scores.tolist() == [0.7, 0.8, 0.9]
+        assert movements[-2:] == ["cpu", "cpu"]
+        assert handle.segment(rgb, "image-a", 3, 4, with_info=True)[2]["embedding_cached"]
+        handle.segment(rgb + 1, "image-b", 3, 4)
+        assert encodings == [0, 1]
+        with pytest.raises(RuntimeError, match="encoding failed"):
+            handle.segment(rgb + 99, "image-failed", 3, 4)
+        assert movements[-2:] == ["cpu", "cpu"]
+        assert models._sam_cache[2] is None
+        handle.segment(rgb + 1, "image-b", 3, 4)
+        assert encodings == [0, 1, 99, 1]  # An old identity cannot use the failed encoder's features.
+
+
+@pytest.mark.parametrize("style", look.STYLES)
+@pytest.mark.parametrize("diagnostics", [False, True])
+def test_overview_and_native_detail_share_queue_pixels(style, diagnostics):
+    import base64
+    import io
+    from PIL import Image
+    image, _, doc = fixture()
+    inp = torch.from_numpy(image[None])
+    guides = NFStockingEditor().edit(inp, data.dump_guides(doc))["result"][0]
+    fields = NFStockingSolve().solve(inp, guides)[0]
+    render = NFStockingRender().render(inp, fields, **dict(OFF, style=style, strength=160, sparkle_even=100))
+    session = routes.get_session(render["ui"]["nf_stocking"][0]["session"])
+    p = {"revision": 1, "index": 0, "rect": [20, 30, 130, 210], "overview": True, "diagnostics": diagnostics}
+    preview = routes.preview_sync(session, p)
+    decode = lambda key: np.array(Image.open(io.BytesIO(base64.b64decode(preview[key]))))
+    full = data.rgb8(render["result"][3 if diagnostics else 0].numpy()[0])
+    assert np.array_equal(decode("overview_png"), full)  # Small fixture needs no downscale.
+    assert np.array_equal(decode("png"), full[30:210, 20:130])
+    crop = routes.preview_sync(session, dict(p, revision=2, overview=False))
+    assert "overview_png" not in crop
+    assert crop["png"] == preview["png"]
+
+
+def test_overview_is_bounded_without_downscaling_native_detail():
+    import base64
+    import io
+    from PIL import Image
+    image = np.full((700, 300, 3), 0.4, np.float32)
+    doc = {"version": 1, "width": 300, "height": 700, "frames": [{"regions": []}]}
+    images, _, fields = pipeline(image, doc)
+    session = {"kind": "renderer", "images": images, "fields": fields, "params": OFF, "seed": 1,
+               "painted": [None], "color_exclude": True}
+    result = routes.preview_sync(session, {"revision": 1, "overview": True, "rect": [0, 0, 300, 700]})
+    decode = lambda key: Image.open(io.BytesIO(base64.b64decode(result[key])))
+    assert decode("png").size == (300, 700)
+    assert max(decode("overview_png").size) <= 640
+
+
 def test_evicted_ui_session_invalidates_queue_cache():
     image, _, doc = fixture(); inp = torch.from_numpy(image[None])
     node_id = "eviction-test"
