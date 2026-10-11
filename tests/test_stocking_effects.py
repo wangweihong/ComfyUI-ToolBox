@@ -108,7 +108,7 @@ def test_damage_modes_seed_crop_and_geometry_cache(mode):
 
 
 @pytest.mark.parametrize("invalid", [
-    {"version":2}, {"text":{"content":"中文"}}, {"text":{"content":"a"*129}},
+    {"version":3}, {"text":{"content":"中文"}}, {"text":{"content":"a"*129}},
     {"text":{"content":"a\nb"}}, {"pattern":{"color":"red"}}, {"pattern":{"size":float("nan")}},
     {"damage":{"mode":"invalid"}}, {"damage":{"enabled":"true"}}, {"text":[]},
 ])

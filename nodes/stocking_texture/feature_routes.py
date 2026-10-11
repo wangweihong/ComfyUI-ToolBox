@@ -77,7 +77,7 @@ def register(instance, get_session, post_body, workers, gate):
                     params=state.get("settings", recovered.get("settings", recovered.get("params", {}))), saved_guides_json=recovered.get("saved_guides_json", "{}"),
                     identities=[data.digest(im) for im in recovered["images"]],
                     has_mask=any(x is not None for x in recovered.get("external", [])),
-                    sam_available=recovered.get("sam") is not None, sam3_available=recovered.get("sam3_model") is not None)
+                    material_connected=recovered.get("material") is not None, sam_available=recovered.get("sam") is not None, sam3_available=recovered.get("sam3_model") is not None)
                 saved["payload"] = payload
                 return web.json_response({"draft": saved})
             s = session(request, p)
@@ -112,6 +112,7 @@ def register(instance, get_session, post_body, workers, gate):
                     raise ValueError("未知导出类型")
                 params = dict(s.get("settings", s.get("params", {})), **p.get("settings", {}))
                 params["layer_mode"] = "soft"
+                params["material"] = s.get("material")
                 if s["kind"] == "unified":
                     from .unified import process_one
                     depth = s["depths"][index]

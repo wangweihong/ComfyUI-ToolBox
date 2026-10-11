@@ -144,6 +144,9 @@ def parse_guides(text, height, width, batch, mode="shared", external=False):
             if not isinstance(rid, str) or not rid or rid in ids:
                 raise ValueError("部位 id 必须唯一且非空")
             ids.add(rid)
+            if region.get("material") is not None:
+                from .config import clean_override
+                clean_override(region["material"])
             if "color" in region:
                 import re
                 if not isinstance(region["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", region["color"]):

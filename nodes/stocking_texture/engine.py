@@ -14,6 +14,7 @@ from .core import coverage, guide_fields as gf, look, walls
 from .styles import base_style, PATTERNS
 from .effects import clean_effects, render_effects
 from .render_options import clean_options, soft_layer
+from .config import resolve_material, normalize_effects, clean_override
 
 ALGORITHM_VERSION = "ad4cc92-v1"
 _solve_lock = threading.RLock()
@@ -167,6 +168,8 @@ def solve_one(image, frame, masks, depth=None, auto_walls=True):
               "names": [r["name"] for r in frame["regions"]], "solve_seconds": time.perf_counter() - start,
               "cache_hits": hits, "cache_misses": misses, "notes": notes}
     result.update(auto_walls=auto_map, fill=filled, sparkle=frame.get("sparkle", ""))
+    result["region_ids"] = [r["id"] for r in frame["regions"]]
+    result["materials"] = [clean_override(r["material"]) if r.get("material") is not None else None for r in frame["regions"]]
     result["damage_strokes"] = [copy.deepcopy(r.get("damage_strokes", [])) for r in frame["regions"]]
     result["signature"] = data.digest(ALGORITHM_VERSION, reg, soft, values[0], values[3], cut, depth, result["names"], result["unguided"])
     return result
@@ -227,6 +230,7 @@ def scene_for(image, f, color_exclude=True, seed=look.SEED, painted=None, render
                            sparkle=None if painted is None else np.round(painted * 255).astype(np.uint8),
                            disparity=(lambda: depth_value) if depth_value is not None else None, cut=f["cut"], seed=seed, **extra)
         scene._nf_depth = depth_value  # Include the callback's retained map in the byte budget.
+        scene._nf_signature = key
         SCENE_CACHE.put(key, scene)
     return scene
 
@@ -275,20 +279,27 @@ def clean_params(params, depth_available=True):
     return q
 
 
-def render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=None, rect=None, diagnostics=True):
+def _render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=None, rect=None, diagnostics=True):
     start = time.perf_counter()
+    if clean_effects(params.get("effects_json","{}"))["version"] == 2:
+        base,cfg=normalize_effects(params.get("style","knit"),params.get("effects_json","{}"))
+        params=dict(params,style=base,effects_json=data.dump_guides(cfg))
     options = clean_options(params)
     scene = scene_for(image, f, color_exclude, seed, painted, options["renderer_version"])
     q = clean_params(params, f["depth"] is not None)
     style = params.get("style", "knit")
     effects = clean_effects(params.get("effects_json", "{}"))
-    extended = style in PATTERNS or effects["text"]["enabled"] or effects["damage"]["enabled"]
+    extended = effects["version"] == 1 and (style in PATTERNS or effects["text"]["enabled"] or effects["damage"]["enabled"])
+    layered = effects["version"] == 2
     sl = (slice(None), slice(None)) if rect is None else (slice(rect[1], rect[3]), slice(rect[0], rect[2]))
     if scene.R.any():
         out_bgr, info = scene.render(q, rect=None if extended else rect)
         # Scene caches geometry metadata; per-frame diagnostics must not mutate it.
         info = dict(info)
         fraction, fade = scene.fade(q)
+        if layered:
+            out_bgr, effect_info = render_effects(scene, f, out_bgr, style, effects, q, rect)
+            info.update(effect_info)
         if extended:
             out_bgr, effect_info = render_effects(scene, f, out_bgr, style, effects, q)
             out_bgr = out_bgr[sl]
@@ -323,6 +334,35 @@ def render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=Non
                 unguided_pixels=int(f["unguided"].sum()), changed_pixels=int(changed.sum()), notes=f["notes"])
     SCENE_CACHE.reweigh()
     return out, layer, layer_alpha, diag, info
+
+
+def render_one(image, f, params, color_exclude=True, seed=look.SEED, painted=None, rect=None, diagnostics=True):
+    params=resolve_material(params,params.get("material"))
+    color_exclude=params.get("color_exclude",color_exclude)
+    global_result=_render_one(image,f,params,color_exclude,seed,painted,rect,diagnostics)
+    overrides=f.get("materials",[])
+    if not any(x is not None and (x.get("params") or x.get("damage") or "layers" in x) for x in overrides):return global_result
+    out,layer,alpha,diag,info=global_result
+    info=dict(info,region_materials=[])
+    sl=(slice(None),slice(None)) if rect is None else (slice(rect[1],rect[3]),slice(rect[0],rect[2]))
+    for i,override in enumerate(overrides,1):
+        if override is None or not override.get("params") and "layers" not in override and not override.get("damage"):continue
+        rid=f.get("region_ids",list(map(str,range(len(overrides)))))[i-1]
+        part=dict(f,reg=np.where(f["reg"]==i,f["reg"],0).astype(np.int8),signature=data.digest(f["signature"],rid))
+        part["fill"]={i:f["fill"][i]} if i in f.get("fill",{}) else {}
+        local=dict(params,**override.get("params",{}));local.pop("material",None)
+        base,cfg=normalize_effects(params.get("style","knit"),params.get("effects_json","{}"))
+        base=local.get("style",base) if "style" in override.get("params",{}) else base
+        if "layers" in override:cfg["layers"]=override["layers"]
+        cfg["damage"].update(override.get("damage",{}))
+        local.update(style=base,effects_json=data.dump_guides(cfg))
+        resolved=_render_one(image,part,local,local.get("color_exclude",color_exclude),seed,painted,rect,diagnostics)
+        owned=(f["reg"][sl]==i)
+        for destination,source in zip((out,layer,alpha,diag),resolved[:4]):destination[owned]=source[owned]
+        info["region_materials"].append(dict(id=rid,style=base,effective_strength=resolved[4]["effective_strength"],effect_cache=resolved[4].get("effect_cache",{})))
+    original=image[sl]
+    info["changed_pixels"]=int(np.count_nonzero(np.any(out!=original,axis=-1)))
+    return out,layer,alpha,diag,info
 
 
 def render_batch(images, fields, params, color_exclude=True, seed=look.SEED, painted=None):

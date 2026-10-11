@@ -18,8 +18,8 @@ for file in "$repo_root"/web/js/stocking_*.js "$repo_root"/web/js/stocking_*.mjs
 done
 # The new entry URL also invalidates stale browser module caches. Archive the
 # former entry so ComfyUI cannot load two copies of the same extension.
-if [ -f "$repo_root/web/js/stocking_texture_upstream.js" ]; then
-    docker exec "$container_name" bash -c 'for name in stocking_texture.js stocking_texture_editor.js stocking_texture_effects.js; do if [ -f "$1/web/js/$name" ]; then mv "$1/web/js/$name" "$1/web/js/$name.legacy"; fi; done' bash "$plugin_root"
+if [ -f "$repo_root/web/js/stocking_texture_materials.js" ]; then
+    docker exec "$container_name" bash -c 'for name in stocking_texture.js stocking_texture_editor.js stocking_texture_effects.js stocking_texture_upstream.js; do if [ -f "$1/web/js/$name" ]; then mv "$1/web/js/$name" "$1/web/js/$name.legacy"; fi; done' bash "$plugin_root"
 fi
 docker cp "$repo_root/locales" "$container_name:$plugin_root/"
 docker restart "$container_name"

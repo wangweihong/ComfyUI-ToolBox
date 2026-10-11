@@ -14,59 +14,9 @@ from .core import look, tiles
 from .styles import PATTERNS
 
 TILE_CACHE = ByteLRU(16 * 1024**2, 32)
-EFFECT_CACHE = ByteLRU(128 * 1024**2, 8)
-DEFAULTS = {
-    "version": 1,
-    "pattern": {"mode": "fabric", "size": 100, "rotation": 0, "color": "#000000", "opacity": 70},
-    "text": {"enabled": False, "content": "BALENCIAGA", "size": 100, "spacing_x": 100,
-             "spacing_y": 100, "rotation": 0, "color": "#000000", "opacity": 70},
-    "damage": {"enabled": False, "mode": "random", "type": "mixed", "count": 5,
-               "length": 100, "width": 100, "strength": 60},
-}
+EFFECT_CACHE = ByteLRU(32 * 1024**2, 8)
+from .config import LEGACY_DEFAULTS as DEFAULTS, clean_effects
 FONT = Path(__file__).with_name("fonts") / "DejaVuSans-Bold.ttf"
-
-
-def clean_effects(raw="{}"):
-    if isinstance(raw, str):
-        if len(raw.encode()) > 64 * 1024:
-            raise ValueError("效果配置超过 64 KiB")
-        try:
-            raw = json.loads(raw or "{}")
-        except (ValueError, RecursionError) as exc:
-            raise ValueError("效果 JSON 格式错误") from exc
-    if not isinstance(raw, dict) or raw.get("version", 1) != 1:
-        raise ValueError("不支持此效果配置版本")
-    result = copy.deepcopy(DEFAULTS)
-    for group in ("pattern", "text", "damage"):
-        value = raw.get(group, {})
-        if not isinstance(value, dict):
-            raise ValueError(f"{group} 必须为对象")
-        result[group].update({k: v for k, v in value.items() if k in result[group]})
-    for group in ("pattern", "text"):
-        cfg = result[group]
-        if not isinstance(cfg["color"], str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", cfg["color"]):
-            raise ValueError("颜色必须为 #RRGGBB")
-        cfg["color"] = cfg["color"].lower()
-    limits = {"size": (25, 400), "rotation": (-180, 180), "opacity": (0, 100),
-              "spacing_x": (25, 400), "spacing_y": (25, 400), "count": (0, 50),
-              "length": (25, 400), "width": (25, 400), "strength": (0, 100)}
-    for group in ("pattern", "text", "damage"):
-        cfg = result[group]
-        for name, value in cfg.items():
-            if name in limits:
-                if isinstance(value, bool) or not isinstance(value, (int, float)) or not np.isfinite(value):
-                    raise ValueError(f"{group}.{name} 必须为有限数值")
-                cfg[name] = float(np.clip(value, *limits[name]))
-        if "enabled" in cfg and not isinstance(cfg["enabled"], bool):
-            raise ValueError(f"{group}.enabled 必须为布尔值")
-    if result["pattern"]["mode"] not in ("fabric", "print"):
-        raise ValueError("未知花纹表现模式")
-    text = result["text"]["content"]
-    if not isinstance(text, str) or len(text) > 128 or any(not 32 <= ord(c) <= 126 for c in text):
-        raise ValueError("文字最多 128 字符，仅支持英文、数字、空格和常见标点")
-    if result["damage"]["mode"] not in ("random", "manual", "both") or result["damage"]["type"] not in ("snag", "ladder", "mixed"):
-        raise ValueError("未知损伤模式或类型")
-    return result
 
 
 def _line(value, width):
@@ -275,7 +225,17 @@ def damage_maps(scene, field, cfg, scale):
     return loss*strength*scene.alpha, yarn*strength*scene.alpha, rendered
 
 
-def render_effects(scene, field, base, style, cfg, params):
+def render_effects(scene, field, base, style, cfg, params, rect=None):
+    if cfg["version"] == 2:
+        from .layer_renderer import render
+        key=data.digest('compose-v2',scene._nf_signature,params,cfg,field.get('damage_strokes',[]),rect)
+        hit=EFFECT_CACHE.get(key)
+        if hit is not None:
+            info=dict(hit[1],effect_cache=dict(sample_hits=0,sample_misses=0,damage_hits=0,damage_misses=0,surface_hit=True,final_hit=True))
+            return hit[0],info
+        result=render(scene,field,base,cfg,rect)
+        EFFECT_CACHE.put(key,result)
+        return result
     damage = field.get("damage_strokes", [])
     key = data.digest("effects-v1",scene.__class__.__module__,scene.src,field["signature"],scene.seed,style,cfg,params,damage)
     hit = EFFECT_CACHE.get(key)

@@ -119,6 +119,11 @@
       },
       "sparkle_link": {
         "name": "关联亮点"
+      },
+      "optional": {
+        "material": {
+          "name": "全局材质（连接后只读）"
+        }
       }
     },
     "description": "一个窗口完成部位、走向和样式编辑。SAM3逐图识别；保留原有点选。跳过失败图，source_images与成功输出对应。",
@@ -459,6 +464,11 @@
       },
       "sparkle_link": {
         "name": "关联亮点"
+      },
+      "optional": {
+        "material": {
+          "name": "全局材质（连接后只读）"
+        }
       }
     }
   },
@@ -668,5 +678,20 @@
   },
   "NFStockingPSDSave": {
     "display_name": "tb-丝袜引导 PSD 导出"
+  },
+  "NFStockingPatternLayer": {
+    "display_name": "tb-丝袜花纹层"
+  },
+  "NFStockingTextLayer": {
+    "display_name": "tb-丝袜文字层"
+  },
+  "NFStockingLayerStack": {
+    "display_name": "tb-丝袜图层组合"
+  },
+  "NFStockingDamageConfig": {
+    "display_name": "tb-丝袜损伤配置"
+  },
+  "NFStockingMaterial": {
+    "display_name": "tb-丝袜基础材质"
   }
 }

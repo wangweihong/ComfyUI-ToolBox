@@ -1,16 +1,7 @@
 export { STYLE_LABELS, STYLE_HINTS } from "./stocking_style_registry.mjs?v=20261010-upstream1";
 export const PARAM_KEYS = ["style", "density", "tilt", "strength", "strength_auto", "sparkle_depth", "sparkle_bright", "sparkle_painted", "sparkle_even", "effects_json", "renderer_version", "layer_mode", "moire_on", "moire", "moire_area", "sparkle_link"];
-export const SLIDERS = [
-    {key:"moire", label:"摩尔纹强度",min:0,max:100,unit:"%",hint:"新版渲染，需要有效深度。"},
-    {key:"moire_area", label:"摩尔纹面积",min:0,max:100,unit:"%",hint:"从鼓起处向外扩展。"},
-    { key: "density", label: "密度", min: 40, max: 200, unit: "%", hint: "横纹疏密；接近像素大小时会自动限制并衰减。" },
-    { key: "strength", label: "纹理强度", min: 0, max: 250, unit: "%", hint: "拖动即切换为手动强度，不影响亮点。" },
-    { key: "tilt", label: "斜度", min: 0, max: 75, unit: "°", hint: "斜单线的倾斜角度。" },
-    { key: "sparkle_depth", label: "按深度亮点", min: 0, max: 300, unit: "%", hint: "按深度分布在鼓起处；需给求解节点连接有效灰度深度图。" },
-    { key: "sparkle_bright", label: "按画面亮部亮点", min: 0, max: 300, unit: "%", hint: "沿原画已有高光分布。" },
-    { key: "sparkle_painted", label: "按遮罩亮点", min: 0, max: 300, unit: "%", hint: "按渲染节点 sparkle_mask 输入分布；未连接时此来源无效。" },
-    { key: "sparkle_even", label: "均匀分布亮点", min: 0, max: 300, unit: "%", hint: "整个应用区域均匀分布，适合亮片效果。" },
-];
+import {SCHEMA} from './stocking_config.mjs?v=20261011-material6';
+export const SLIDERS = ['moire','moire_area','density','strength','tilt','sparkle_depth','sparkle_bright','sparkle_painted','sparkle_even'].map(key=>({key,...SCHEMA.appearance[key]}));
 
 // Invalid partial number input must not replace a working node value.
 export function parameterPatch(key, raw) {

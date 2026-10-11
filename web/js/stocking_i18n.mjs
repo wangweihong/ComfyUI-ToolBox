@@ -97,6 +97,22 @@ Object.assign(EN, {
  "草稿恢复保存失败；仍可保存节点":"Draft recovery save failed; node saving still works",
 });
 
+Object.assign(EN, {
+ "基础织物":"Base fabric", "效果图层":"Effect layers", "最终损伤":"Final damage", "材质编辑范围":"Material scope", "全局材质":"Global material", "当前部位":"Current region",
+ "全部继承全局":"Inherit all global settings", "独立图层（替换全局）":"Independent layers (replace global stack)", "复制全局图层":"Copy global layers", "覆盖 ":"Override ", "部位材质":"Region material", "编辑部位材质":"Edit region material",
+ "添加花纹层":"Add pattern layer", "添加文字层":"Add text layer", "复制层":"Duplicate layer", "删除层":"Delete layer", "上移":"Move up", "下移":"Move down", "启用":"Enabled", "大小 %":"Size %", "旋转 °":"Rotation °", "颜色":"Color", "不透明度 %":"Opacity %", "列间距 %":"Column spacing %", "行间距 %":"Row spacing %", "长度 %":"Length %", "宽度 %":"Width %", "随机数量":"Random count", "继承全局损伤":"Inherit global damage",
+ "全局材质由上游输入控制；部位覆盖仍可编辑。":"Global material is controlled by its input; region overrides remain editable.", "请先选择部位":"Select a region first"
+});
+
+Object.assign(EN, {
+ "滑杆自动更新参数草稿；保存并关闭后写入本渲染节点。取消放弃修改。修改引导后需重新运行求解节点。":"Sliders update the parameter draft. Save and close commits to the renderer; Cancel discards changes. Rerun the solver after editing guides.",
+ "关联亮点":"Link sparkles", "启用摩尔纹":"Enable moiré", "相对参考图尺寸的百分比，与基础织纹密度独立。":"Percentage of reference image size, independent of base weave density.",
+ "织物结合原图明暗与透肤感；印花保留指定颜色与轮廓。":"Fabric follows image brightness and sheerness; print retains its color and outline.",
+ "最多 128 个可打印 ASCII 字符，保留大小写；使用固定字体。":"Up to 128 printable ASCII characters; case preserved with the bundled font.",
+ "每层独立的不透明度；颜色与不透明度变化复用采样缓存。":"Independent opacity per layer; color and opacity changes reuse sampling.",
+ "沿部位全图坐标旋转，文字不随左右腿镜像。":"Rotate along full-image region coordinates; letters never mirror between legs."
+});
+
 export function translate(text, locale = "zh") {
     if (!String(locale).toLowerCase().startsWith("en")) return text;
     if (EN[text] !== undefined) return EN[text];

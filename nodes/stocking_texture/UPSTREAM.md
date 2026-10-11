@@ -29,3 +29,10 @@ The original `core/` renderer remains the default for compatibility. The new ren
 and revised glossy shading, selected by `renderer_version=upstream_f74c8ac`. Masks and occlusion gaps are adapted
 by ToolBox; fill gaps never expand the output selection. Region editing, presets, disk drafts, soft float layers,
 ComfyUI file nodes/routes and workflow examples are ToolBox integrations, rather than the desktop server.
+
+## Layered material integration
+
+The V2 effects schema, composable material nodes, ordered pattern/text handlers, region inheritance and split caches
+are ToolBox additions. Both pinned renderers and their original numerical routines remain unchanged. V1 migration
+retains its sampling arithmetic and ordering; V2 field sampling uses full-image derivatives for ROI previews.
+The fixed DejaVu Sans Bold font and its license are retained; no external artwork, fonts or asset uploads are added.

@@ -1,6 +1,6 @@
-export const RENDER_DEFAULTS = {renderer_version:"legacy", layer_mode:"replacement", moire_on:false, moire:100, moire_area:100, sparkle_link:false};
-export const MATERIAL_DEFAULTS = {style:"knit",density:100,tilt:32,strength:100,strength_auto:true,color_exclude:true,
-    sparkle_depth:100,sparkle_bright:100,sparkle_painted:0,sparkle_even:0,seed:20261005,effects_json:"{}",...RENDER_DEFAULTS};
+import {SCHEMA} from './stocking_config.mjs?v=20261011-material6';
+export const RENDER_DEFAULTS = Object.fromEntries(['renderer_version','layer_mode','moire_on','moire','moire_area','sparkle_link'].map(k=>[k,(SCHEMA.globals[k]??SCHEMA.appearance[k]).default]));
+export const MATERIAL_DEFAULTS = {...Object.fromEntries(Object.entries(SCHEMA.appearance).map(([k,s])=>[k,s.default])),seed:SCHEMA.globals.seed.default,effects_json:'{}',...RENDER_DEFAULTS};
 
 export function linkedSparklePatch(patch, linked, depth) {
     if (patch.sparkle_link === true) return {...patch,sparkle_bright:depth};

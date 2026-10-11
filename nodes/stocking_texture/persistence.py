@@ -25,7 +25,9 @@ def material(params):
     q = {k: v for k, v in params.items() if k in MATERIAL_KEYS}
     q.update(clean_options(q))
     clean_params(q)
-    clean_effects(q.get("effects_json", "{}"))
+    from .config import normalize_effects
+    base,cfg=normalize_effects(q.get("style","knit"),q.get("effects_json","{}"))
+    q.update(style=base,effects_json=json.dumps(cfg,ensure_ascii=False))
     seed = q.get("seed", 20261005)
     if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 0xffffffffffffffff:
         raise ValueError("seed 必须为非负 64 位整数")

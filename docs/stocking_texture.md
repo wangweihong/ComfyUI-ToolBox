@@ -266,3 +266,53 @@ English: choose one of fourteen styles, then adjust Fabric/Print appearance, Eng
 新增公开工作流在 `examples/stocking_texture/upstream/`：10 Coil、11 摩尔纹、12 新旧油光、13 柔和图层组合、14 PSD 往返。均无需识别模型，11 使用公开合成深度图；14 还需复制 `assets/tb_stocking_guides.psd` 到 input，并会在 output 中保存新引导 PSD。
 
 English: keep `renderer_version=legacy` for unchanged old output, or explicitly select `upstream_f74c8ac` for Coil, moiré and revised glossy shading. Moiré requires valid grayscale depth. Choose `layer_mode=soft` for a transparent stocking layer; floating composition matches within 1e-6 and PNG composition within one level. The editor supports region splitting/merging, snapped cuts, outline-fitted direction mirroring, targeted path deletion, persistent detected-wall deletion and course/wale overlays. Material presets are user-scoped and skip connected inputs. PSD/PSB load and guide PSD save require the optional psd-tools dependency; original files are never overwritten. Drafts are saved separately after one second, with Recover/Discard on reopening; Save and close commits the node, while Cancel removes the draft. Model objects and undo history are not persisted. The PSD interchange format does not carry ToolBox lettering, damage or material settings; save your ComfyUI workflow for those.
+
+## 有序材质图层与部位覆盖（V2）
+
+基础织物包含细线、针织、斜单线、颗粒、油光和 Coil。花纹从基础织物中分离为叠加层，因此可以组合 Coil＋蕾丝、油光＋豹纹，并叠加多个英文文字层。每套材质最多 16 层，支持添加、复制、删除、启停、上移与下移；从上到下依次渲染，最终损伤始终最后处理。每层独立设置织物/印花、大小、旋转、颜色与不透明度。文字仍使用随项目附带的 DejaVu Sans Bold，支持最多 128 个可打印 ASCII 字符，保持输入大小写和可读方向。
+
+编辑器「纹理」页的「材质编辑范围」选择全局或当前部位。未覆盖的部位参数继承全局；勾选「覆盖」后可独立设置基础织物、密度、斜度、强度/自动强度、颜色排除、亮点和摩尔纹。「独立图层」整组替换全局图层，「复制全局图层」生成独立副本；关闭后恢复继承。「继承全局损伤」清除部位损伤参数覆盖。修改图层不会顺便固定损伤参数。渲染版本、种子和透明输出模式一直由渲染节点全局控制。
+
+部位材质保存在图片指纹绑定的引导记录中。分割复制原部位材质，合并保留目标部位材质，镜像只替换走向线。撤销、重做、取消与保存重开覆盖这些配置。「保存并关闭」才将一体化配置写入节点；高级渲染预览也先编辑参数草稿，取消时不写入。
+
+### 配置节点连线
+
+| 节点 | 用途与输出 |
+| --- | --- |
+| `NFStockingPatternLayer` | 八种程序花纹；输出 `NF_STOCKING_LAYER` |
+| `NFStockingTextLayer` | 固定字体英文文字；输出 `NF_STOCKING_LAYER` |
+| `NFStockingLayerStack` | 按 `layers`、`layer_1` 至 `layer_16` 顺序组合；输出 `NF_STOCKING_LAYERS` |
+| `NFStockingDamageConfig` | 最终损伤参数；输出 `NF_STOCKING_DAMAGE` |
+| `NFStockingMaterial` | 基础参数＋有序图层＋最终损伤；输出 `NF_STOCKING_MATERIAL` |
+
+将材质输出接到一体化节点或高级渲染节点末尾新增的可选 `material`。连接后全局材质由该输入提供，编辑器显示解析值并只读，仍可编辑部位覆盖。未连接时使用原控件与 `effects_json`。Coil、摩尔纹仍需在渲染节点选择新版；摩尔纹需有效深度。
+
+### 格式与兼容
+
+共享定义为 `web/js/stocking_effect_schema.json`，供 Python 校验、浏览器控件、配置节点读取。`effects_json` V2 使用稳定 ID 的有序图层与独立最终损伤：
+
+```json
+{"version":2,"layers":[{"id":"lace-1","type":"pattern","params":{"pattern":"lace","mode":"fabric"}},{"id":"brand-1","type":"text","params":{"enabled":true,"content":"PARIS","mode":"print"}}],"damage":{"enabled":false}}
+```
+
+V1 工作流、预设和十四个旧样式 ID 保留。读取 V1 不改写原记录；显式保存或保存预设后写入 V2。旧花纹映射为 knit＋花纹层，旧文字继承旧花纹表现模式，并携带兼容采样标记 `sampling: "v1"`，保持原默认值和逐像素输出。未来版本拒绝读取并保留原文件；无新增效果时旧渲染保持不变。工作流、预设和恢复草稿保存材质配置；PSD 仍只交换引导，不携带多层材质与英文印花。没有新增素材依赖或上传入口。
+
+### 缓存与公开示例
+
+几何签名排除部位材质和损伤路径。表面缓存保留全图坐标、方向校正、导数及有效边界；基础织物、图层采样、损伤几何和最终合成分别复用。颜色/不透明度变化复用采样，单层几何变化只使该层失效，排序只合成。裁剪预览使用全图光照、尺度、随机布局和导数，损伤阴影先保留全图相邻边界再裁剪。
+
+保持原缓存预算：部位几何 256 MiB、场景 1 GiB、效果合计 128 MiB（采样 64、损伤 32、兼容效果/最终合成 32），字形/花纹图集沿用 16 MiB。超预算跳过或回收缓存，输出不变；这不是进程峰值内存上限。
+
+公开示例在 `examples/stocking_texture/materials/`，使用同一公开合成底图和已有选区，无需识别/深度模型：15 Coil 与蕾丝、16 左右腿独立材质、17 有序多层文字、18 五个配置节点连线。将 `assets/tb_stocking_demo.png` 复制到 input，加载普通 `.json`；`.api.json` 用于 API 队列。
+
+```bash
+python scripts/generate_stocking_material_workflows.py
+python scripts/test_stocking_material_api.py
+python scripts/benchmark_stocking_materials.py
+# 容器重启后，验证独立保存的 V2 草稿并清除验收草稿：
+python scripts/test_stocking_material_api.py --restore
+```
+
+English: V2 separates six base fabrics from ordered procedural pattern and ASCII text layers (up to 16). Duplicate, enable, disable and reorder each layer; damage is applied last. Regions inherit unspecified appearance fields; independent layers replace the whole global stack, while damage inherits until explicitly overridden. Splitting copies material, merging keeps the destination material, and mirroring changes direction guides only. Connect `NFStockingMaterial` to the appended optional `material` port of the unified or advanced renderer. Global material becomes read-only with resolved values; region overrides remain editable. Renderer version, seed and output layer mode remain global. V1 is read without modifying its stored JSON; explicit saving uses V2 with compatible sampling to preserve pixels. Future configurations are unreadable without overwriting their files. Save and close commits the draft; Cancel discards it. Workflows, presets and recovery drafts retain materials; PSD remains guide exchange. Sampling caches reuse color/opacity changes and unaffected layers; ROI previews retain full-image coordinates and random placement. Cache budgets are unchanged, with eviction or cache skipping for large images. See the four public recipes and the measured performance/acceptance record below.
+
+本轮逐阶段检查、实际工作流、截图及三种分辨率测量见 [2026-10-11 材质架构验收](testing/stocking_materials_2026-10-11.md)。

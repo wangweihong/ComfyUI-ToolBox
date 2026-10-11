@@ -119,6 +119,11 @@
       },
       "sparkle_link": {
         "name": "Link sparkle sliders"
+      },
+      "optional": {
+        "material": {
+          "name": "Global material (read-only when connected)"
+        }
       }
     },
     "description": "Edit regions, direction and style in one window. SAM3 segments each frame; original point selection is preserved. Failed frames are skipped; source_images aligns with successful outputs.",
@@ -459,6 +464,11 @@
       },
       "sparkle_link": {
         "name": "Link sparkle sliders"
+      },
+      "optional": {
+        "material": {
+          "name": "Global material (read-only when connected)"
+        }
       }
     }
   },
@@ -668,5 +678,20 @@
   },
   "NFStockingPSDSave": {
     "display_name": "tb-Stocking guide PSD save"
+  },
+  "NFStockingPatternLayer": {
+    "display_name": "tb-Stocking pattern layer"
+  },
+  "NFStockingTextLayer": {
+    "display_name": "tb-Stocking text layer"
+  },
+  "NFStockingLayerStack": {
+    "display_name": "tb-Stocking layer stack"
+  },
+  "NFStockingDamageConfig": {
+    "display_name": "tb-Stocking damage config"
+  },
+  "NFStockingMaterial": {
+    "display_name": "tb-Stocking material"
   }
 }

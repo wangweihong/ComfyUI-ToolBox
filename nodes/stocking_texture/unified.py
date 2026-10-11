@@ -199,12 +199,13 @@ def frame_for(image, records, source_mode, external=None, handle=None, prompt="s
     return empty_frame(external is not None), "mask" if external is not None else "manual"
 
 
-def process_one(image, frame, external, depth, painted, params, color_exclude, seed, auto_direction=True, auto_walls=True):
+def process_one(image, frame, external, depth, painted, params, color_exclude, seed, auto_direction=True, auto_walls=True, rect=None):
     masks = data.frame_masks(frame, *image.shape[:2], external)
     resolved, generated = basic_guides(frame, masks) if auto_direction else (frame, [])
     fields = solve_one(image, resolved, masks, depth, auto_walls)
-    out, layer, alpha, diagnostics, info = render_one(image, fields, params, color_exclude, seed, painted)
-    info.update(coverage_fraction=float(np.mean(fields["reg"] > 0)), changed_fraction=float(np.mean(alpha > 0)),
+    out, layer, alpha, diagnostics, info = render_one(image, fields, params, color_exclude, seed, painted, rect=rect)
+    report_region=fields["reg"] if rect is None else fields["reg"][rect[1]:rect[3],rect[0]:rect[2]]
+    info.update(coverage_fraction=float(np.mean(report_region > 0)), changed_fraction=float(np.mean(alpha > 0)),
                 direction_source="basic+manual" if generated else "manual", basic_guides=generated)
     if not masks or not np.any(fields["reg"]):
         reason = "没有目标选区"
@@ -215,7 +216,8 @@ def process_one(image, frame, external, depth, painted, params, color_exclude, s
     else:
         reason = None
     info["failure_reason"] = reason
-    return out, layer, alpha, diagnostics, fields["soft"], info, fields
+    region_mask=fields["soft"] if rect is None else fields["soft"][rect[1]:rect[3],rect[0]:rect[2]]
+    return out, layer, alpha, diagnostics, region_mask, info, fields
 
 
 def process_batch(images, guides_json, source_mode, params, mask=None, depth=None, sparkle_mask=None,

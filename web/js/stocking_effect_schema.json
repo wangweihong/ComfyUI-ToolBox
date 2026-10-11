@@ -1,0 +1,404 @@
+{
+  "version": 2,
+  "max_layers": 16,
+  "legacy_defaults": {
+    "version": 1,
+    "pattern": {
+      "mode": "fabric",
+      "size": 100,
+      "rotation": 0,
+      "color": "#000000",
+      "opacity": 70
+    },
+    "text": {
+      "enabled": false,
+      "content": "BALENCIAGA",
+      "size": 100,
+      "spacing_x": 100,
+      "spacing_y": 100,
+      "rotation": 0,
+      "color": "#000000",
+      "opacity": 70
+    },
+    "damage": {
+      "enabled": false,
+      "mode": "random",
+      "type": "mixed",
+      "count": 5,
+      "length": 100,
+      "width": 100,
+      "strength": 60
+    }
+  },
+  "groups": {
+    "pattern": {
+      "pattern": {
+        "default": "polka",
+        "type": "enum",
+        "label": "花纹",
+        "hint": "花纹",
+        "options": [
+          "polka",
+          "hearts",
+          "diamonds",
+          "fishnet_small",
+          "fishnet_large",
+          "lace",
+          "floral",
+          "leopard"
+        ]
+      },
+      "enabled": {
+        "default": true,
+        "type": "boolean",
+        "label": "启用",
+        "hint": "启用"
+      },
+      "mode": {
+        "default": "fabric",
+        "type": "enum",
+        "label": "表现模式",
+        "hint": "织物结合原图明暗与透肤感；印花保留指定颜色与轮廓。",
+        "options": [
+          "fabric",
+          "print"
+        ]
+      },
+      "size": {
+        "default": 100,
+        "type": "number",
+        "label": "大小 %",
+        "hint": "相对参考图尺寸的百分比，与基础织纹密度独立。",
+        "min": 25,
+        "max": 400
+      },
+      "rotation": {
+        "default": 0,
+        "type": "number",
+        "label": "旋转 °",
+        "hint": "沿部位全图坐标旋转，文字不随左右腿镜像。",
+        "min": -180,
+        "max": 180
+      },
+      "color": {
+        "default": "#000000",
+        "type": "color",
+        "label": "颜色",
+        "hint": "颜色"
+      },
+      "opacity": {
+        "default": 70,
+        "type": "number",
+        "label": "不透明度 %",
+        "hint": "每层独立的不透明度；颜色与不透明度变化复用采样缓存。",
+        "min": 0,
+        "max": 100
+      }
+    },
+    "text": {
+      "mode": {
+        "default": "print",
+        "type": "enum",
+        "label": "表现模式",
+        "hint": "织物结合原图明暗与透肤感；印花保留指定颜色与轮廓。",
+        "options": [
+          "fabric",
+          "print"
+        ]
+      },
+      "enabled": {
+        "default": false,
+        "type": "boolean",
+        "label": "启用",
+        "hint": "启用"
+      },
+      "content": {
+        "default": "BALENCIAGA",
+        "type": "string",
+        "label": "英文文字",
+        "hint": "最多 128 个可打印 ASCII 字符，保留大小写；使用固定字体。",
+        "maxLength": 128,
+        "ascii": true
+      },
+      "size": {
+        "default": 100,
+        "type": "number",
+        "label": "大小 %",
+        "hint": "相对参考图尺寸的百分比，与基础织纹密度独立。",
+        "min": 25,
+        "max": 400
+      },
+      "spacing_x": {
+        "default": 100,
+        "type": "number",
+        "label": "列间距 %",
+        "hint": "列间距 %",
+        "min": 25,
+        "max": 400
+      },
+      "spacing_y": {
+        "default": 100,
+        "type": "number",
+        "label": "行间距 %",
+        "hint": "行间距 %",
+        "min": 25,
+        "max": 400
+      },
+      "rotation": {
+        "default": 0,
+        "type": "number",
+        "label": "旋转 °",
+        "hint": "沿部位全图坐标旋转，文字不随左右腿镜像。",
+        "min": -180,
+        "max": 180
+      },
+      "color": {
+        "default": "#000000",
+        "type": "color",
+        "label": "颜色",
+        "hint": "颜色"
+      },
+      "opacity": {
+        "default": 70,
+        "type": "number",
+        "label": "不透明度 %",
+        "hint": "每层独立的不透明度；颜色与不透明度变化复用采样缓存。",
+        "min": 0,
+        "max": 100
+      }
+    },
+    "damage": {
+      "enabled": {
+        "default": false,
+        "type": "boolean",
+        "label": "启用",
+        "hint": "启用"
+      },
+      "mode": {
+        "default": "random",
+        "type": "enum",
+        "label": "损伤方式",
+        "hint": "织物结合原图明暗与透肤感；印花保留指定颜色与轮廓。",
+        "options": [
+          "random",
+          "manual",
+          "both"
+        ]
+      },
+      "type": {
+        "default": "mixed",
+        "type": "enum",
+        "label": "损伤类型",
+        "hint": "损伤类型",
+        "options": [
+          "snag",
+          "ladder",
+          "mixed"
+        ]
+      },
+      "count": {
+        "default": 5,
+        "type": "number",
+        "label": "随机数量",
+        "hint": "随机数量",
+        "min": 0,
+        "max": 50
+      },
+      "length": {
+        "default": 100,
+        "type": "number",
+        "label": "长度 %",
+        "hint": "长度 %",
+        "min": 25,
+        "max": 400
+      },
+      "width": {
+        "default": 100,
+        "type": "number",
+        "label": "宽度 %",
+        "hint": "宽度 %",
+        "min": 25,
+        "max": 400
+      },
+      "strength": {
+        "default": 60,
+        "type": "number",
+        "label": "损伤强度 %",
+        "hint": "损伤强度 %",
+        "min": 0,
+        "max": 100
+      }
+    }
+  },
+  "appearance": {
+    "style": {
+      "default": "knit",
+      "type": "enum",
+      "label": "基础织物",
+      "hint": "基础织物",
+      "options": [
+        "knit",
+        "loops",
+        "lines",
+        "grain",
+        "oily",
+        "coil"
+      ]
+    },
+    "density": {
+      "default": 100,
+      "type": "number",
+      "label": "密度",
+      "hint": "横纹疏密；接近像素大小时会自动限制并衰减。",
+      "min": 40,
+      "max": 200,
+      "unit": "%"
+    },
+    "tilt": {
+      "default": 32,
+      "type": "number",
+      "label": "斜度",
+      "hint": "斜单线的倾斜角度。",
+      "min": 0,
+      "max": 75,
+      "unit": "°"
+    },
+    "strength": {
+      "default": 100,
+      "type": "number",
+      "label": "纹理强度",
+      "hint": "拖动即切换为手动强度，不影响亮点。",
+      "min": 0,
+      "max": 250,
+      "unit": "%"
+    },
+    "strength_auto": {
+      "default": true,
+      "type": "boolean",
+      "label": "自动强度",
+      "hint": "自动强度"
+    },
+    "color_exclude": {
+      "default": true,
+      "type": "boolean",
+      "label": "颜色排除",
+      "hint": "颜色排除"
+    },
+    "sparkle_depth": {
+      "default": 100,
+      "type": "number",
+      "label": "按深度亮点",
+      "hint": "按深度分布在鼓起处；需给求解节点连接有效灰度深度图。",
+      "min": 0,
+      "max": 300,
+      "unit": "%"
+    },
+    "sparkle_bright": {
+      "default": 100,
+      "type": "number",
+      "label": "按画面亮部亮点",
+      "hint": "沿原画已有高光分布。",
+      "min": 0,
+      "max": 300,
+      "unit": "%"
+    },
+    "sparkle_painted": {
+      "default": 0,
+      "type": "number",
+      "label": "按遮罩亮点",
+      "hint": "按渲染节点 sparkle_mask 输入分布；未连接时此来源无效。",
+      "min": 0,
+      "max": 300,
+      "unit": "%"
+    },
+    "sparkle_even": {
+      "default": 0,
+      "type": "number",
+      "label": "均匀分布亮点",
+      "hint": "整个应用区域均匀分布，适合亮片效果。",
+      "min": 0,
+      "max": 300,
+      "unit": "%"
+    },
+    "sparkle_link": {
+      "default": false,
+      "type": "boolean",
+      "label": "关联亮点",
+      "hint": "关联亮点"
+    },
+    "moire_on": {
+      "default": false,
+      "type": "boolean",
+      "label": "启用摩尔纹",
+      "hint": "启用摩尔纹"
+    },
+    "moire": {
+      "default": 100,
+      "type": "number",
+      "label": "摩尔纹强度",
+      "hint": "新版渲染，需要有效深度。",
+      "min": 0,
+      "max": 100,
+      "unit": "%"
+    },
+    "moire_area": {
+      "default": 100,
+      "type": "number",
+      "label": "摩尔纹面积",
+      "hint": "从鼓起处向外扩展。",
+      "min": 0,
+      "max": 100,
+      "unit": "%"
+    }
+  },
+  "types": {
+    "pattern": {
+      "label": "花纹",
+      "label_en": "Pattern",
+      "condition": "有效部位与走向坐标",
+      "handler": "pattern",
+      "layer": true
+    },
+    "text": {
+      "label": "文字",
+      "label_en": "Text",
+      "condition": "最多 128 个可打印 ASCII 字符；固定 DejaVu Sans Bold",
+      "handler": "text",
+      "layer": true
+    },
+    "damage": {
+      "label": "最终损伤",
+      "label_en": "Final damage",
+      "condition": "全部效果合成后，限制在所属部位内",
+      "handler": "damage",
+      "layer": false
+    }
+  },
+  "globals": {
+    "renderer_version": {
+      "type": "enum",
+      "options": [
+        "legacy",
+        "upstream_f74c8ac"
+      ],
+      "default": "legacy",
+      "label": "渲染版本"
+    },
+    "layer_mode": {
+      "type": "enum",
+      "options": [
+        "replacement",
+        "soft"
+      ],
+      "default": "replacement",
+      "label": "透明图层"
+    },
+    "seed": {
+      "type": "number",
+      "min": 0,
+      "max": 18446744073709551615,
+      "default": 20261005,
+      "label": "随机种子"
+    }
+  }
+}

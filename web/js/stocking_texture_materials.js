@@ -1,21 +1,32 @@
+import {createState} from "./stocking_state.mjs?v=20261011-material6";
+import {createDrawing} from "./stocking_drawing.mjs?v=20261011-material6";
+import {createPreviewClient} from "./stocking_preview_client.mjs?v=20261011-material6";
+import {createPersistenceClient} from "./stocking_persistence_client.mjs?v=20261011-material6";
+import {createRenderUi} from "./stocking_render_ui.mjs?v=20261011-material6";
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261010-upstream1";
-import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261010-upstream1";
-import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261010-upstream1";
-import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261010-upstream1";
+import { fitView, imagePoint, zoomAt, isCurrent } from "./stocking_geometry.mjs?v=20261011-material6";
+import { GuideDraft, samHint, SAMRequests } from "./stocking_editor_state.mjs?v=20261011-material6";
+import { STYLE_LABELS, STYLE_HINTS, PARAM_KEYS, SLIDERS, parameterPatch } from "./stocking_render_controls.mjs?v=20261011-material6";
+import { applyCandidate, selectionCoverage, maskBoundarySegments, splitRatio, compareKey, canvasMetrics } from "./stocking_selection.mjs?v=20261011-material6";
 
-import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261010-upstream1";
-import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261010-upstream1";
-import { PATTERN_STYLES } from "./stocking_style_registry.mjs?v=20261010-upstream1";
-import { readEffects, effectPatch, damageStroke, upgradeEffectsValue } from "./stocking_effects_state.mjs?v=20261010-upstream1";
-import { RENDER_DEFAULTS, MATERIAL_DEFAULTS, nearestPath, nearestPoint, claimPixels, linkedSparklePatch } from "./stocking_upstream_controls.mjs?v=20261011-upstream2";
+import { translate, localizeDialog } from "./stocking_i18n.mjs?v=20261011-material6";
+import { SETTING_KEYS, recordsForSave, capturePrompt } from "./stocking_unified_state.mjs?v=20261011-material6";
+import { PATTERN_STYLES } from "./stocking_style_registry.mjs?v=20261011-material6";
+import { readEffects, effectPatch, damageStroke, upgradeEffectsValue } from "./stocking_effects_state.mjs?v=20261011-material6";
+import { RENDER_DEFAULTS, MATERIAL_DEFAULTS, nearestPath, nearestPoint, claimPixels, linkedSparklePatch } from "./stocking_upstream_controls.mjs?v=20261011-material6";
+import {createMaterialControls} from "./stocking_material_controls.mjs?v=20261011-material6";
+import {SCHEMA,normalizeEffects} from "./stocking_config.mjs?v=20261011-material6";
 const CLASSES = new Set(["NFStockingEditor", "NFStockingRender", "NFStockingTexture"]);
 const API_ROOT = "/toolbox/stocking";
 const COLORS = ["#48dfaf", "#ffb45a", "#96aaff", "#ff78c8"];
 const widget = (node, name) => node.widgets?.find(w => w.name === name);
-const value = (node, name, fallback) => node.__stockingDialog?.unified && name in node.__stockingDialog.settings
-    ? node.__stockingDialog.settings[name] : widget(node, name)?.value ?? fallback;
+const globalValue = (node,name,fallback) => node.__stockingDialog?.payload.material_connected && name in node.__stockingDialog.settings
+    ? node.__stockingDialog.settings[name] : (node.__stockingDialog?.unified || node.__stockingDialog?.renderMode) && name in node.__stockingDialog.settings
+    ? node.__stockingDialog.settings[name] : widget(node,name)?.value ?? fallback;
+const value = (node,name,fallback) => name==='effects_json' && node.__stockingDialog?.materialScope==='region' ? JSON.stringify(node.__stockingDialog.effectiveMaterial().effects) : node.__stockingDialog?.materialScope==='region' && name in SCHEMA.appearance
+    ? node.__stockingDialog.effectiveMaterial().params[name] : globalValue(node,name,fallback);
+
 
 function setValue(node, name, val) {
     const w = widget(node, name);
@@ -102,13 +113,16 @@ class StockingDialog {
         this.node = node; this.payload = payload; this.renderMode = render;
         this.unified = node.comfyClass === "NFStockingTexture";
         this.settings = { ...RENDER_DEFAULTS, ...payload.params };
+        if(render && !this.unified && !payload.material_connected) {
+            for(const k of SETTING_KEYS)if(widget(node,k) && !node.inputs?.some(i=>i.name===k&&i.link!=null))this.settings[k]=widget(node,k).value;
+        }
         this.editorId = node.properties.stocking_editor_id ||= crypto.randomUUID();
         node.properties.stocking_draft_identity = payload.identity;
         this.overlayOptions = {courses:false,wales:false,auto_walls:true}; this.guideOverlays = {};
         this.initialSettings = JSON.stringify(this.settings);
         if (this.unified && !payload.sam3_available && this.settings.source_mode === "semantic") this.settings.source_mode = "manual";
         this.initialDocument = JSON.stringify(payload.document);
-        if (this.unified) node.__stockingDialog = this;
+        node.__stockingDialog = this;
         this.index = 0; this.revision = 0; this.planeSerial = 0; this.client = crypto.randomUUID(); this.closed = false;
         this.selected = 0; this.tool = render ? "pan" : "paint"; this.radius = 14;
         this.draft = null;
@@ -130,8 +144,7 @@ class StockingDialog {
         this.button(head, "适应", () => { this.fitMode = true; this.view = fitView(payload.width, payload.height, this.stage.clientWidth, this.stage.clientHeight); this.draw(); if (this.renderMode) this.schedule(); });
         this.button(head, "100%", () => this.setZoom(1));
         this.button(head, "200%", () => this.setZoom(2));
-        if (render) this.button(head, "关闭", () => this.close());
-        else {
+        {
             this.saveState = el("small", "尚未修改", head, { className: "tb-stocking-save-state" });
             this.button(head, "保存并关闭", () => this.close(true));
             const cancel = this.button(head, "取消", () => this.close());
@@ -222,22 +235,6 @@ class StockingDialog {
     error(e) { if (!this.closed && e.name !== "AbortError") this.status.textContent = e.message; }
     markTools() { for (const b of this.overlay.querySelectorAll("[data-tool]")) b.classList.toggle("active", b.dataset.tool === this.tool); }
 
-    readDocument() {
-        let raw = this.unified ? "{}" : value(this.node, "guides_json", "{}");
-        const prior = JSON.parse(raw || "{}");
-        if (prior.width && (prior.width !== this.payload.width || prior.height !== this.payload.height)) raw = "{}";
-        try { this.draft = new GuideDraft(raw, this.unified ? "per_image" : value(this.node, "batch_mode", "shared"), this.payload.document); }
-        catch { throw new Error("引导 JSON 无效，请修正后重新打开"); }
-        if (this.doc.width !== this.payload.width || this.doc.height !== this.payload.height) {
-            this.sidebar.textContent = "底图尺寸改变，原引导不能自动拉伸。";
-            this.button(this.sidebar, "为新尺寸重建引导", () => {
-                this.doc = structuredClone(this.payload.document); this.updateDraft(); this.loadIndex(this.index);
-            });
-            throw new Error("引导尺寸与底图不一致，请重建引导");
-        }
-        this.buildRegionControls();
-    }
-
     get doc() { return this.draft?.doc; }
     set doc(doc) { this.draft.doc = doc; }
     get batchMode() { return this.draft?.mode || this.payload.batch_mode || "shared"; }
@@ -287,6 +284,7 @@ class StockingDialog {
         this.refreshTargets();
         this.button(this.sidebar,"合并到目标",()=>this.regionOperation("merge"));
         this.button(this.sidebar,"镜像走向到目标",()=>this.regionOperation("mirror"));
+        this.button(this.sidebar,"编辑部位材质",()=>{this.materialScope="region";if(this.unified)this.switchTab("texture");else this.showAdvancedMaterial();this.rebuildLayers=true;this.refreshEffectControls();});
         this.regionColor=el("input",null,el("label","部位颜色",this.sidebar),{type:"color",value:this.region()?.color||COLORS[this.selected%COLORS.length]});
         this.regionColor.onchange=()=>{if(!this.region())return;this.remember();this.region().color=this.regionColor.value;this.overlays.delete(this.region().id);this.updateDraft();this.draw();};
         this.samControls = el("div", null, this.sidebar);
@@ -350,189 +348,8 @@ class StockingDialog {
         this.editorCompareToggle.setAttribute("aria-pressed", String(this.editorCompareEnabled));
     }
 
-    buildRenderControls() {
-        el("h3", "基础样式", this.sidebar);
-        const label = el("label", "样式", this.sidebar);
-        this.styleSelect = el("select", null, label, { value: value(this.node, "style", "knit") });
-        for (const [val, text] of Object.entries(STYLE_LABELS)) el("option", text, this.styleSelect, { value: val });
-        this.styleSelect.value = value(this.node, "style", "knit");
-        this.styleSelect.dataset.setting = "style";
-        this.styleSelect.onchange = () => this.changeParameter("style", this.styleSelect.value);
-        this.styleSelect.setAttribute("aria-label", "样式");
-        this.styleHint = el("small", "", this.sidebar);
-        const autoLabel = el("label", "自动强度（按丝袜深浅）", this.sidebar);
-        this.autoInput = el("input", null, autoLabel, { type: "checkbox", checked: value(this.node, "strength_auto", true) });
-        this.autoInput.setAttribute("aria-label", "自动强度");
-        this.autoInput.dataset.setting = "strength_auto";
-        this.autoInput.onchange = () => this.changeParameter("strength_auto", this.autoInput.checked);
-        this.strengthHint = el("small", "", this.sidebar);
-        this.renderSliders = new Map();
-        for (const spec of SLIDERS) {
-            if (!widget(this.node, spec.key) && !(spec.key in this.settings)) continue;
-            const group = el("label", `${spec.label} ${spec.unit}`, this.sidebar);
-            const row = el("span", null, group, { className: "tb-stocking-slider-row" });
-            const attrs = { min: String(spec.min), max: String(spec.max), step: "1", value: String(value(this.node, spec.key, 0)), title: spec.hint };
-            const slider = el("input", null, row, { ...attrs, type: "range" });
-            const number = el("input", null, row, { ...attrs, type: "number" });
-            slider.dataset.setting = number.dataset.setting = spec.key;
-            slider.setAttribute("aria-label", spec.label); number.setAttribute("aria-label", `${spec.label}数值`);
-            slider.oninput = () => this.changeParameter(spec.key, slider.value);
-            number.oninput = () => {
-                const n = Number(number.value);
-                if (number.value !== "" && n >= spec.min && n <= spec.max) this.changeParameter(spec.key, number.value);
-            };
-            number.onchange = () => { this.changeParameter(spec.key, number.value); number.value = String(value(this.node, spec.key, 0)); };
-            this.renderSliders.set(spec.key, { group, slider, number });
-        }
-        el("small", "亮点与纹理强度独立，多种来源可混用。深度来源需连接灰度深度图，遮罩来源需连接 sparkle_mask。", this.sidebar);
-        const colorLabel = el("label", "颜色排除", this.sidebar);
-        const color = el("input", null, colorLabel, { type: "checkbox", checked: value(this.node, "color_exclude", true) });
-        color.setAttribute("aria-label", "颜色排除");
-        color.dataset.setting = "color_exclude";
-        color.onchange = () => this.changeParameter("color_exclude", color.checked);
-        el("small", "排除金边、皮肤等异色；透肤膝盖被误排除时可关闭。", this.sidebar);
-        const seedLabel = el("label", "随机种子", this.sidebar);
-        // Reject rounded integers instead of silently changing the random field.
-        const seed = el("input", null, seedLabel, { type: "text", inputMode: "numeric", value: String(value(this.node, "seed", 20261005)) });
-        seed.setAttribute("aria-label", "随机种子");
-        seed.dataset.setting = "seed";
-        seed.onchange = () => {
-            const n = Number(seed.value);
-            if (/^\d+$/.test(seed.value) && Number.isSafeInteger(n)) this.changeParameter("seed", n);
-            else { seed.value = String(value(this.node, "seed", 20261005)); this.status.textContent = "种子请输入有效整数；超出浏览器精确整数范围的种子请使用 API。"; }
-        };
-        this.refreshRenderControls();
-        this.buildUpstreamControls();
-        this.buildEffectControls();
-        el("small", this.unified ? "滑杆自动更新草稿预览；保存并关闭后运行工作流得到正式输出。取消不保存参数。整体定位细节，拖动分界线对比原图。" : "拖动滑杆自动预览并写入本渲染节点；关闭后运行工作流得到正式输出。整体点击定位细节，拖分界线对比；细节使用导出的原像素。修改引导后需重新运行工作流。", this.sidebar);
-    }
-
-    changeParameter(key, raw) {
-        let patch = parameterPatch(key, raw); if (!patch) return;
-        patch = linkedSparklePatch(patch, value(this.node,"sparkle_link",false),value(this.node,"sparkle_depth",100));
-        for (const [name, val] of Object.entries(patch)) {
-            if (this.unified) {
-                if (this.node.inputs?.some(i => i.name === name && i.link != null)) continue;
-                this.settings[name] = val;
-            } else setValue(this.node, name, val);
-        }
-        this.refreshRenderControls(); this.schedule();
-        this.updateSaveState(); this.scheduleDraftSave();
-    }
-
     updateSaveState() {
         if (this.saveState) this.saveState.textContent = this.draft?.dirty || JSON.stringify(this.settings) !== this.initialSettings ? "有未保存修改" : "尚未修改";
-    }
-
-    effects() { return readEffects(value(this.node, "effects_json", "{}")); }
-
-    changeEffect(group, key, raw) {
-        const next = effectPatch(value(this.node, "effects_json", "{}"), group, key, raw);
-        if (next === null) { this.status.textContent = "文字仅支持最多 128 个英文、数字、空格和常见标点；数值必须有效。"; return; }
-        this.changeParameter("effects_json", next);
-    }
-
-    buildEffectControls() {
-        this.effectControls = [];
-        const add = (parent, group, key, label, spec) => {
-            const row = el("label", label, parent);
-            let input;
-            if (Array.isArray(spec)) {
-                input = el("select", null, row);
-                for (const [val, text] of spec) el("option", text, input, { value: val });
-            } else input = el("input", null, row, spec);
-            input.dataset.setting = "effects_json"; input.setAttribute("aria-label", label);
-            const update = () => this.changeEffect(group, key, input.type === "checkbox" ? input.checked : input.value);
-            input.onchange = update;
-            if (["range", "color", "text"].includes(input.type)) input.oninput = update;
-            if (input.type === "number") input.oninput = () => {
-                if (input.value !== "" && Number(input.value) >= Number(input.min) && Number(input.value) <= Number(input.max)) update();
-            };
-            this.effectControls.push({ input, group, key });
-            return input;
-        };
-        const number = (min,max,value=100) => ({ type: "number", min, max, step: 1, value });
-        this.patternControls = el("section", null, this.sidebar);
-        el("h3", "花纹", this.patternControls);
-        add(this.patternControls,"pattern","mode","表现模式",[["fabric","织物"],["print","印花"]]);
-        add(this.patternControls,"pattern","size","花纹大小 %",number(25,400));
-        add(this.patternControls,"pattern","rotation","花纹旋转 °",number(-180,180,0));
-        add(this.patternControls,"pattern","color","花纹颜色",{type:"color"});
-        add(this.patternControls,"pattern","opacity","花纹不透明度 %",number(0,100,70));
-        const text = el("section",null,this.sidebar); el("h3","英文印花",text);
-        add(text,"text","enabled","启用英文印花",{type:"checkbox"});
-        const presetLabel = el("label","文字预设",text);
-        this.textPreset = el("select",null,presetLabel); this.textPreset.setAttribute("aria-label","文字预设");
-        for (const v of ["BALENCIAGA","PARIS","custom"]) el("option",v === "custom" ? "自定义" : v,this.textPreset,{value:v});
-        this.textPreset.onchange = () => { if (this.textPreset.value !== "custom") this.changeEffect("text","content",this.textPreset.value); };
-        this.textPreset.dataset.setting = "effects_json";
-        add(text,"text","content","英文文字",{type:"text",maxLength:128});
-        add(text,"text","size","文字字号 %",number(25,400));
-        add(text,"text","spacing_x","文字列间距 %",number(25,400));
-        add(text,"text","spacing_y","文字行间距 %",number(25,400));
-        add(text,"text","rotation","文字旋转 °",number(-180,180,0));
-        add(text,"text","color","文字颜色",{type:"color"});
-        add(text,"text","opacity","文字不透明度 %",number(0,100,70));
-        el("small","英文错行重复排列，字母不随左右腿镜像。",text);
-        const damage = el("section",null,this.sidebar); el("h3","损伤",damage);
-        add(damage,"damage","enabled","启用损伤",{type:"checkbox"});
-        add(damage,"damage","mode","损伤方式",[["random","随机"],["manual","手工"],["both","随机＋手工"]]);
-        add(damage,"damage","type","损伤类型",[["mixed","钩丝＋抽丝"],["snag","钩丝"],["ladder","梯状抽丝"]]);
-        add(damage,"damage","count","每部位随机数量",number(0,50,5));
-        add(damage,"damage","length","损伤长度 %",number(25,400));
-        add(damage,"damage","width","损伤宽度 %",number(25,400));
-        add(damage,"damage","strength","损伤强度 %",number(0,100,60));
-        if (this.unified) {
-            const target = el("label","损伤目标部位",damage);
-            this.damageRegionSelect = el("select",null,target); this.damageRegionSelect.setAttribute("aria-label","损伤目标部位");
-            this.damageRegionSelect.onchange = () => { this.selected = Number(this.damageRegionSelect.value); this.draw(); };
-            this.damagePaint = this.button(damage,"手工定位损伤",b => { this.tool = this.tool === "damage" ? "pan" : "damage"; b.classList.toggle("active",this.tool === "damage"); this.markTools(); });
-            this.button(damage,"删除最后损伤",() => this.removeLast("damage_strokes"));
-            const history = el("div",null,damage,{className:"tb-stocking-candidates"});
-            this.button(history,"撤销",() => this.undo()); this.button(history,"重做",() => this.redo());
-            el("small","点击生成局部损伤，拖动画出路径；右键删除指针附近的损伤。",damage);
-        } else el("small","手工损伤请在上游引导编辑器中绘制，保存后重新运行求解节点。",damage);
-        this.refreshEffectControls();
-    }
-
-    refreshEffectControls() {
-        if (!this.effectControls) return;
-        const cfg = this.effects();
-        this.patternControls.hidden = !PATTERN_STYLES.has(value(this.node,"style","knit")) && !cfg.text.enabled;
-        for (const {input,group,key} of this.effectControls) {
-            if (input.type === "checkbox") input.checked = cfg[group][key];
-            else if (document.activeElement !== input) input.value = cfg[group][key];
-        }
-        this.textPreset.value = ["BALENCIAGA","PARIS"].includes(cfg.text.content) ? cfg.text.content : "custom";
-        if (this.damageRegionSelect) {
-            this.damageRegionSelect.replaceChildren();
-            for (const [i,r] of (this.frame()?.regions || []).entries()) el("option",r.name,this.damageRegionSelect,{value:String(i)});
-            this.damageRegionSelect.value = String(this.selected);
-            this.damagePaint.disabled = !this.region() || this.node.inputs?.some(i => i.name === "effects_json" && i.link != null);
-            this.damagePaint.classList.toggle("active",this.tool === "damage");
-        }
-    }
-
-    refreshRenderControls(info) {
-        const style = value(this.node, "style", "knit"), auto = value(this.node, "strength_auto", true);
-        this.styleSelect.value = style;
-        this.styleHint.textContent = STYLE_HINTS[style] || "";
-        this.autoInput.checked = auto;
-        this.strengthHint.textContent = auto
-            ? `自动强度${info ? `：${Number(info.effective_strength).toFixed(1)}%` : "：预览计算中"}；拖动强度滑杆可切换为手动。`
-            : `手动强度：${value(this.node, "strength", 100)}%；亮点由各来源单独控制。`;
-        for (const [key, control] of this.renderSliders) {
-            control.group.hidden = key === "tilt" && style !== "lines";
-            const val = value(this.node, key, 0);
-            control.slider.value = val;
-            if (document.activeElement !== control.number) control.number.value = val;
-        }
-        for(const {input,key} of this.upstreamControls||[]) {
-            if(input.type==="checkbox")input.checked=value(this.node,key,RENDER_DEFAULTS[key]);
-            else input.value=value(this.node,key,RENDER_DEFAULTS[key]);
-            input.disabled=this.node.inputs?.some(i=>i.link!=null && (i.name===key || key==="sparkle_link" && ["sparkle_depth","sparkle_bright"].includes(i.name)));
-        }
-        this.refreshEffectControls();
     }
 
     setZoom(scale) {
@@ -599,91 +416,6 @@ class StockingDialog {
             this.stage.clientWidth / this.view.scale * v.scale, this.stage.clientHeight / this.view.scale * v.scale); ctx.restore();
     }
 
-    async loadIndex(index) {
-        this.loading = true; this.loadedIndex = null; this.planeSerial++;
-        const serial = ++this.requestSerial;
-        try {
-            this.cancelSAM();
-            this.externalRaster = null;
-            this.flushPlanes();
-            this.base?.close(); this.base = null; this.external?.close(); this.external = null;
-            this.planes.clear(); this.overlays.clear(); this.basicLines = [];
-            this.index = index; this.revision++; this.pending?.abort(); this.previewBitmap = null;
-            this.overviewBitmap = null; this.overviewKey = null;
-            this.samControls?.replaceChildren();
-            const path = `${API_ROOT}/image?session=${this.payload.session}&index=${index}`;
-            const bitmap = await imageFrom(path, this.controller.signal);
-            if (this.closed || serial !== this.requestSerial) { bitmap.close(); return; }
-            this.base?.close(); this.base = bitmap;
-            if (!this.renderMode || this.unified) {
-                const external = await imageFrom(path + "&kind=external", this.controller.signal);
-                if (this.closed || serial !== this.requestSerial) { external.close(); return; }
-                this.external?.close(); this.external = external;
-                this.mirrorInfo=null;
-                this.selected = Math.min(this.selected, Math.max(0, (this.frame()?.regions.length || 1) - 1));
-                await this.loadPlanes();
-            }
-            if (this.closed || serial !== this.requestSerial) return;
-            this.loadedIndex = index;
-            this.draw(); this.status.textContent = `底图 ${this.payload.identity.slice(0, 10)} · ${this.payload.width}×${this.payload.height} · 图像 ${index + 1}`;
-            this.schedule();
-            if (this.unified && this.settings.source_mode === "semantic" && this.payload.sam3_available && !this.frame()?.regions.some(r => r.mask || r.external)) {
-                this.semantic().catch(e => this.error(e));
-            }
-        } finally { if (serial === this.requestSerial) { this.loading = false; this.draw(); } }
-    }
-
-    async loadPlanes() {
-        this.planeLoading = true;
-        const serial = ++this.planeSerial;
-        try {
-            this.cancelSAM();
-            const next = new Map();
-            for (const r of this.frame()?.regions || []) {
-                const pair = { mask: plane(this.payload.width, this.payload.height), erase: plane(this.payload.width, this.payload.height) };
-                for (const key of ["mask", "erase"]) if (r[key]) pair[key].getContext("2d").drawImage(await decodePNG(r[key]), 0, 0);
-                next.set(r.id, pair);
-            }
-            if (this.closed || serial !== this.planeSerial) return;
-            this.planes = next; this.overlays.clear(); this.refreshRegions(); this.draw(); this.schedule();
-        } finally { if (serial === this.planeSerial) this.planeLoading = false; }
-    }
-
-    flushPlanes() {
-        // Only dirty planes are encoded; unchanged masks are already in the JSON.
-        for (const r of this.frame()?.regions || []) {
-            const p = this.planes.get(r.id);
-            if (!p?.dirty) continue;
-            r.mask = p.mask.toDataURL("image/png").split(",")[1];
-            r.erase = p.erase.toDataURL("image/png").split(",")[1]; p.dirty = false;
-        }
-    }
-
-    updateDraft() {
-        this.flushPlanes(); this.previewBitmap = null;
-        if (this.samCandidates) this.samCandidates.visual = null;
-        this.updateSaveState(); this.scheduleDraftSave();
-        this.schedule();
-    }
-    snapshot() { return JSON.stringify({ doc: this.doc, mode: this.batchMode, selected: this.selected, index: this.index, settings: this.settings,
-        initialDocument:this.initialDocument, initialSettings:this.initialSettings }); }
-    remember() {
-        this.flushPlanes(); this.history.push(this.snapshot()); this.future = [];
-        while (this.history.length > 30 || this.history.reduce((sum, s) => sum + s.length, 0) > 16 * 1024 * 1024) this.history.shift();
-    }
-    restore(raw) {
-        const s = JSON.parse(raw); this.doc = s.doc; this.selected = s.selected;
-        if(s.initialDocument)this.initialDocument=s.initialDocument;
-        if(s.initialSettings)this.initialSettings=s.initialSettings;
-        if (s.settings) this.settings = s.settings;
-        this.draft.mode = s.mode; this.updateDraft(); this.buildRegionControls();
-        if (this.effectControls) this.refreshRenderControls();
-        if (s.index !== this.index) {
-            this.indexSelect.value = String(s.index); this.loadIndex(s.index).catch(e => this.error(e));
-        } else this.loadPlanes().catch(e => this.error(e));
-    }
-    undo() { if (this.history.length) { this.flushPlanes(); this.future.push(this.snapshot()); this.restore(this.history.pop()); } }
-    redo() { if (this.future.length) { this.flushPlanes(); this.history.push(this.snapshot()); this.restore(this.future.pop()); } }
     removeLast(key) { if (this.region()?.[key]?.length) { this.remember(); this.region()[key].pop(); this.updateDraft(); this.draw(); } }
 
     refreshTargets() {
@@ -740,60 +472,6 @@ class StockingDialog {
         }
     }
 
-    buildUpstreamControls() {
-        this.upstreamControls=[];
-        for(const [key,label,choices] of [
-            ["renderer_version","渲染版本",[["legacy","兼容旧版"],["upstream_f74c8ac","上游新版 f74c8ac"]]],
-            ["layer_mode","透明图层",[["replacement","精确替换图层"],["soft","柔和丝袜图层"]]]]) {
-            const input=el("select",null,el("label",label,this.sidebar));
-            for(const [v,t] of choices)el("option",t,input,{value:v});
-            input.dataset.setting=key;input.value=value(this.node,key,RENDER_DEFAULTS[key]);
-            input.onchange=()=>this.changeParameter(key,input.value);this.upstreamControls.push({input,key});
-        }
-        for(const [key,label] of [["moire_on","摩尔纹（需要新版与深度）"],["sparkle_link","关联深度 / 亮部亮点"]]) {
-            const input=el("input",null,el("label",label,this.sidebar),{type:"checkbox",checked:value(this.node,key,false)});
-            input.dataset.setting=key;
-            input.onchange=()=>this.changeParameter(key,input.checked);this.upstreamControls.push({input,key});
-        }
-        el("small","Coil 与摩尔纹需选择上游新版。新版油光增加柔光带、暗边与跨遮挡连续高光，仍为试验样式。",this.sidebar);
-        const group=el("div",null,this.sidebar);
-        el("strong","材质预设",group);
-        this.presetSelect=el("select",null,group,{title:"材质预设"});
-        this.button(group,"加载预设",()=>this.applyMaterial(this.presets?.find(p=>p.name===this.presetSelect.value)?.params));
-        this.button(group,"保存 / 覆盖预设",async()=>{
-            const name=prompt("预设名称（最多 40 字）",this.presetSelect.value||"");if(!name)return;
-            const existing=this.presets?.some(p=>p.name===name.trim());
-            if(existing&&!confirm("覆盖同名材质预设？"))return;
-            const params=Object.fromEntries(Object.entries(MATERIAL_DEFAULTS).map(([k,v])=>[k,value(this.node,k,v)]));
-            await post("feature/presets",{action:"save",name,params});await this.loadPresets();
-        });
-        this.button(group,"删除预设",async()=>{
-            if(!this.presetSelect.value)return;
-            await post("feature/presets",{action:"delete",name:this.presetSelect.value});await this.loadPresets();
-        });
-        this.button(group,"恢复材质默认",()=>this.applyMaterial(MATERIAL_DEFAULTS));
-        this.loadPresets().catch(e=>this.error(e));
-    }
-
-    async loadPresets() {
-        const result=await post("feature/presets",{action:"list"});if(this.closed)return;
-        this.presets=result.presets;this.presetSelect.replaceChildren();
-        for(const p of this.presets)el("option",p.name+(p.params?"":"（不可读取）"),this.presetSelect,{value:p.name,disabled:!p.params});
-    }
-
-    applyMaterial(params) {
-        if(!params)throw new Error("请选择可读取的预设");
-        if(this.draft)this.remember();
-        else {this.materialHistory ||= [];this.materialHistory.push(Object.fromEntries(Object.entries(MATERIAL_DEFAULTS).map(([k,v])=>[k,value(this.node,k,v)])));}
-        const skipped=[];
-        for(const [k,v] of Object.entries({...MATERIAL_DEFAULTS,...params})) {
-            if(this.node.inputs?.some(i=>i.link!=null && (i.name===k || k==="sparkle_link" && ["sparkle_depth","sparkle_bright"].includes(i.name)))){skipped.push(k);continue;}
-            if(this.unified)this.settings[k]=v;else setValue(this.node,k,v);
-        }
-        this.refreshRenderControls();this.updateSaveState();this.schedule();this.scheduleDraftSave();
-        if(skipped.length)this.status.textContent="已跳过连接输入："+skipped.join(", ");
-    }
-
     buildExchangeControls(head) {
         if(!this.renderMode) {
             const input=el("input",null,head,{type:"file",accept:".psd,.psb",hidden:true});
@@ -823,273 +501,6 @@ class StockingDialog {
         if(this.renderMode)this.button(head,"撤销预设 / 默认",()=>{
             const prior=this.materialHistory?.pop();if(prior){this.applyMaterial(prior);this.materialHistory.pop();}
         });
-    }
-
-    scheduleDraftSave() {
-        if(this.closed || !this.draft || this.recoveryPending)return;
-        clearTimeout(this.draftTimer);
-        this.draftTimer=setTimeout(()=>{
-            this.flushPlanes();const state=JSON.parse(this.snapshot());
-            this.pendingDraft=(this.pendingDraft||Promise.resolve()).catch(()=>{}).then(()=>{
-                if(this.closed)return;
-                return post("feature/draft",{action:"save",editor_id:this.editorId,identity:this.payload.identity,session:this.payload.session,state});
-            });
-            this.pendingDraft.catch(e=>this.error(new Error("草稿恢复保存失败；仍可保存节点："+e.message)));
-        },1000);
-    }
-
-    async offerRecovery() {
-        if(!this.draft || this.closed)return;
-        this.recoveryPending=true;
-        try {
-            const result=await post("feature/draft",{action:"load",editor_id:this.editorId,identity:this.payload.identity,session:this.payload.session});
-            if(this.closed || !result.draft)return;
-            const row=el("div",null,this.head,{className:"tb-stocking-candidates"});
-            el("span","发现未保存草稿",row);
-            this.button(row,"恢复草稿",async()=>{
-                this.payload=result.draft.payload;this.restore(JSON.stringify(result.draft.state));row.remove();this.recoveryPending=false;
-                this.scheduleDraftSave();
-            });
-            this.button(row,"丢弃草稿",async()=>{
-                await post("feature/draft",{action:"delete",editor_id:this.editorId,identity:this.payload.identity});row.remove();this.recoveryPending=false;
-            });
-        } catch(e){this.error(e);} finally {if(!this.head.textContent.includes("发现未保存草稿"))this.recoveryPending=false;}
-    }
-
-    point(e) { return imagePoint(e.clientX, e.clientY, this.canvas.getBoundingClientRect(), this.view, this.payload.width, this.payload.height); }
-    down(e) {
-        if (!this.base || this.loading || this.planeLoading || this.loadedIndex !== this.index) return;
-        this.canvas.setPointerCapture(e.pointerId);
-        if (this.tool === "pan" || this.space || e.button === 1 || (this.renderMode && this.tool !== "damage")) {
-            this.fitMode = false;
-            this.drag = { pan: true, x: e.clientX, y: e.clientY, view: { ...this.view } }; return;
-        }
-        if (!this.region()) { this.status.textContent = "请先新增部位"; return; }
-        if (this.tool === "sam") { this.samClick(this.point(e), e.button === 2).catch(err => this.error(err)); return; }
-        if (e.button === 2 && ["stroke","wall","damage"].includes(this.tool)) { this.removeAt(this.point(e)); return; }
-        if (this.tool !== "cut") this.remember(); this.drag = { points: [this.point(e)], tool: e.button === 2 && this.tool === "paint" ? "erase" : this.tool, regionId: this.region().id, index: this.index };
-        this.draw();
-    }
-    move(e) {
-        if (!this.drag) return;
-        if (this.drag.pan) this.view = { ...this.drag.view, x: this.drag.view.x + e.clientX - this.drag.x, y: this.drag.view.y + e.clientY - this.drag.y };
-        else {
-            const p = this.point(e), last = this.drag.points.at(-1);
-            if (Math.hypot(p[0] - last[0], p[1] - last[1]) > 1) this.drag.points.push(p);
-        }
-        this.draw();
-    }
-    up() {
-        const d = this.drag; this.drag = null; if (!d) return;
-        if (d.pan) { if (this.renderMode) this.schedule(); this.draw(); return; }
-        if (d.index !== this.index || d.regionId !== this.region()?.id) return;
-        const p = this.planes.get(d.regionId), r = this.region();
-        if (d.tool === "cut") {
-            if (d.points.length>1) this.regionOperation("split",d.points).catch(e=>this.error(e));
-            return;
-        } else if (d.tool === "damage") {
-            const cfg = this.effects().damage;
-            const type = this.manualDamageType || (cfg.type === "mixed" ? ((r.damage_strokes?.length || 0) % 2 ? "ladder" : "snag") : cfg.type);
-            const scale = Math.sqrt(this.payload.width*this.payload.height/(1280*1920));
-            (r.damage_strokes ||= []).push(damageStroke(d.points,type,Math.max(1,4*scale*cfg.width/100)));
-            if (this.unified) {
-                let raw = effectPatch(value(this.node,"effects_json","{}"),"damage","enabled",true);
-                raw = effectPatch(raw,"damage","mode",cfg.mode === "random" ? "both" : cfg.mode);
-                this.settings.effects_json = raw; this.refreshEffectControls();
-            }
-        } else if (["paint", "erase"].includes(d.tool) && p) {
-            rasterPaint(p.mask, d.points, this.radius, d.tool === "paint" ? "white" : "black");
-            rasterPaint(p.erase, d.points, this.radius, d.tool === "erase" ? "white" : "black");
-            p.dirty = true; this.overlays.delete(r.id);
-            if (d.tool === "paint") this.claimStroke(d.points);
-        } else if (d.points.length > 1) r[d.tool === "stroke" ? "strokes" : "walls"].push(d.points);
-        this.updateDraft(); this.draw();
-    }
-
-    regionPixels(r) {
-        const p = this.planes.get(r.id); if (!p) return null;
-        const w = this.payload.width, h = this.payload.height;
-        const paint = p.mask.getContext("2d").getImageData(0, 0, w, h).data;
-        const erased = p.erase.getContext("2d").getImageData(0, 0, w, h).data;
-        let external = null;
-        if (r.external && this.external) {
-            if (!this.externalRaster) {
-                const c = plane(w, h); c.getContext("2d").drawImage(this.external, 0, 0);
-                this.externalRaster = c.getContext("2d").getImageData(0, 0, w, h).data;
-            }
-            external = this.externalRaster;
-        }
-        return { paint, erased, external };
-    }
-
-    coverageVisual(coverage, color) {
-        const w = this.payload.width, h = this.payload.height;
-        const c = document.createElement("canvas"); c.width = w; c.height = h;
-        const ctx = c.getContext("2d"), out = ctx.createImageData(w, h);
-        const rgb = color.match(/\w\w/g).map(v => parseInt(v, 16));
-        for (let j = 0, k = 0; j < coverage.length; j++, k += 4) {
-            out.data[k] = rgb[0]; out.data[k + 1] = rgb[1]; out.data[k + 2] = rgb[2]; out.data[k + 3] = coverage[j];
-        }
-        ctx.putImageData(out, 0, 0);
-        return { canvas: c, coverage, color, path: null };
-    }
-
-    drawCoverage(ctx, visual, opacity, outline = false) {
-        if (!visual) return;
-        ctx.save(); ctx.globalAlpha = opacity; ctx.drawImage(visual.canvas, 0, 0); ctx.restore();
-        if (!outline) return;
-        if (!visual.path) {
-            visual.path = new Path2D();
-            if (visual.coverage.some(v => v > 127)) for (const [x0, y0, x1, y1] of maskBoundarySegments(visual.coverage, this.payload.width, this.payload.height)) {
-                visual.path.moveTo(x0, y0); visual.path.lineTo(x1, y1);
-            }
-        }
-        ctx.strokeStyle = visual.color; ctx.lineWidth = 2 / this.view.scale; ctx.stroke(visual.path);
-    }
-
-    overlayFor(r, index) {
-        if (this.overlays.has(r.id)) return this.overlays.get(r.id);
-        const pixels = this.regionPixels(r); if (!pixels) return null;
-        const v = this.coverageVisual(selectionCoverage(pixels.paint, pixels.erased, pixels.external), r.color || COLORS[index % COLORS.length]);
-        this.overlays.set(r.id, v); return v;
-    }
-
-    samVisual() {
-        const group = this.samCandidates;
-        if (!group?.rgba || !this.samRequests.matches(group.token, this.closed, this.index, this.region())) return null;
-        if (!group.visual) {
-            const p = this.regionPixels(this.region()); if (!p) return null;
-            const projected = selectionCoverage(p.paint, p.erased, p.external, group.rgba, group.subtract);
-            const before = group.subtract ? selectionCoverage(p.paint, p.erased, p.external) : null;
-            const change = group.subtract ? before.map((v, i) => Math.max(0, v - projected[i])) : Uint8Array.from({ length: projected.length }, (_, i) => group.rgba[i * 4] > 127 ? 255 : 0);
-            group.visual = {
-                result: this.coverageVisual(projected, COLORS[this.selected % COLORS.length]),
-                change: this.coverageVisual(change, group.subtract ? "#ff625b" : "#48dfaf"),
-            };
-        }
-        return group.visual;
-    }
-
-    draw() {
-        if (this.closed || !this.canvas) return;
-        const rect = this.stage.getBoundingClientRect(), w = Math.max(1, rect.width), h = Math.max(1, rect.height);
-        const metrics = canvasMetrics(w, h, window.devicePixelRatio || 1);
-        if (this.canvas.width !== metrics.width || this.canvas.height !== metrics.height) {
-            this.canvas.width = metrics.width; this.canvas.height = metrics.height;
-        }
-        const ctx = this.canvas.getContext("2d");
-        ctx.setTransform(metrics.scaleX, 0, 0, metrics.scaleY, 0, 0); ctx.clearRect(0, 0, w, h);
-        if (!this.base || this.loading) return;
-        ctx.save(); ctx.translate(this.view.x, this.view.y); ctx.scale(this.view.scale, this.view.scale);
-        ctx.imageSmoothingEnabled = this.view.scale < 1;
-        if (this.base) ctx.drawImage(this.base, 0, 0);
-        ctx.restore();
-        ctx.save();
-        if (this.editorCompareEnabled && (!this.renderMode || this.unified)) {
-            const split = w * this.editorCompare;
-            ctx.beginPath(); ctx.rect(split, 0, w - split, h); ctx.clip();
-        }
-        ctx.translate(this.view.x, this.view.y); ctx.scale(this.view.scale, this.view.scale);
-        ctx.imageSmoothingEnabled = this.view.scale < 1;
-        const sam = this.renderMode ? null : this.samVisual();
-        if (this.semanticMaskPreview && !this.renderMode) {
-            const c = this.semanticMaskPreview, ctxMask = c.getContext("2d");
-            const image = ctxMask.getImageData(0, 0, c.width, c.height);
-            for (let k = 0; k < image.data.length; k += 4) {
-                const alpha = image.data[k]; image.data[k] = 70; image.data[k + 1] = 230; image.data[k + 2] = 160; image.data[k + 3] = alpha / 2;
-            }
-            const overlay = document.createElement("canvas"); overlay.width = c.width; overlay.height = c.height;
-            overlay.getContext("2d").putImageData(image, 0, 0); ctx.drawImage(overlay, 0, 0);
-        }
-        if (this.previewBitmap && !this.showOriginal && !sam && !this.semanticMaskPreview) ctx.drawImage(this.previewBitmap, ...(this.previewRect ? [this.previewRect[0], this.previewRect[1]] : [0, 0]));
-        if (!this.renderMode && this.doc) {
-            this.frame()?.regions.forEach((r, i) => {
-                this.drawCoverage(ctx, sam && i === this.selected ? sam.result : this.overlayFor(r, i), i === this.selected ? 0.45 : 0.22, i === this.selected && !sam);
-                this.drawLines(ctx, r.strokes, i === this.selected ? "#ffe563" : COLORS[i % COLORS.length], 2 / this.view.scale);
-                this.drawLines(ctx, r.walls, "#ff795e", 3 / this.view.scale);
-                for (const s of r.damage_strokes || []) this.drawLines(ctx,[s.points],s.type === "ladder" ? "#ef9af2" : "#b9e6ff",Math.max(1/this.view.scale,s.width));
-            });
-            if (sam) this.drawCoverage(ctx, sam.change, 0.5, true);
-        }
-        if (this.unified && !this.renderMode && this.basicLines?.length) {
-            ctx.setLineDash([6 / this.view.scale, 4 / this.view.scale]); this.drawLines(ctx, this.basicLines, "#8edcff", 1 / this.view.scale); ctx.setLineDash([]);
-        }
-        if (!this.renderMode) {
-            for (const [key,color] of [["courses","#66dbff"],["wales","#e7a3ff"],["auto_walls","#ff795e"]]) {
-                if(key==="auto_walls") ctx.setLineDash([5/this.view.scale,4/this.view.scale]);
-                this.drawLines(ctx,this.guideOverlays[key]||[],color,1/this.view.scale); ctx.setLineDash([]);
-            }
-        }
-        if (this.drag?.points) this.drawLines(ctx, [this.drag.points], this.drag.tool === "erase" ? "#ff7777" : "#ffffff", ["paint", "erase"].includes(this.drag.tool) ? this.radius * 2 : 2 / this.view.scale);
-        ctx.restore();
-        if (this.renderMode) {
-            this.detailTitle.textContent = `细节 · ${(this.view.scale * 100).toFixed(0)}% · 拖动平移，滚轮缩放`;
-            this.drawOverview();
-        }
-    }
-
-    drawLines(ctx, lines = [], color, width) {
-        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = ctx.lineJoin = "round";
-        for (const line of lines) {
-            if (!line.length) continue;
-            ctx.beginPath(); ctx.moveTo(...line[0]); for (const p of line.slice(1)) ctx.lineTo(...p); ctx.stroke();
-        }
-    }
-
-    schedule() {
-        if (this.closed) return;
-        this.revision++; this.pending?.abort(); clearTimeout(this.timer);
-        this.timer = setTimeout(() => this.preview().catch(e => this.error(e)), 300);
-    }
-
-    async preview() {
-        if (!this.base || this.closed) return;
-        const revision = this.revision, index = this.index;
-        const controller = new AbortController(); this.pending = controller;
-        const body = { session: this.payload.session, revision, client: this.client, index };
-        let rect = null, overviewKey = null;
-        if (this.renderMode) {
-            body.params = Object.fromEntries(PARAM_KEYS.map(k => [k, value(this.node, k, this.payload.params[k])]));
-            body.seed = value(this.node, "seed", 20261005); body.color_exclude = value(this.node, "color_exclude", true);
-            body.diagnostics = !!this.diagnostics;
-            overviewKey = JSON.stringify([index, body.params, body.seed, body.color_exclude, body.diagnostics]);
-            body.overview = overviewKey !== this.overviewKey;
-            if (this.view.scale >= 1) {
-                const x0 = Math.max(0, Math.min(this.payload.width - 1, Math.floor(-this.view.x / this.view.scale)));
-                const y0 = Math.max(0, Math.min(this.payload.height - 1, Math.floor(-this.view.y / this.view.scale)));
-                rect = [x0, y0, Math.max(x0 + 1, Math.min(this.payload.width, Math.ceil((this.stage.clientWidth - this.view.x) / this.view.scale))),
-                    Math.max(y0 + 1, Math.min(this.payload.height, Math.ceil((this.stage.clientHeight - this.view.y) / this.view.scale)))];
-                body.rect = rect;
-            }
-        } else {
-            body.guides_json = JSON.stringify(this.doc); body.batch_mode = this.batchMode; body.advanced = !this.unified;
-            body.overlay_settings = this.overlayOptions;
-        }
-        if (this.unified) {
-            this.flushPlanes(); body.guides_json = JSON.stringify(this.doc); body.settings = this.settings;
-            body.view = this.renderMode ? "texture" : "guides";
-            if (!this.renderMode) body.overlay_settings = this.overlayOptions;
-            overviewKey = JSON.stringify([this.doc, this.settings, index, this.diagnostics]);
-            body.overview = this.renderMode && overviewKey !== this.overviewKey;
-            this.previewRect = rect;
-        }
-        this.status.textContent = `底图 ${this.payload.identity.slice(0, 10)} · 计算版本 ${revision}…`;
-        const result = await post("preview", body, controller.signal);
-        if (result.stale || !isCurrent(revision, this.revision, this.closed, index, this.index)) return;
-        const bitmap = await decodePNG(result.png);
-        const overview = result.overview_png ? await decodePNG(result.overview_png) : null;
-        if (!isCurrent(revision, this.revision, this.closed, index, this.index)) return;
-        if (overview) { this.overviewBitmap = overview; this.overviewKey = overviewKey; }
-        this.previewBitmap = bitmap; this.previewRect = rect; this.draw();
-        const info = result.info;
-        this.basicLines = info.basic_guides || [];
-        this.guideOverlays = info.overlays || {};
-        if (this.renderMode) this.refreshRenderControls(info);
-        this.status.textContent = this.renderMode
-            ? `版本 ${revision} · 周期 ${info.period.toFixed(2)}px · ${body.params.strength_auto ? "自动" : "手动"}强度 ${Number(info.effective_strength).toFixed(1)}% · 过密衰减 ${(100 * info.faded_fraction).toFixed(1)}% · ${(1000 * info.render_seconds).toFixed(0)}ms${info.clamped ? " · 已限制过高密度" : ""}${info.notes?.length ? `\n${info.notes.join("；")}` : ""}`
-            : `底图 ${this.payload.identity.slice(0, 10)} · 版本 ${revision} · 求解 ${(1000 * info.solve_seconds).toFixed(0)}ms · 部位缓存 ${info.cache_hits} 命中 / ${info.cache_misses} 重算 · 未引导 ${info.unguided_pixels} 像素`;
-        if (this.mirrorInfo) this.status.textContent += `\n镜像完成 · 轮廓拟合误差 ${this.mirrorInfo.fit_error.toFixed(2)}px`;
-        if (this.unified) this.status.textContent += `\n选区 ${(100 * info.coverage_fraction).toFixed(2)}% · 实际变化 ${(100 * info.changed_fraction).toFixed(2)}% · ${info.direction_source === "manual" ? "手绘走向" : "基础走向（虚线）+ 手绘优先"}${info.failure_reason ? " · 未生效：" + info.failure_reason : " · 纹理已生效"}`;
     }
 
     buildUnified() {
@@ -1317,6 +728,15 @@ class StockingDialog {
             const slot = this.node.inputs?.findIndex(i=>i.name==="guides_json" && i.link!=null);
             if (slot>=0) this.node.disconnectInput(slot);
         }
+        if(save && (this.unified || this.renderMode)) {
+            if(!this.payload.material_connected && !this.node.inputs?.some(i=>i.name==='effects_json'&&i.link!=null)) {
+                const n=normalizeEffects(this.settings.style||'knit',this.settings.effects_json||'{}');
+                this.settings.style=n.style;this.settings.effects_json=JSON.stringify(n.effects);
+            }
+        }
+        if(save && this.renderMode && !this.unified) {
+            for(const [key,val] of Object.entries(this.settings))if(SETTING_KEYS.includes(key)&&!this.node.inputs?.some(i=>i.name===key&&i.link!=null))setValue(this.node,key,val);
+        }
         if (save && this.draft && this.unified) {
             this.flushPlanes();
             if (guideChanged) setValue(this.node, "guides_json", recordsForSave(this.payload.saved_guides_json || widget(this.node, "guides_json")?.value, this.doc, this.payload.identities, JSON.parse(this.initialDocument)));
@@ -1356,7 +776,7 @@ async function prepareNode(node, attempt = 0) {
     const source = Array.isArray(inputs.images) ? graph.output[inputs.images[0]] : null;
     const sampler = Array.isArray(inputs.sam) ? graph.output[inputs.sam[0]] : null;
     const direct = source?.class_type === "LoadImage" && typeof source.inputs.image === "string"
-        && !["mask", "depth", "sparkle_mask", "sam3_model"].some(k => inputs[k] !== undefined)
+        && !["mask", "depth", "sparkle_mask", "sam3_model", "material"].some(k => inputs[k] !== undefined)
         && !SETTING_KEYS.some(k => Array.isArray(inputs[k]))
         && (!inputs.sam || sampler?.class_type === "NFStockingSAMLoader");
     const assertCurrent = async payload => {
@@ -1372,7 +792,7 @@ async function prepareNode(node, attempt = 0) {
     if (direct) return assertCurrent(await post("prepare", { image: source.inputs.image, settings, guides_json: inputs.guides_json || "{}", sam: sampler?.inputs }));
     const captureId = `stocking-prepare-${crypto.randomUUID()}`;
     const captureInputs = { images: inputs.images, guides_json: inputs.guides_json || "{}", settings_json: JSON.stringify(settings) };
-    for (const k of ["mask", "depth", "sparkle_mask", "sam", "sam3_model", ...SETTING_KEYS]) if (inputs[k] !== undefined) captureInputs[k] = inputs[k];
+    for (const k of ["mask", "depth", "sparkle_mask", "sam", "sam3_model", "material", ...SETTING_KEYS]) if (inputs[k] !== undefined) captureInputs[k] = inputs[k];
     const prompt = capturePrompt(graph.output, captureInputs, captureId);
     const response = await api.fetchApi("/prompt", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, client_id: api.clientId, partial_execution_targets: [captureId] }) });
@@ -1393,6 +813,12 @@ async function prepareNode(node, attempt = 0) {
     }
     throw new Error("底图准备超时，请检查 ComfyUI 队列");
 }
+
+const runtime={app,api,fitView,imagePoint,zoomAt,isCurrent,GuideDraft,samHint,SAMRequests,STYLE_LABELS,STYLE_HINTS,PARAM_KEYS,SLIDERS,parameterPatch,applyCandidate,selectionCoverage,maskBoundarySegments,splitRatio,compareKey,canvasMetrics,translate,SETTING_KEYS,recordsForSave,capturePrompt,PATTERN_STYLES,readEffects,effectPatch,damageStroke,upgradeEffectsValue,RENDER_DEFAULTS,MATERIAL_DEFAULTS,nearestPath,nearestPoint,claimPixels,linkedSparklePatch,SCHEMA,normalizeEffects,API_ROOT,COLORS,widget,value,globalValue,setValue,el,imageFrom,decodePNG,post,plane,rasterPaint};
+for(const create of [createState,createDrawing,createPreviewClient,createPersistenceClient,createRenderUi]) {const descriptors=Object.getOwnPropertyDescriptors(create(runtime).prototype);delete descriptors.constructor;Object.defineProperties(StockingDialog.prototype,descriptors);}
+const materialDescriptors=Object.getOwnPropertyDescriptors(createMaterialControls({el,globalValue,setValue}).prototype);
+delete materialDescriptors.constructor;Object.defineProperties(StockingDialog.prototype,materialDescriptors);
+StockingDialog.prototype.showAdvancedMaterial=function(){if(this.materialPanel){this.materialPanel.remove();}this.buildEffectControls();};
 
 app.registerExtension({
     name: "ToolBox.StockingTexture",

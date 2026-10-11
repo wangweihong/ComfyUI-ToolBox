@@ -36,14 +36,20 @@ def preview_sync(session, payload):
     if session["kind"] == "unified" and not payload.get("advanced"):
         from .unified import process_one
         settings = dict(session["settings"], **payload.get("settings", {}))
+        from .config import resolve_material
+        settings=resolve_material(settings,session.get("material"))
         doc = data.parse_guides(payload.get("guides_json", "{}"), *image.shape[:2], len(session["images"]), "per_image", external=session["external"][i] is not None)
         frame = doc["frames"][i]
         depth = session["depths"][i]
         if depth is not None and settings.get("depth_direction", "white_near") != session["depth_direction"]:
             depth = 1 - depth
+        rect=payload.get("rect")
+        if rect is not None and (not isinstance(rect,list) or len(rect)!=4 or any(not isinstance(v,int) for v in rect) or not(0<=rect[0]<rect[2]<=image.shape[1] and 0<=rect[1]<rect[3]<=image.shape[0])):
+            raise ValueError("预览区域超出图像或格式无效")
+        roi=rect if not payload.get("overview") and payload.get("view")!='guides' else None
         rendered = process_one(image, frame, session["external"][i], depth, session["painted"][i],
-            payload.get("params", settings), bool(settings.get("color_exclude", True)), settings.get("seed", 20261005),
-            bool(settings.get("auto_direction", True)), bool(settings.get("auto_walls", True)))
+            dict(payload.get("params", settings), material=session.get("material")), bool(settings.get("color_exclude", True)), settings.get("seed", 20261005),
+            bool(settings.get("auto_direction", True)), bool(settings.get("auto_walls", True)),rect=roi)
         output, _, _, diag, _, info, field = rendered
         out = isolines(image, field) if payload.get("view") == "guides" else data.rgb8(diag if payload.get("diagnostics") else output)
         if payload.get("overlay_settings") is not None:
@@ -62,7 +68,7 @@ def preview_sync(session, payload):
             thumb = Image.fromarray(out)
             thumb.thumbnail((640, 640), Image.Resampling.LANCZOS)
             overview = base64.b64encode(data.png_bytes(np.asarray(thumb))).decode()
-        if rect:
+        if rect and roi is None:
             out = out[y0:y1, x0:x1]
     elif session["kind"] == "editor" or payload.get("advanced"):
         # Work on only the selected image, while validating all per-image guide entries.
@@ -86,7 +92,7 @@ def preview_sync(session, payload):
             x0, y0, x1, y1 = rect
             if not (0 <= x0 < x1 <= image.shape[1] and 0 <= y0 < y1 <= image.shape[0]):
                 raise ValueError("预览区域超出图像")
-        params = payload.get("params", session["params"])
+        params = dict(payload.get("params", session["params"]),material=session.get("material"))
         if not isinstance(params, dict):
             raise ValueError("纹理参数必须为对象")
         seed = payload.get("seed", session["seed"])

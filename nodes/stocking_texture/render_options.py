@@ -1,8 +1,10 @@
 """Explicit opt-in for the newer renderer; omitted settings retain old pixels."""
 import numpy as np
 
-DEFAULTS = dict(renderer_version="legacy", layer_mode="replacement", moire_on=False,
-                moire=100.0, moire_area=100.0, sparkle_link=False)
+from .config import SCHEMA
+
+DEFAULTS = {k: (SCHEMA['globals'].get(k) or SCHEMA['appearance'][k])['default']
+            for k in ('renderer_version','layer_mode','moire_on','moire','moire_area','sparkle_link')}
 
 
 def clean_options(params):
