@@ -1,4 +1,4 @@
-# 🧰 ComfyUI-ZImage-Toolbox
+# 🧰 ComfyUI-ToolBox
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
 
@@ -84,10 +84,25 @@
 
 验证记录：[上游能力验收](docs/testing/stocking_upstream_2026-10-11.md)、[一体化编辑与模型验收](docs/testing/stocking_unified_2026-10-10.md)、[花纹、英文印花与钩丝验收](docs/testing/stocking_effects_2026-10-10.md)。
 
-## 🚀 核心功能：尺寸管理 (Size Management)
-### 1. zimage-latent-size (ToolBoxLatentSize)
+### 有序图层与部位材质
 
-该节点解决了在不同宽高比（Aspect Ratio）之间切换时，手动计算像素值的繁琐过程。它内置了符合主流 AI 模型（如 SDXL, SD1.5）训练分布的分辨率预设。
+基础织物与花纹可独立组合，每套材质最多 16 个有序花纹/英文文字层，支持复制、启停和排序，损伤最后处理。左右腿可继承全局或覆盖不同材质；连接 `NFStockingMaterial` 后全局参数显示解析值并只读，部位仍可编辑。V1 工作流、预设和十四个旧样式入口兼容，读取不改写，显式保存迁移至 V2；取消放弃编辑。详见 [V2 使用说明](docs/stocking_texture.md#有序材质图层与部位覆盖v2)。
+
+| 新公开工作流 | 展示内容 |
+| --- | --- |
+| [15-Coil与蕾丝组合](examples/stocking_texture/materials/15-Coil与蕾丝组合.json) | 基础织物＋独立花纹层 |
+| [16-左右腿独立材质](examples/stocking_texture/materials/16-左右腿独立材质.json) | Coil＋波点与油光＋豹纹/PARIS |
+| [17-有序多层文字](examples/stocking_texture/materials/17-有序多层文字.json) | 爱心＋PARIS＋BALENCIAGA |
+| [18-材质配置节点连线](examples/stocking_texture/materials/18-材质配置节点连线.json) | 五个新配置节点与只读全局材质 |
+
+English: six base fabrics can be combined with up to 16 ordered procedural pattern/text layers and final damage. Regions inherit or override the global material. The five composable configuration nodes connect through the optional material input; linked global settings are read-only while region overrides remain editable. V1 pixels and workflow ports remain compatible. See [V2 usage](docs/stocking_texture.md#有序材质图层与部位覆盖v2) and [acceptance/performance results](docs/testing/stocking_materials_2026-10-11.md).
+
+![有序材质图层对比](docs/images/stocking_materials_comparison.png)
+
+## 🚀 核心功能：尺寸管理 (Size Management)
+### tb-latent-size (ToolBoxLatentSize)
+
+该节点解决了在不同宽高比（Aspect Ratio）之间切换时，手动计算像素值的繁琐过程。它内置了竖屏、方图和横屏等常用比例的多档分辨率预设；具体尺寸需根据所用模型和显存选择，部分预设比例会因像素对齐而略有偏差。
 
 - **动态联动**：选择比例（如 9:16）后，分辨率选项会自动更新为该比例下的推荐像素值。
 - **自定义尺寸**：选择“自定义尺寸”后，可直接输入宽度和高度。
@@ -127,7 +142,7 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 | dynamic | Combo | `全部`、`dynamic`、`static` |
 | tags | STRING | 可选，逗号分隔；多个标签需要全部匹配 |
 | match_size | BOOLEAN | 是否按数据库记录中的建议宽高过滤；不会搜索真实图片文件 |
-| width / height | INT | 用于尺寸过滤或写入的宽高，默认 1024×768 |
+| width / height | INT | 仅在启用 match_size 时用于匹配数据库记录的建议宽高，默认 1024×768；输出宽高来自抽中的记录 |
 
 ### tb-prompt-writer (ToolBoxPromptWriter)
 
@@ -156,18 +171,3 @@ python3 -m pip install -r requirements.txt
 | details | STRING | JSON 详情，包含模型分数、阈值、命中标签和判定来源 |
 
 该检测仅覆盖成人性内容，不是暴力、仇恨或违法内容的完整安全审核。自动分类可能误报或漏报，不应作为高风险场景中的唯一审核措施。
-
-### 有序图层与部位材质
-
-基础织物与花纹可独立组合，每套材质最多 16 个有序花纹/英文文字层，支持复制、启停和排序，损伤最后处理。左右腿可继承全局或覆盖不同材质；连接 `NFStockingMaterial` 后全局参数显示解析值并只读，部位仍可编辑。V1 工作流、预设和十四个旧样式入口兼容，读取不改写，显式保存迁移至 V2；取消放弃编辑。详见 [V2 使用说明](docs/stocking_texture.md#有序材质图层与部位覆盖v2)。
-
-| 新公开工作流 | 展示内容 |
-| --- | --- |
-| [15-Coil与蕾丝组合](examples/stocking_texture/materials/15-Coil与蕾丝组合.json) | 基础织物＋独立花纹层 |
-| [16-左右腿独立材质](examples/stocking_texture/materials/16-左右腿独立材质.json) | Coil＋波点与油光＋豹纹/PARIS |
-| [17-有序多层文字](examples/stocking_texture/materials/17-有序多层文字.json) | 爱心＋PARIS＋BALENCIAGA |
-| [18-材质配置节点连线](examples/stocking_texture/materials/18-材质配置节点连线.json) | 五个新配置节点与只读全局材质 |
-
-English: six base fabrics can be combined with up to 16 ordered procedural pattern/text layers and final damage. Regions inherit or override the global material. The five composable configuration nodes connect through the optional material input; linked global settings are read-only while region overrides remain editable. V1 pixels and workflow ports remain compatible. See [V2 usage](docs/stocking_texture.md#有序材质图层与部位覆盖v2) and [acceptance/performance results](docs/testing/stocking_materials_2026-10-11.md).
-
-![有序材质图层对比](docs/images/stocking_materials_comparison.png)
