@@ -1,0 +1,863 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "image2image/qwen_image_2.1_bf16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "text_encoders/qwen3vl_8b_bf16.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "vae/qwen_image_2.1_vae_bf16.safetensors"
+    }
+  },
+  "100": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "High-quality polished anime illustration of an adult woman aged 30, mature adult facial proportions, fine clean line art and softly shaded detailed textiles. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Standing upright in a relaxed neutral catalog pose, both legs fully visible and slightly apart, both feet flat, a slight three-quarter angle. She wears a modest high-neck long-sleeved cream blouse and a tailored mid-thigh-length A-line skirt covering the hips, with plain charcoal-black 20-denier sheer nylon pantyhose with natural semi-transparent knees and softly highlighted shins and simple low-heeled shoes. Set in a bright art gallery with stone floor and large side windows. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "101": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "102": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "100",
+        0
+      ],
+      "negative": [
+        "100",
+        1
+      ],
+      "latent_image": [
+        "101",
+        0
+      ],
+      "seed": 2026101101,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "103": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "102",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "104": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "103",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/01-anime-standing-pantyhose"
+    }
+  },
+  "120": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "High-quality polished anime illustration of an adult woman aged 30, mature adult facial proportions, fine clean line art and softly shaded detailed textiles. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Standing upright in a relaxed neutral catalog pose, both legs fully visible and slightly apart, both feet flat, a slight three-quarter angle. She wears a modest high-neck long-sleeved cream blouse and a tailored short A-line skirt covering the hips and ending well above the knees. The two separate stockings end at mid-thigh, and their top bands are clearly visible below the skirt hem, separated from it by a small 4-centimeter gap, with plain black thigh-high nylon stockings with wide matte top bands, opaque smooth fabric and simple low-heeled shoes. Set in a bright art gallery with stone floor and large side windows. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "121": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "122": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "120",
+        0
+      ],
+      "negative": [
+        "120",
+        1
+      ],
+      "latent_image": [
+        "121",
+        0
+      ],
+      "seed": 2026101102,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "123": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "122",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "124": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "123",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/02-anime-standing-thigh_high"
+    }
+  },
+  "140": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "High-quality polished anime illustration of an adult woman aged 30, mature adult facial proportions, fine clean line art and softly shaded detailed textiles. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Kneeling upright on both knees on a fabric mat, photographed from a three-quarter side view. The thighs, bent knees and folded calves are clearly visible, with anatomically correct lower legs extending back; do not crop feet. She wears a modest high-neck long-sleeved cream blouse and a tailored mid-thigh-length A-line skirt covering the hips, with plain deep navy 50-denier semi-opaque pantyhose, visible fine fabric and gentle reflections and simple low-heeled shoes. Set in a quiet design studio, arranging books beside a low shelf. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "141": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "142": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "140",
+        0
+      ],
+      "negative": [
+        "140",
+        1
+      ],
+      "latent_image": [
+        "141",
+        0
+      ],
+      "seed": 2026101103,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "143": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "142",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "144": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "143",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/03-anime-kneeling-pantyhose"
+    }
+  },
+  "160": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "High-quality polished anime illustration of an adult woman aged 30, mature adult facial proportions, fine clean line art and softly shaded detailed textiles. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Kneeling upright on both knees on a fabric mat, photographed from a three-quarter side view. The thighs, bent knees and folded calves are clearly visible, with anatomically correct lower legs extending back; do not crop feet. She wears a modest high-neck long-sleeved cream blouse and a tailored short A-line skirt covering the hips and ending well above the knees. The two separate stockings end at mid-thigh, and their top bands are clearly visible below the skirt hem, separated from it by a small 4-centimeter gap, with plain ivory thigh-high stockings with wide opaque top bands, subtle translucency and no printed pattern and simple low-heeled shoes. Set in a quiet design studio, arranging books beside a low shelf. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "161": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "162": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "160",
+        0
+      ],
+      "negative": [
+        "160",
+        1
+      ],
+      "latent_image": [
+        "161",
+        0
+      ],
+      "seed": 2026101104,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "163": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "162",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "164": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "163",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/04-anime-kneeling-thigh_high"
+    }
+  },
+  "180": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "High-quality polished anime illustration of an adult woman aged 30, mature adult facial proportions, fine clean line art and softly shaded detailed textiles. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Sitting upright on a low stool, with both knees bent and the feet on the floor, one leg slightly ahead of the other. Legs remain clearly separated and visible. She wears a modest high-neck long-sleeved cream blouse and a tailored mid-thigh-length A-line skirt covering the hips, with plain taupe-brown sheer pantyhose, subtle warm highlights and a shadow beneath the thighs and simple low-heeled shoes. Set in a modern cafe beside a wooden table and a large window. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "181": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "182": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "180",
+        0
+      ],
+      "negative": [
+        "180",
+        1
+      ],
+      "latent_image": [
+        "181",
+        0
+      ],
+      "seed": 2026101105,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "183": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "182",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "184": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "183",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/05-anime-sitting-pantyhose"
+    }
+  },
+  "200": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "High-quality polished anime illustration of an adult woman aged 30, mature adult facial proportions, fine clean line art and softly shaded detailed textiles. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Sitting upright on a low stool, with both knees bent and the feet on the floor, one leg slightly ahead of the other. Legs remain clearly separated and visible. She wears a modest high-neck long-sleeved cream blouse and a tailored short A-line skirt covering the hips and ending well above the knees. The two separate stockings end at mid-thigh, and their top bands are clearly visible below the skirt hem, separated from it by a small 4-centimeter gap, with plain smoke-grey thigh-high stockings with simple dark top bands, semi-transparent nylon with gentle reflections and simple low-heeled shoes. Set in a modern cafe beside a wooden table and a large window. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "201": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "202": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "200",
+        0
+      ],
+      "negative": [
+        "200",
+        1
+      ],
+      "latent_image": [
+        "201",
+        0
+      ],
+      "seed": 2026101106,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "203": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "202",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "204": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "203",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/06-anime-sitting-thigh_high"
+    }
+  },
+  "220": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Photorealistic editorial fashion photograph of an adult woman aged 30, natural skin and hair, realistic fabric, optical depth and restrained studio color grading. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Standing upright in a relaxed neutral catalog pose, both legs fully visible and slightly apart, both feet flat, a slight three-quarter angle. She wears a modest high-neck long-sleeved cream blouse and a tailored mid-thigh-length A-line skirt covering the hips, with plain charcoal-black 20-denier sheer nylon pantyhose with natural semi-transparent knees and softly highlighted shins and simple low-heeled shoes. Set in a bright art gallery with stone floor and large side windows. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "221": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "222": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "220",
+        0
+      ],
+      "negative": [
+        "220",
+        1
+      ],
+      "latent_image": [
+        "221",
+        0
+      ],
+      "seed": 2026101107,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "223": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "222",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "224": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "223",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/07-realistic-standing-pantyhose"
+    }
+  },
+  "240": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Photorealistic editorial fashion photograph of an adult woman aged 30, natural skin and hair, realistic fabric, optical depth and restrained studio color grading. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Standing upright in a relaxed neutral catalog pose, both legs fully visible and slightly apart, both feet flat, a slight three-quarter angle. She wears a modest high-neck long-sleeved cream blouse and a tailored short A-line skirt covering the hips and ending well above the knees. The two separate stockings end at mid-thigh, and their top bands are clearly visible below the skirt hem, separated from it by a small 4-centimeter gap, with plain black thigh-high nylon stockings with wide matte top bands, opaque smooth fabric and simple low-heeled shoes. Set in a bright art gallery with stone floor and large side windows. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "241": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "242": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "240",
+        0
+      ],
+      "negative": [
+        "240",
+        1
+      ],
+      "latent_image": [
+        "241",
+        0
+      ],
+      "seed": 2026101108,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "243": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "242",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "244": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "243",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/08-realistic-standing-thigh_high"
+    }
+  },
+  "260": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Photorealistic editorial fashion photograph of an adult woman aged 30, natural skin and hair, realistic fabric, optical depth and restrained studio color grading. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Kneeling upright on both knees on a fabric mat, photographed from a three-quarter side view. The thighs, bent knees and folded calves are clearly visible, with anatomically correct lower legs extending back; do not crop feet. She wears a modest high-neck long-sleeved cream blouse and a tailored mid-thigh-length A-line skirt covering the hips, with plain deep navy 50-denier semi-opaque pantyhose, visible fine fabric and gentle reflections and simple low-heeled shoes. Set in a quiet design studio, arranging books beside a low shelf. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "261": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "262": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "260",
+        0
+      ],
+      "negative": [
+        "260",
+        1
+      ],
+      "latent_image": [
+        "261",
+        0
+      ],
+      "seed": 2026101109,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "263": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "262",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "264": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "263",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/09-realistic-kneeling-pantyhose"
+    }
+  },
+  "280": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Photorealistic editorial fashion photograph of an adult woman aged 30, natural skin and hair, realistic fabric, optical depth and restrained studio color grading. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Kneeling upright on both knees on a fabric mat, photographed from a three-quarter side view. The thighs, bent knees and folded calves are clearly visible, with anatomically correct lower legs extending back; do not crop feet. She wears a modest high-neck long-sleeved cream blouse and a tailored short A-line skirt covering the hips and ending well above the knees. The two separate stockings end at mid-thigh, and their top bands are clearly visible below the skirt hem, separated from it by a small 4-centimeter gap, with plain ivory thigh-high stockings with wide opaque top bands, subtle translucency and no printed pattern and simple low-heeled shoes. Set in a quiet design studio, arranging books beside a low shelf. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "281": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "282": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "280",
+        0
+      ],
+      "negative": [
+        "280",
+        1
+      ],
+      "latent_image": [
+        "281",
+        0
+      ],
+      "seed": 2026101110,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "283": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "282",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "284": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "283",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/10-realistic-kneeling-thigh_high"
+    }
+  },
+  "300": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Photorealistic editorial fashion photograph of an adult woman aged 30, natural skin and hair, realistic fabric, optical depth and restrained studio color grading. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Sitting upright on a low stool, with both knees bent and the feet on the floor, one leg slightly ahead of the other. Legs remain clearly separated and visible. She wears a modest high-neck long-sleeved cream blouse and a tailored mid-thigh-length A-line skirt covering the hips, with plain taupe-brown sheer pantyhose, subtle warm highlights and a shadow beneath the thighs and simple low-heeled shoes. Set in a modern cafe beside a wooden table and a large window. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "301": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "302": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "300",
+        0
+      ],
+      "negative": [
+        "300",
+        1
+      ],
+      "latent_image": [
+        "301",
+        0
+      ],
+      "seed": 2026101111,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "303": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "302",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "304": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "303",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/11-realistic-sitting-pantyhose"
+    }
+  },
+  "320": {
+    "class_type": "TextEncodeQwenImage21",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "prompt": "Photorealistic editorial fashion photograph of an adult woman aged 30, natural skin and hair, realistic fabric, optical depth and restrained studio color grading. Full-body vertical composition, head to shoes completely within the frame, the person fills most of the image. Sitting upright on a low stool, with both knees bent and the feet on the floor, one leg slightly ahead of the other. Legs remain clearly separated and visible. She wears a modest high-neck long-sleeved cream blouse and a tailored short A-line skirt covering the hips and ending well above the knees. The two separate stockings end at mid-thigh, and their top bands are clearly visible below the skirt hem, separated from it by a small 4-centimeter gap, with plain smoke-grey thigh-high stockings with simple dark top bands, semi-transparent nylon with gentle reflections and simple low-heeled shoes. Set in a modern cafe beside a wooden table and a large window. The stocking-clad leg surfaces are large, crisp and unobstructed, with visible knees, shins, folds, boundaries and highlights for textile inspection. Balanced realistic lighting and a calm everyday atmosphere. Anatomically correct adult proportions, two arms, two legs. Non-suggestive clothing catalog scene. No text, no logo, no watermark, no decorative motif printed on the stockings.",
+      "negative_prompt": "",
+      "resolution": 1024
+    }
+  },
+  "321": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "width": 2048,
+      "height": 3072,
+      "batch_size": 1
+    }
+  },
+  "322": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "320",
+        0
+      ],
+      "negative": [
+        "320",
+        1
+      ],
+      "latent_image": [
+        "321",
+        0
+      ],
+      "seed": 2026101112,
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "323": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "322",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "324": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "323",
+        0
+      ],
+      "filename_prefix": "ToolBoxStocking/HD-Qwen21/12-realistic-sitting-thigh_high"
+    }
+  }
+}

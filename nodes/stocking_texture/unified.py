@@ -82,13 +82,17 @@ def semantic_regions(image, handle, prompt="stockings", threshold=0.4):
         start = time.perf_counter()
         state = None
         try:
-            model.to(device)
+            # Easy-Sam3 is built in ComfyUI inference mode. Moving its parameters
+            # in normal mode mixes tensor version metadata and breaks later views.
+            with torch.inference_mode():
+                model.to(device)
             processor.device = str(device)
             processor.confidence_threshold = float(threshold)
             # Easy-Sam3 creates this tensor structure on CUDA even for a CPU loader.
             for name, val in vars(processor.find_stage).items():
                 if isinstance(val, torch.Tensor):
-                    setattr(processor.find_stage, name, val.to(device))
+                    with torch.inference_mode():
+                        setattr(processor.find_stage, name, val.to(device))
             autocast = torch.autocast(device.type, dtype=dtype) if device.type != "cpu" and dtype != torch.float32 else nullcontext()
             with torch.inference_mode(), autocast, coordinate_device(model, device):
                 state = processor.set_image(Image.fromarray(data.rgb8(image)))
@@ -109,9 +113,14 @@ def semantic_regions(image, handle, prompt="stockings", threshold=0.4):
             response = {"regions": regions, "scores": scores, "seconds": time.perf_counter() - start, "device": str(device)}
             SEMANTIC_CACHE.put(key, response)
             return copy.deepcopy(response)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("SAM3 stocking segmentation failed")
+            raise
         finally:
             state = None
-            model.to("cpu")
+            with torch.inference_mode():
+                model.to("cpu")
             processor.device = previous_device
             processor.confidence_threshold = previous_threshold
 

@@ -171,3 +171,7 @@ python3 -m pip install -r requirements.txt
 | details | STRING | JSON 详情，包含模型分数、阈值、命中标签和判定来源 |
 
 该检测仅覆盖成人性内容，不是暴力、仇恨或违法内容的完整安全审核。自动分类可能误报或漏报，不应作为高风险场景中的唯一审核措施。
+
+### 原生高清多场景验收
+
+新增 [19-Qwen21原生高清素材生成](examples/stocking_texture/hd/19-Qwen21原生高清测试素材生成.json) 与 [20-高清多场景大工作流](examples/stocking_texture/hd/20-高清多场景丝袜纹理与图层对比.json)。复用本地 Qwen 2.1，生成 12 张原生 2048×3072 图片，覆盖二次元/写实、站姿/跪姿/坐姿和连裤袜/大腿袜；540 节点工作流实际运行 108 个材质分支，保存完整高清结果与场景总览。模型及大图片留在本地，使用说明见 [高清示例说明](examples/stocking_texture/hd/README.md)，结果与细节图见 [高清验收记录](docs/testing/stocking_hd_2026-10-11.md)。

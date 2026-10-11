@@ -135,3 +135,24 @@ def test_v2_batch_failure_keeps_original_success_index():
     assert len(result[0])==1 and np.array_equal(result[5][0],other)
     assert result[6][0]['output_index'] is None
     assert result[6][1]['input_index']==1 and result[6][1]['output_index']==0
+
+
+def test_semantic_model_device_moves_preserve_inference_context_across_images():
+    import torch
+    from types import SimpleNamespace
+    from tb_stocking_test.unified import semantic_regions
+    class Model(torch.nn.Module):
+        def __init__(self):super().__init__();self.moves=[]
+        def to(self,device):self.moves.append(torch.is_inference_mode_enabled());return self
+    class Processor:
+        device='cpu'
+        confidence_threshold=.3
+        find_stage=SimpleNamespace()
+        def set_image(self,image):return dict(shape=(image.height,image.width))
+        def set_text_prompt(self,prompt,state):
+            h,w=state['shape'];return dict(masks=torch.ones((1,h,w)),scores=torch.tensor([.9]))
+    model=Model();handle=dict(segmentor='image',model=model,processor=Processor(),device='cpu',dtype=torch.float32)
+    image=np.zeros((40,60,3),np.float32)
+    assert semantic_regions(image,handle)['regions']
+    assert semantic_regions(image+.1,handle)['regions']
+    assert model.moves==[True,True,True,True]
