@@ -1,0 +1,1130 @@
+{
+  "version": 1,
+  "corpus": "Qwen 2.1 curated native square",
+  "generation_settings": {
+    "unet": "image2image/qwen_image_2.1_bf16.safetensors",
+    "clip": "text_encoders/qwen3vl_8b_bf16.safetensors",
+    "vae": "vae/qwen_image_2.1_vae_bf16.safetensors",
+    "sampler": "euler",
+    "scheduler": "simple",
+    "steps": 25,
+    "cfg": 1,
+    "width": 2048,
+    "height": 2048,
+    "upscaled": false
+  },
+  "accepted_sources": 12,
+  "generated_candidates": 14,
+  "rejected_or_superseded": 2,
+  "renderer_changed": false,
+  "matrix": {
+    "prompt_id": "b9906f89-8de9-49b1-9c19-e51cc58bc0f1",
+    "status": "success",
+    "elapsed_seconds": 449.57050228118896,
+    "output_nodes": 292
+  },
+  "ui_run": {
+    "prompt_id": "39d96d4f-566b-4a10-83d3-90a925b97006",
+    "status": "success",
+    "elapsed_seconds": 400.369,
+    "output_nodes": 292
+  },
+  "scenes": [
+    {
+      "id": "01-anime-standing-pantyhose",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 103296,
+          "mask_fraction": 0.02763509750366211
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 103566,
+          "mask_fraction": 0.02763509750366211
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 109185,
+          "mask_fraction": 0.02763509750366211
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 114409,
+          "mask_fraction": 0.02763509750366211
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 115887,
+          "mask_fraction": 0.02763509750366211
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 110398,
+          "mask_fraction": 0.02763509750366211
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 112977,
+          "mask_fraction": 0.02763509750366211
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 115894,
+          "mask_fraction": 0.02763509750366211
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/01-anime-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 115447,
+          "mask_fraction": 0.02763509750366211
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "e05d21067df6649b1ae20440ef63792c"
+    },
+    {
+      "id": "02-anime-standing-thigh_high",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 124676,
+          "mask_fraction": 0.031949758529663086
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 124408,
+          "mask_fraction": 0.031949758529663086
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 122698,
+          "mask_fraction": 0.031949758529663086
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 130684,
+          "mask_fraction": 0.031949758529663086
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 133918,
+          "mask_fraction": 0.031949758529663086
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 127759,
+          "mask_fraction": 0.031949758529663086
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 128850,
+          "mask_fraction": 0.031949758529663086
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 133902,
+          "mask_fraction": 0.031949758529663086
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/02-anime-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 133079,
+          "mask_fraction": 0.031949758529663086
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "e53ed711bdc46e1584b9cc7ba04b9d0b"
+    },
+    {
+      "id": "03-anime-kneeling-pantyhose",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 184152,
+          "mask_fraction": 0.047479867935180664
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 183889,
+          "mask_fraction": 0.047479867935180664
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 185848,
+          "mask_fraction": 0.047479867935180664
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 196774,
+          "mask_fraction": 0.047479867935180664
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 199048,
+          "mask_fraction": 0.047479867935180664
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 195138,
+          "mask_fraction": 0.047479867935180664
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 196007,
+          "mask_fraction": 0.047479867935180664
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 199030,
+          "mask_fraction": 0.047479867935180664
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/03-anime-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 198525,
+          "mask_fraction": 0.047479867935180664
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "3a9f17e4d929ee80451cd019f22a2c0b"
+    },
+    {
+      "id": "04-anime-kneeling-thigh_high",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 288932,
+          "mask_fraction": 0.07115554809570312
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 284824,
+          "mask_fraction": 0.07115554809570312
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 276182,
+          "mask_fraction": 0.07115554809570312
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 296465,
+          "mask_fraction": 0.07115554809570312
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 298323,
+          "mask_fraction": 0.07115554809570312
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 293545,
+          "mask_fraction": 0.07115554809570312
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 297275,
+          "mask_fraction": 0.07115554809570312
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 298339,
+          "mask_fraction": 0.07115554809570312
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/04-anime-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 298092,
+          "mask_fraction": 0.07115554809570312
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "6ae42fbbff73a313f3c059fda05c32bf"
+    },
+    {
+      "id": "05-anime-sitting-pantyhose",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 184005,
+          "mask_fraction": 0.05182218551635742
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 184751,
+          "mask_fraction": 0.05182218551635742
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 205892,
+          "mask_fraction": 0.05182218551635742
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 215022,
+          "mask_fraction": 0.05182218551635742
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 217193,
+          "mask_fraction": 0.05182218551635742
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 210463,
+          "mask_fraction": 0.05182218551635742
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 213804,
+          "mask_fraction": 0.05182218551635742
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 217238,
+          "mask_fraction": 0.05182218551635742
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/05-anime-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 216539,
+          "mask_fraction": 0.05182218551635742
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "2097f7f83aa1b155a7e46201212d1834"
+    },
+    {
+      "id": "06-anime-sitting-thigh_high",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 157248,
+          "mask_fraction": 0.04352140426635742
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 156161,
+          "mask_fraction": 0.04352140426635742
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 170462,
+          "mask_fraction": 0.04352140426635742
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 180315,
+          "mask_fraction": 0.04352140426635742
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 182374,
+          "mask_fraction": 0.04352140426635742
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 176859,
+          "mask_fraction": 0.04352140426635742
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 180261,
+          "mask_fraction": 0.04352140426635742
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 182367,
+          "mask_fraction": 0.04352140426635742
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/06-anime-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 182049,
+          "mask_fraction": 0.04352140426635742
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "528a01fd473b25e14909a0a1c4dc3bf0"
+    },
+    {
+      "id": "07-realistic-standing-pantyhose",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 98817,
+          "mask_fraction": 0.025223731994628906
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 98473,
+          "mask_fraction": 0.025223731994628906
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 98671,
+          "mask_fraction": 0.025223731994628906
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 104307,
+          "mask_fraction": 0.025223731994628906
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 105788,
+          "mask_fraction": 0.025223731994628906
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 102397,
+          "mask_fraction": 0.025223731994628906
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 103898,
+          "mask_fraction": 0.025223731994628906
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 105774,
+          "mask_fraction": 0.025223731994628906
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/07-realistic-standing-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 105390,
+          "mask_fraction": 0.025223731994628906
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "d1b21e6a0281c5a9b8b6b2a99c089867"
+    },
+    {
+      "id": "08-realistic-standing-thigh_high",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 87887,
+          "mask_fraction": 0.03245043754577637
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 92366,
+          "mask_fraction": 0.03245043754577637
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 84976,
+          "mask_fraction": 0.03245043754577637
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 118594,
+          "mask_fraction": 0.03245043754577637
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 136050,
+          "mask_fraction": 0.03245043754577637
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 121910,
+          "mask_fraction": 0.03245043754577637
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 124745,
+          "mask_fraction": 0.03245043754577637
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 135758,
+          "mask_fraction": 0.03245043754577637
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/08-realistic-standing-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 127159,
+          "mask_fraction": 0.03245043754577637
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "9954469d7abcbe087075f72c47e9aae0"
+    },
+    {
+      "id": "09-realistic-kneeling-pantyhose",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 132201,
+          "mask_fraction": 0.03816366195678711
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 132495,
+          "mask_fraction": 0.03816366195678711
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 131643,
+          "mask_fraction": 0.03816366195678711
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 148570,
+          "mask_fraction": 0.03816366195678711
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 159842,
+          "mask_fraction": 0.03816366195678711
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 150602,
+          "mask_fraction": 0.03816366195678711
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 151931,
+          "mask_fraction": 0.03816366195678711
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 159930,
+          "mask_fraction": 0.03816366195678711
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/09-realistic-kneeling-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 154372,
+          "mask_fraction": 0.03816366195678711
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "4cfda5505a3824dfcfd0f5f8ae20eba7"
+    },
+    {
+      "id": "10-realistic-kneeling-thigh_high",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 211103,
+          "mask_fraction": 0.05604243278503418
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 208474,
+          "mask_fraction": 0.05604243278503418
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 221301,
+          "mask_fraction": 0.05604243278503418
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 232609,
+          "mask_fraction": 0.05604243278503418
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 234830,
+          "mask_fraction": 0.05604243278503418
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 229796,
+          "mask_fraction": 0.05604243278503418
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 233254,
+          "mask_fraction": 0.05604243278503418
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 234976,
+          "mask_fraction": 0.05604243278503418
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/10-realistic-kneeling-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 234523,
+          "mask_fraction": 0.05604243278503418
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "06398996050c553c224e92bb50d6d0ab"
+    },
+    {
+      "id": "11-realistic-sitting-pantyhose",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 176684,
+          "mask_fraction": 0.04571175575256348
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 175677,
+          "mask_fraction": 0.04571175575256348
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 181617,
+          "mask_fraction": 0.04571175575256348
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 189437,
+          "mask_fraction": 0.04571175575256348
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 191683,
+          "mask_fraction": 0.04571175575256348
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 186618,
+          "mask_fraction": 0.04571175575256348
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 189029,
+          "mask_fraction": 0.04571175575256348
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 191713,
+          "mask_fraction": 0.04571175575256348
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/11-realistic-sitting-pantyhose",
+            "type": "output"
+          },
+          "changed_pixels": 191140,
+          "mask_fraction": 0.04571175575256348
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "ca467d9aef4075c09bd388ec78c649a6"
+    },
+    {
+      "id": "12-realistic-sitting-thigh_high",
+      "width": 2048,
+      "height": 2048,
+      "variants": {
+        "knit": {
+          "image": {
+            "filename": "knit_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 208740,
+          "mask_fraction": 0.05413556098937988
+        },
+        "loops": {
+          "image": {
+            "filename": "loops_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 207273,
+          "mask_fraction": 0.05413556098937988
+        },
+        "lines": {
+          "image": {
+            "filename": "lines_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 214727,
+          "mask_fraction": 0.05413556098937988
+        },
+        "grain": {
+          "image": {
+            "filename": "grain_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 224887,
+          "mask_fraction": 0.05413556098937988
+        },
+        "oily": {
+          "image": {
+            "filename": "oily_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 226987,
+          "mask_fraction": 0.05413556098937988
+        },
+        "coil": {
+          "image": {
+            "filename": "coil_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 222056,
+          "mask_fraction": 0.05413556098937988
+        },
+        "Coil-Lace": {
+          "image": {
+            "filename": "Coil-Lace_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 224824,
+          "mask_fraction": 0.05413556098937988
+        },
+        "Oily-Leopard-PARIS": {
+          "image": {
+            "filename": "Oily-Leopard-PARIS_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 227013,
+          "mask_fraction": 0.05413556098937988
+        },
+        "Hearts-Text-Damage-Moire": {
+          "image": {
+            "filename": "Hearts-Text-Damage-Moire_00001_.png",
+            "subfolder": "ToolBoxStocking/Square-compare/12-realistic-sitting-thigh_high",
+            "type": "output"
+          },
+          "changed_pixels": 226529,
+          "mask_fraction": 0.05413556098937988
+        }
+      },
+      "png_composition_max_error": 1,
+      "crop_exact": true,
+      "source_identity": "1bea16e933d46152c241d4d0e74ef35f"
+    }
+  ],
+  "ui_repeat": {
+    "outputs": 108,
+    "pixel_exact": true
+  }
+}
