@@ -1,3 +1,9 @@
+from importlib import import_module
+
+_gaussian_nodes = import_module('.nodes.3dgs', __package__)
+gaussian_nodes_mapping = _gaussian_nodes.NODE_CLASS_MAPPINGS
+gaussian_display_mapping = _gaussian_nodes.NODE_DISPLAY_NAME_MAPPINGS
+
 # 显式导入 latent_nodes 模块
 # 使用绝对路径导入，避免 RELATIVE_PYTHON_MODULE 属性错误
 from .nodes.cinematic_nodes import NODE_CLASS_MAPPINGS as cinematic_nodes_mapping
@@ -11,6 +17,7 @@ from .nodes.stocking_texture import routes as _stocking_routes
 
 
 NODE_CLASS_MAPPINGS = {
+    **gaussian_nodes_mapping,
     **latent_nodes_mapping,
     **cinematic_nodes_mapping,
     **video_compare_nodes_mapping,
@@ -21,6 +28,7 @@ NODE_CLASS_MAPPINGS = {
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **gaussian_display_mapping,
     **stocking_display_mapping,
     # latent size
     "ToolBoxLatentSize": "tb-latent-size",

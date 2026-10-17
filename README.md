@@ -1,3 +1,9 @@
+## 3DGS：H3单图转高斯场景
+
+提供 `LocalCOLMAPDataset`、`LocalVideoFrames`、`LocalBrushTrain`、`LocalPLYFile` 四个节点，位于 `ToolBox/3DGS`。节点始终注册，PyCOLMAP和Brush在执行时检查；不会自动安装运行依赖。
+
+[原理、安装与操作](docs/3dgs/README.md) · [四套工作流与示例](examples/3dgs/README.md)。运行依赖由Wheels-Containerfiles的 `3dgs-v1` Release提供；ComfyUI-Custom使用 `INSTALL_3DGS=true` 在构建时安装。
+
 # 🧰 ComfyUI-ToolBox
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
