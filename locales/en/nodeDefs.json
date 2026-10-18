@@ -737,5 +737,29 @@
         "tooltip": "Amplified correction centered on gray. Preview only. Recognizable subject detail suggests too high a limit."
       }
     }
+  },
+  "H3SkinMask": {
+    "display_name": "Identify skin regions · H3SkinMask"
+  },
+  "H3SkinMeasure": {
+    "display_name": "Measure RGB and Lab skin tone · H3SkinMeasure"
+  },
+  "H3SkinPrompt": {
+    "display_name": "Append measured skin prompt · H3SkinPrompt"
+  },
+  "H3SkinCompare": {
+    "display_name": "Compare skin color difference · H3SkinCompare"
+  },
+  "H3SkinCorrect": {
+    "display_name": "Conditionally correct local skin · H3SkinCorrect"
+  },
+  "H3SkinRecheck": {
+    "display_name": "Recheck fixed sample pixels · H3SkinRecheck"
+  },
+  "H3SkinBoardLayout": {
+    "display_name": "Arrange 60/40 character sheet · H3SkinBoardLayout"
+  },
+  "H3SkinSaveReport": {
+    "display_name": "Save skin pipeline report · H3SkinSaveReport"
   }
 }

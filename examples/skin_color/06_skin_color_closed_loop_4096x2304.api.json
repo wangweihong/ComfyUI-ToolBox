@@ -1,0 +1,623 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minmaxh3/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "载入 H3 参考模型 · UNETLoader"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "载入图文编码器 · CLIPLoader"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "vae/minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "_meta": {
+      "title": "载入图像编码与解码模型 · VAELoader"
+    }
+  },
+  "4": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "h3_character_design_reference.png"
+    },
+    "_meta": {
+      "title": "载入原始角色设计参考 · LoadImage"
+    }
+  },
+  "5": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "prompt": [
+        "53",
+        0
+      ],
+      "width": 4096,
+      "height": 2304,
+      "length": 5,
+      "ref_image_size": "max",
+      "ref_images.ref_image_0": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "锁定角色并规划三视图与12格细节 · MiniMaxH3ReferenceToVideo"
+    }
+  },
+  "6": {
+    "class_type": "FizgigH3StillLatent",
+    "inputs": {
+      "width": 4096,
+      "height": 2304,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "创建16:9展示板画布 · FizgigH3StillLatent"
+    }
+  },
+  "7": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 20261012
+    },
+    "_meta": {
+      "title": "固定随机种子 · RandomNoise"
+    }
+  },
+  "8": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "er_sde"
+    },
+    "_meta": {
+      "title": "选择采样算法 · KSamplerSelect"
+    }
+  },
+  "9": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 30,
+      "denoise": 1.0
+    },
+    "_meta": {
+      "title": "设置展示板精细采样 · BasicScheduler"
+    }
+  },
+  "10": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "conditioning": [
+        "5",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "应用参考条件引导 · BasicGuider"
+    }
+  },
+  "11": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "7",
+        0
+      ],
+      "guider": [
+        "10",
+        0
+      ],
+      "sampler": [
+        "8",
+        0
+      ],
+      "sigmas": [
+        "9",
+        0
+      ],
+      "latent_image": [
+        "6",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "生成3D角色设计展示板 · SamplerCustomAdvanced"
+    }
+  },
+  "12": {
+    "class_type": "FizgigH3StillDecode",
+    "inputs": {
+      "samples": [
+        "11",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "解码单帧并改善偏色 · FizgigH3StillDecode"
+    }
+  },
+  "50": {
+    "class_type": "H3SkinMask",
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ],
+      "layout": "single_person",
+      "confidence": 0.55,
+      "erode": 2
+    },
+    "_meta": {
+      "title": "自动识别参考人物皮肤并排除背景 · H3SkinMask"
+    }
+  },
+  "51": {
+    "class_type": "H3SkinMeasure",
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ],
+      "skin_regions": [
+        "50",
+        0
+      ],
+      "trim_low": 20,
+      "trim_high": 80,
+      "max_pixels": 50000
+    },
+    "_meta": {
+      "title": "排除高光阴影并提取参考RGB · H3SkinMeasure"
+    }
+  },
+  "52": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "<Subject 1> is the SAME ADULT woman game character shown in <Picture 1>. <Picture 1> is the authoritative identity, face, hair, costume, accessory and footwear reference. Reproduce her specific design faithfully in every view; do not invent a new character. Transfer ONLY the woman and her design, never the outdoor trees, lanterns, ribbons, leaves, path or scenery.\n\nTASK AND LAYOUT\nCreate ONE finished professional 3D Character Design Reference Sheet, a static 16:9 landscape studio presentation board. The large turnaround zone is visibly WIDER than the close-up grid: allocate 60% width to the three full-body views and ONLY 40% width to the close-up grid. The entire background is seamless pure white. The LEFT 60 percent of the board contains EXACTLY THREE equally sized FULL-BODY turnaround renders, arranged horizontally: FRONT, strict 90-degree SIDE, strict 180-degree BACK, in that order. The RIGHT 40 percent contains EXACTLY TWELVE detail close-ups in a precise THREE-COLUMN, FOUR-ROW rectangular grid. Every detail cell has identical width and height and a very thin straight black border. This is a single board with 3 full-body views plus 12 detail panels, not a repeating full-body grid, not an animation sequence. NO written titles, numbers, labels, logos, watermarks or extra decorative elements anywhere.\n\nCHARACTER DESIGN LOCK\nAll fifteen depictions show <Subject 1> as the same adult East Asian woman, with the same delicate oval face, facial proportions, soft nose and lips, violet irises and smooth natural skin. Preserve the reference's dark black-purple long hair, neat straight bangs, symmetrical high twin ponytails and EXACTLY TWO ornate gold branching deer-antler hair ornaments, one at each ponytail root. The two ponytails extend clearly PAST THE WAIST TO THE UPPER THIGHS in every full-body view. Preserve their high twin roots, dark black-purple color, layered hair bundles and paired gold ornaments, while ensuring the full long ponytail length remains visible behind the torso. They are long twin ponytails, never shoulder-length or short ponytails.\nKeep the exact purple and lavender fantasy outfit from <Picture 1>: the high ornamental purple collar with gold details, bare shoulders, fitted short bodice with the large central gold flower and layered purple petal motif, exposed midriff, decorated upper arms and translucent pale-purple draping sleeves with gold edging, ornate gold waist trim, layered short skirt/skort with purple and lavender panels and delicate gold embroidered borders. The reference's visible lavender fabric remains lavender; do not recolor it black or simplify its layered construction. Keep all flowers, gold edges, collar pieces, waist ornaments, sleeve openings and layer lengths in corresponding positions across views. Retain the reference's white ribbed short socks and purple low-heel Mary Jane shoes with their single instep strap, closed rounded toe, natural thickness and modest heel. Preserve the same footwear geometry in every angle. Do not add weapons, bags, jewelry or additional hair ornaments. Do not remove existing ornaments. No costume redesign, no new colors, no altered age or facial identity.\n\nLEFT TURNAROUND ZONE\nThree separate complete figures occupy only the left 60 percent. All stand in the same relaxed neutral stance, arms naturally lowered slightly away from the torso so garment construction is readable. Hands relaxed, legs straight and parallel, feet on the same baseline. FRONT figure directly faces the camera with symmetrical shoulders and hips. SIDE figure is a true orthographic 90-degree profile, showing only the side silhouette rather than a three-quarter body; her head, shoulders, hips and shoes all face the same side. BACK figure is a true orthographic 180-degree rear view, with the face not visible and shoulders, spine, layered back garment and shoe heels facing the camera. Render consistent body height, adult body proportions, scale, costume geometry and hair length across all three. Align the tops of their heads and soles of their feet on exactly common horizontal lines. Include each full silhouette, both ornaments, the ponytail ends, fingers and both shoes, with comfortable white margins. No cropping, no overlapping figures, no seated pose, no crossed legs. Translate hidden back construction conservatively from the visible reference design, with compatible gold trim and layers rather than adding a different costume.\n\nRIGHT DETAIL GRID: THREE COLUMNS BY FOUR ROWS\nOrder the twelve cells LEFT TO RIGHT within each row, then TOP TO BOTTOM. Each cell contains ONE specific close-up of the SAME <Subject 1>, cropped for that detail only, with the same white studio background and consistent material appearance.\nROW 1: cell 1, straight-on front head portrait with the face, bangs and paired gold ornaments; cell 2, a camera directly ABOVE her crown looking VERTICALLY DOWN at the TOP SURFACE of her head, clear central scalp parting and both high ponytail attachment points; this cell shows the hair crown from overhead, no face, no neckline, no back-of-head rear portrait; cell 3, rear hair close-up showing both ponytails and the back-of-head construction, no face.\nROW 2: cell 4, exact 90-degree side head profile showing nose, lips, ear and hair silhouette; cell 5, very close view of one violet eye and surrounding softly lit skin; cell 6, 45-degree three-quarter face portrait preserving the same face.\nROW 3: cell 7, central chest gold flower, purple petal layers and bodice fabric texture; cell 8, waist fabric construction and gold waist ornaments; cell 9, rear skirt/skort layers, seams, gold embroidery and compatible back garment details.\nROW 4: cell 10, a tight close-up of her BARE KNEE AND CALF, from mid-thigh down to mid-shin, smooth LEG SKIN with gentle studio light falloff, absolutely no head, no eyes, no nose, no lips and no facial skin; cell 11, extreme macro of the violet iris, eyelashes and eyelid detail; cell 12, complete white ribbed short socks and BOTH purple Mary Jane shoes, showing the straps, rounded toes, soles and low heels with no clipped shoe tips.\nMaintain exactly 12 cells, not 9, not 15, not 16. No merged cells, unequal cells, extra rows, extra columns, blank cells or repeated full-body people in this right-hand grid. Do not move any of these twelve close-ups to the left turnaround area.\n\nRENDERING\nPremium Japanese 3D game character CG, a production-quality character artist presentation. Fine physically based materials and believable geometry, soft evenly distributed neutral white studio illumination, delicate natural skin texture and subsurface light response, clear violet iris structure, separated high-quality hair strands and layered hair bundles, detailed woven fabric and gold embroidery, accurate translucent purple sleeve fabric, polished gold metal with restrained realistic reflections. Clean sharp edges and subtle local form shading; no harsh cast shadows, dramatic color cast, photographic outdoor backdrop, painterly brushwork or flat anime line art. Keep consistent camera scale for full-body views, consistent material colors in close-ups and impeccable limb anatomy. High detail across the entire board, no motion blur or depth-of-field blur obscuring design details. One complete still reference board.\n\nFINAL PANEL CONTENT CHECK: The bottom-left cell of the right-hand grid MUST be a knee/calf LEG close-up. Only bottom-middle is an eye macro and only bottom-right is shoes. The upper-middle cell MUST be a straight-down overhead crown shot, visibly different from the upper-right rear-hair shot. Third-row-right MUST match the BACK figure's rear skirt embroidery. These are different camera angles and different anatomical regions, not interchangeable face crops. Retain the exact 3 by 4 detail grid and all three full-body figures."
+    },
+    "_meta": {
+      "title": "编辑角色设计基础提示词 · PrimitiveStringMultiline"
+    }
+  },
+  "53": {
+    "class_type": "H3SkinPrompt",
+    "inputs": {
+      "base_prompt": [
+        "52",
+        0
+      ],
+      "reference": [
+        "51",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "把实测肤色自动补充到提示词 · H3SkinPrompt"
+    }
+  },
+  "54": {
+    "class_type": "H3SkinBoardLayout",
+    "inputs": {
+      "image": [
+        "12",
+        0
+      ],
+      "source_split": 0.5
+    },
+    "_meta": {
+      "title": "自动定位三视图并完成60/40排版 · H3SkinBoardLayout"
+    }
+  },
+  "55": {
+    "class_type": "H3SkinMask",
+    "inputs": {
+      "image": [
+        "54",
+        0
+      ],
+      "layout": "character_sheet",
+      "confidence": 0.55,
+      "erode": 2,
+      "layout_report": [
+        "54",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "分区识别成图皮肤并排除衣物 · H3SkinMask"
+    }
+  },
+  "56": {
+    "class_type": "H3SkinMeasure",
+    "inputs": {
+      "image": [
+        "54",
+        0
+      ],
+      "skin_regions": [
+        "55",
+        0
+      ],
+      "trim_low": 20,
+      "trim_high": 80,
+      "max_pixels": 50000
+    },
+    "_meta": {
+      "title": "取样生成肤色并保留复测坐标 · H3SkinMeasure"
+    }
+  },
+  "57": {
+    "class_type": "H3SkinCompare",
+    "inputs": {
+      "reference": [
+        "51",
+        0
+      ],
+      "target": [
+        "56",
+        0
+      ],
+      "threshold": 3.0
+    },
+    "_meta": {
+      "title": "量化生成偏差并判断是否需要校色 · H3SkinCompare"
+    }
+  },
+  "58": {
+    "class_type": "H3SkinCorrect",
+    "inputs": {
+      "image": [
+        "54",
+        0
+      ],
+      "reference": [
+        "51",
+        0
+      ],
+      "target": [
+        "56",
+        0
+      ],
+      "needs_correction": [
+        "57",
+        2
+      ],
+      "mode": "auto",
+      "strength": 0.75,
+      "threshold": 3.0,
+      "max_L_shift": 18.0,
+      "max_chroma_shift": 8.0,
+      "feather": 6.0
+    },
+    "_meta": {
+      "title": "必要时只对皮肤局部校色 · H3SkinCorrect"
+    }
+  },
+  "59": {
+    "class_type": "H3SkinRecheck",
+    "inputs": {
+      "image": [
+        "58",
+        0
+      ],
+      "reference": [
+        "51",
+        0
+      ],
+      "before": [
+        "56",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "用原坐标复测并确认改善 · H3SkinRecheck"
+    }
+  },
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "54",
+        0
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/before_rgb_prompt"
+    },
+    "_meta": {
+      "title": "保存RGB提示词生成的校色前图 · SaveImage"
+    }
+  },
+  "61": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "58",
+        0
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/after_calibrated"
+    },
+    "_meta": {
+      "title": "保存条件校色后的最终图 · SaveImage"
+    }
+  },
+  "68": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "51",
+        2
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/reference_palette"
+    },
+    "_meta": {
+      "title": "保存前置取色色卡 · SaveImage"
+    }
+  },
+  "69": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "56",
+        2
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/generated_palette"
+    },
+    "_meta": {
+      "title": "保存生成肤色色卡 · SaveImage"
+    }
+  },
+  "62": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "55",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "显示generated_skin_mask区域 · MaskToImage"
+    }
+  },
+  "63": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "62",
+        0
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/generated_skin_mask"
+    },
+    "_meta": {
+      "title": "保存generated_skin_mask供检查 · SaveImage"
+    }
+  },
+  "64": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "50",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "显示reference_skin_mask区域 · MaskToImage"
+    }
+  },
+  "65": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "64",
+        0
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/reference_skin_mask"
+    },
+    "_meta": {
+      "title": "保存reference_skin_mask供检查 · SaveImage"
+    }
+  },
+  "66": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "58",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "显示correction_mask区域 · MaskToImage"
+    }
+  },
+  "67": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "66",
+        0
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/correction_mask"
+    },
+    "_meta": {
+      "title": "保存correction_mask供检查 · SaveImage"
+    }
+  },
+  "71": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "h3_skin_baseline_without_rgb.png"
+    },
+    "_meta": {
+      "title": "载入无RGB提示词的已有对照图 · LoadImage"
+    }
+  },
+  "72": {
+    "class_type": "H3SkinMask",
+    "inputs": {
+      "image": [
+        "71",
+        0
+      ],
+      "layout": "character_sheet",
+      "confidence": 0.55,
+      "erode": 2
+    },
+    "_meta": {
+      "title": "以相同算法识别对照图皮肤 · H3SkinMask"
+    }
+  },
+  "74": {
+    "class_type": "H3SkinMeasure",
+    "inputs": {
+      "image": [
+        "71",
+        0
+      ],
+      "skin_regions": [
+        "72",
+        0
+      ],
+      "trim_low": 20,
+      "trim_high": 80,
+      "max_pixels": 50000
+    },
+    "_meta": {
+      "title": "以相同规则测量未加RGB的基线 · H3SkinMeasure"
+    }
+  },
+  "75": {
+    "class_type": "H3SkinCompare",
+    "inputs": {
+      "reference": [
+        "51",
+        0
+      ],
+      "target": [
+        "74",
+        0
+      ],
+      "threshold": 3.0
+    },
+    "_meta": {
+      "title": "比较RGB提示词之前的肤色基线 · H3SkinCompare"
+    }
+  },
+  "70": {
+    "class_type": "H3SkinSaveReport",
+    "inputs": {
+      "reference_report": [
+        "51",
+        1
+      ],
+      "before_report": [
+        "57",
+        0
+      ],
+      "correction_report": [
+        "58",
+        2
+      ],
+      "after_report": [
+        "59",
+        0
+      ],
+      "augmented_prompt": [
+        "53",
+        0
+      ],
+      "layout_report": [
+        "54",
+        1
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/measurement",
+      "baseline_report": [
+        "75",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "保存提示词效果与校色复测完整报告 · H3SkinSaveReport"
+    }
+  },
+  "76": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "57",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "查看校色前区域中位色差 · PreviewAny"
+    }
+  },
+  "77": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "59",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "查看校色后区域中位色差 · PreviewAny"
+    }
+  },
+  "78": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "53",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "查看自动补充后的完整提示词 · PreviewAny"
+    }
+  },
+  "79": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "55",
+        2
+      ],
+      "filename_prefix": "h3_fizgig/skin_pipeline/skin_overlay"
+    },
+    "_meta": {
+      "title": "保存语义皮肤区域叠加预览 · SaveImage"
+    }
+  }
+}

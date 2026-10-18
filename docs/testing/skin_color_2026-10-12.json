@@ -1,0 +1,13 @@
+{
+  "unit_tests_passed": 5,
+  "node_owner": "custom_nodes.ComfyUI-ToolBox",
+  "all_8_skin_nodes_registered": true,
+  "all_41_workflow_nodes_available": true,
+  "existing_nodes_preserved": true,
+  "retest_status": "success",
+  "retest_prompt_id": "0506d7ae-a8c3-4050-b840-02163ff875ba",
+  "before_delta_E76": 10.632676241309019,
+  "after_delta_E76": 3.460855782879086,
+  "max_rgb_change_outside_skin": 0.0,
+  "method": "Reused generated 4096x2304 sheet; semantic mask, measurement, prompt enrichment, conditional correction, fixed-coordinate recheck and report executed. H3 sampling was not repeated during migration validation."
+}

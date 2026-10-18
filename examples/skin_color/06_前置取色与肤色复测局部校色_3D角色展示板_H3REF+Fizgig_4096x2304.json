@@ -1,0 +1,2446 @@
+{
+  "id": "75e12140-c2ad-4ac2-b471-237bf5ebd03b",
+  "revision": 0,
+  "last_node_id": 100,
+  "last_link_id": 59,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [
+        0,
+        0
+      ],
+      "title": "载入 H3 参考模型 · UNETLoader",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            5,
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "minmaxh3/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "pos": [
+        0,
+        190
+      ],
+      "title": "载入图文编码器 · CLIPLoader",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "minimax",
+        "default"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [
+        0,
+        400
+      ],
+      "title": "载入图像编码与解码模型 · VAELoader",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            2,
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "vae/minimax_h3_video_vae_int8_convrot.safetensors"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LoadImage",
+      "pos": [
+        0,
+        610
+      ],
+      "title": "载入原始角色设计参考 · LoadImage",
+      "size": [
+        420,
+        420
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4,
+            15,
+            16
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "h3_character_design_reference.png",
+        "image"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "MiniMaxH3ReferenceToVideo",
+      "pos": [
+        1880,
+        320
+      ],
+      "title": "锁定角色并规划三视图与12格细节 · MiniMaxH3ReferenceToVideo",
+      "size": [
+        700,
+        1000
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 2
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "link": 3,
+          "widget": {
+            "name": "prompt"
+          }
+        },
+        {
+          "name": "ref_images.ref_image_0",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "audio_vae",
+          "type": "VAE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "ref_images.ref_image_1",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "ref_videos.ref_video_0",
+          "type": "IMAGE",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "ref_video_audios.ref_video_audio_0",
+          "type": "AUDIO",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "ref_audios.ref_audio_0",
+          "type": "AUDIO",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+      },
+      "widgets_values": [
+        "",
+        4096,
+        2304,
+        5,
+        "max"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "FizgigH3StillLatent",
+      "pos": [
+        1880,
+        1480
+      ],
+      "title": "创建16:9展示板画布 · FizgigH3StillLatent",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FizgigH3StillLatent"
+      },
+      "widgets_values": [
+        4096,
+        2304,
+        1
+      ]
+    },
+    {
+      "id": 7,
+      "type": "RandomNoise",
+      "pos": [
+        2690,
+        60
+      ],
+      "title": "固定随机种子 · RandomNoise",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        20261012,
+        "fixed"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "KSamplerSelect",
+      "pos": [
+        2690,
+        250
+      ],
+      "title": "选择采样算法 · KSamplerSelect",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "er_sde"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "BasicScheduler",
+      "pos": [
+        2690,
+        440
+      ],
+      "title": "设置展示板精细采样 · BasicScheduler",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicScheduler"
+      },
+      "widgets_values": [
+        "simple",
+        30,
+        1.0
+      ]
+    },
+    {
+      "id": 10,
+      "type": "BasicGuider",
+      "pos": [
+        2690,
+        680
+      ],
+      "title": "应用参考条件引导 · BasicGuider",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 6
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicGuider"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        3150,
+        320
+      ],
+      "title": "生成3D角色设计展示板 · SamplerCustomAdvanced",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 8
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 9
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 10
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 11
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "FizgigH3StillDecode",
+      "pos": [
+        3150,
+        750
+      ],
+      "title": "解码单帧并改善偏色 · FizgigH3StillDecode",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 13
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            20
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FizgigH3StillDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 50,
+      "type": "H3SkinMask",
+      "pos": [
+        450,
+        610
+      ],
+      "title": "自动识别参考人物皮肤并排除背景 · H3SkinMask",
+      "size": [
+        440,
+        440
+      ],
+      "flags": {},
+      "order": 49,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 15
+        },
+        {
+          "name": "external_mask",
+          "type": "MASK",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "layout_report",
+          "type": "STRING",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "皮肤区域数据",
+          "type": "H3_SKIN_MASK",
+          "links": [
+            17
+          ]
+        },
+        {
+          "name": "皮肤遮罩",
+          "type": "MASK",
+          "links": [
+            40
+          ]
+        },
+        {
+          "name": "遮罩预览",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "分割报告",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinMask"
+      },
+      "widgets_values": [
+        "single_person",
+        0.55,
+        2
+      ]
+    },
+    {
+      "id": 51,
+      "type": "H3SkinMeasure",
+      "pos": [
+        920,
+        610
+      ],
+      "title": "排除高光阴影并提取参考RGB · H3SkinMeasure",
+      "size": [
+        420,
+        310
+      ],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 16
+        },
+        {
+          "name": "skin_regions",
+          "type": "H3_SKIN_MASK",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "肤色样本与统计",
+          "type": "H3_SKIN_PROFILE",
+          "links": [
+            19,
+            25,
+            28,
+            32,
+            47
+          ]
+        },
+        {
+          "name": "RGB与Lab取色报告",
+          "type": "STRING",
+          "links": [
+            49
+          ]
+        },
+        {
+          "name": "肤色色卡",
+          "type": "IMAGE",
+          "links": [
+            36
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinMeasure"
+      },
+      "widgets_values": [
+        20,
+        80,
+        50000
+      ]
+    },
+    {
+      "id": 52,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        0,
+        1250
+      ],
+      "title": "编辑角色设计基础提示词 · PrimitiveStringMultiline",
+      "size": [
+        700,
+        1000
+      ],
+      "flags": {},
+      "order": 51,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        "<Subject 1> is the SAME ADULT woman game character shown in <Picture 1>. <Picture 1> is the authoritative identity, face, hair, costume, accessory and footwear reference. Reproduce her specific design faithfully in every view; do not invent a new character. Transfer ONLY the woman and her design, never the outdoor trees, lanterns, ribbons, leaves, path or scenery.\n\nTASK AND LAYOUT\nCreate ONE finished professional 3D Character Design Reference Sheet, a static 16:9 landscape studio presentation board. The large turnaround zone is visibly WIDER than the close-up grid: allocate 60% width to the three full-body views and ONLY 40% width to the close-up grid. The entire background is seamless pure white. The LEFT 60 percent of the board contains EXACTLY THREE equally sized FULL-BODY turnaround renders, arranged horizontally: FRONT, strict 90-degree SIDE, strict 180-degree BACK, in that order. The RIGHT 40 percent contains EXACTLY TWELVE detail close-ups in a precise THREE-COLUMN, FOUR-ROW rectangular grid. Every detail cell has identical width and height and a very thin straight black border. This is a single board with 3 full-body views plus 12 detail panels, not a repeating full-body grid, not an animation sequence. NO written titles, numbers, labels, logos, watermarks or extra decorative elements anywhere.\n\nCHARACTER DESIGN LOCK\nAll fifteen depictions show <Subject 1> as the same adult East Asian woman, with the same delicate oval face, facial proportions, soft nose and lips, violet irises and smooth natural skin. Preserve the reference's dark black-purple long hair, neat straight bangs, symmetrical high twin ponytails and EXACTLY TWO ornate gold branching deer-antler hair ornaments, one at each ponytail root. The two ponytails extend clearly PAST THE WAIST TO THE UPPER THIGHS in every full-body view. Preserve their high twin roots, dark black-purple color, layered hair bundles and paired gold ornaments, while ensuring the full long ponytail length remains visible behind the torso. They are long twin ponytails, never shoulder-length or short ponytails.\nKeep the exact purple and lavender fantasy outfit from <Picture 1>: the high ornamental purple collar with gold details, bare shoulders, fitted short bodice with the large central gold flower and layered purple petal motif, exposed midriff, decorated upper arms and translucent pale-purple draping sleeves with gold edging, ornate gold waist trim, layered short skirt/skort with purple and lavender panels and delicate gold embroidered borders. The reference's visible lavender fabric remains lavender; do not recolor it black or simplify its layered construction. Keep all flowers, gold edges, collar pieces, waist ornaments, sleeve openings and layer lengths in corresponding positions across views. Retain the reference's white ribbed short socks and purple low-heel Mary Jane shoes with their single instep strap, closed rounded toe, natural thickness and modest heel. Preserve the same footwear geometry in every angle. Do not add weapons, bags, jewelry or additional hair ornaments. Do not remove existing ornaments. No costume redesign, no new colors, no altered age or facial identity.\n\nLEFT TURNAROUND ZONE\nThree separate complete figures occupy only the left 60 percent. All stand in the same relaxed neutral stance, arms naturally lowered slightly away from the torso so garment construction is readable. Hands relaxed, legs straight and parallel, feet on the same baseline. FRONT figure directly faces the camera with symmetrical shoulders and hips. SIDE figure is a true orthographic 90-degree profile, showing only the side silhouette rather than a three-quarter body; her head, shoulders, hips and shoes all face the same side. BACK figure is a true orthographic 180-degree rear view, with the face not visible and shoulders, spine, layered back garment and shoe heels facing the camera. Render consistent body height, adult body proportions, scale, costume geometry and hair length across all three. Align the tops of their heads and soles of their feet on exactly common horizontal lines. Include each full silhouette, both ornaments, the ponytail ends, fingers and both shoes, with comfortable white margins. No cropping, no overlapping figures, no seated pose, no crossed legs. Translate hidden back construction conservatively from the visible reference design, with compatible gold trim and layers rather than adding a different costume.\n\nRIGHT DETAIL GRID: THREE COLUMNS BY FOUR ROWS\nOrder the twelve cells LEFT TO RIGHT within each row, then TOP TO BOTTOM. Each cell contains ONE specific close-up of the SAME <Subject 1>, cropped for that detail only, with the same white studio background and consistent material appearance.\nROW 1: cell 1, straight-on front head portrait with the face, bangs and paired gold ornaments; cell 2, a camera directly ABOVE her crown looking VERTICALLY DOWN at the TOP SURFACE of her head, clear central scalp parting and both high ponytail attachment points; this cell shows the hair crown from overhead, no face, no neckline, no back-of-head rear portrait; cell 3, rear hair close-up showing both ponytails and the back-of-head construction, no face.\nROW 2: cell 4, exact 90-degree side head profile showing nose, lips, ear and hair silhouette; cell 5, very close view of one violet eye and surrounding softly lit skin; cell 6, 45-degree three-quarter face portrait preserving the same face.\nROW 3: cell 7, central chest gold flower, purple petal layers and bodice fabric texture; cell 8, waist fabric construction and gold waist ornaments; cell 9, rear skirt/skort layers, seams, gold embroidery and compatible back garment details.\nROW 4: cell 10, a tight close-up of her BARE KNEE AND CALF, from mid-thigh down to mid-shin, smooth LEG SKIN with gentle studio light falloff, absolutely no head, no eyes, no nose, no lips and no facial skin; cell 11, extreme macro of the violet iris, eyelashes and eyelid detail; cell 12, complete white ribbed short socks and BOTH purple Mary Jane shoes, showing the straps, rounded toes, soles and low heels with no clipped shoe tips.\nMaintain exactly 12 cells, not 9, not 15, not 16. No merged cells, unequal cells, extra rows, extra columns, blank cells or repeated full-body people in this right-hand grid. Do not move any of these twelve close-ups to the left turnaround area.\n\nRENDERING\nPremium Japanese 3D game character CG, a production-quality character artist presentation. Fine physically based materials and believable geometry, soft evenly distributed neutral white studio illumination, delicate natural skin texture and subsurface light response, clear violet iris structure, separated high-quality hair strands and layered hair bundles, detailed woven fabric and gold embroidery, accurate translucent purple sleeve fabric, polished gold metal with restrained realistic reflections. Clean sharp edges and subtle local form shading; no harsh cast shadows, dramatic color cast, photographic outdoor backdrop, painterly brushwork or flat anime line art. Keep consistent camera scale for full-body views, consistent material colors in close-ups and impeccable limb anatomy. High detail across the entire board, no motion blur or depth-of-field blur obscuring design details. One complete still reference board.\n\nFINAL PANEL CONTENT CHECK: The bottom-left cell of the right-hand grid MUST be a knee/calf LEG close-up. Only bottom-middle is an eye macro and only bottom-right is shoes. The upper-middle cell MUST be a straight-down overhead crown shot, visibly different from the upper-right rear-hair shot. Third-row-right MUST match the BACK figure's rear skirt embroidery. These are different camera angles and different anatomical regions, not interchangeable face crops. Retain the exact 3 by 4 detail grid and all three full-body figures."
+      ]
+    },
+    {
+      "id": 53,
+      "type": "H3SkinPrompt",
+      "pos": [
+        1390,
+        610
+      ],
+      "title": "把实测肤色自动补充到提示词 · H3SkinPrompt",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "base_prompt",
+          "type": "STRING",
+          "link": 18
+        },
+        {
+          "name": "reference",
+          "type": "H3_SKIN_PROFILE",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "自动补充肤色后的提示词",
+          "type": "STRING",
+          "links": [
+            3,
+            53,
+            58
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinPrompt"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 54,
+      "type": "H3SkinBoardLayout",
+      "pos": [
+        3640,
+        320
+      ],
+      "title": "自动定位三视图并完成60/40排版 · H3SkinBoardLayout",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 53,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "自动60/40排版展示板",
+          "type": "IMAGE",
+          "links": [
+            21,
+            23,
+            27,
+            34
+          ]
+        },
+        {
+          "name": "排版检测报告",
+          "type": "STRING",
+          "links": [
+            22,
+            54
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinBoardLayout"
+      },
+      "widgets_values": [
+        0.5
+      ]
+    },
+    {
+      "id": 55,
+      "type": "H3SkinMask",
+      "pos": [
+        3640,
+        720
+      ],
+      "title": "分区识别成图皮肤并排除衣物 · H3SkinMask",
+      "size": [
+        440,
+        440
+      ],
+      "flags": {},
+      "order": 54,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 21
+        },
+        {
+          "name": "layout_report",
+          "type": "STRING",
+          "link": 22
+        },
+        {
+          "name": "external_mask",
+          "type": "MASK",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "皮肤区域数据",
+          "type": "H3_SKIN_MASK",
+          "links": [
+            24
+          ]
+        },
+        {
+          "name": "皮肤遮罩",
+          "type": "MASK",
+          "links": [
+            38
+          ]
+        },
+        {
+          "name": "遮罩预览",
+          "type": "IMAGE",
+          "links": [
+            59
+          ]
+        },
+        {
+          "name": "分割报告",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinMask"
+      },
+      "widgets_values": [
+        "character_sheet",
+        0.55,
+        2
+      ]
+    },
+    {
+      "id": 56,
+      "type": "H3SkinMeasure",
+      "pos": [
+        4120,
+        720
+      ],
+      "title": "取样生成肤色并保留复测坐标 · H3SkinMeasure",
+      "size": [
+        420,
+        310
+      ],
+      "flags": {},
+      "order": 55,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 23
+        },
+        {
+          "name": "skin_regions",
+          "type": "H3_SKIN_MASK",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "肤色样本与统计",
+          "type": "H3_SKIN_PROFILE",
+          "links": [
+            26,
+            29,
+            33
+          ]
+        },
+        {
+          "name": "RGB与Lab取色报告",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "肤色色卡",
+          "type": "IMAGE",
+          "links": [
+            37
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinMeasure"
+      },
+      "widgets_values": [
+        20,
+        80,
+        50000
+      ]
+    },
+    {
+      "id": 57,
+      "type": "H3SkinCompare",
+      "pos": [
+        4600,
+        320
+      ],
+      "title": "量化生成偏差并判断是否需要校色 · H3SkinCompare",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "reference",
+          "type": "H3_SKIN_PROFILE",
+          "link": 25
+        },
+        {
+          "name": "target",
+          "type": "H3_SKIN_PROFILE",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "生成肤色复测报告",
+          "type": "STRING",
+          "links": [
+            50
+          ]
+        },
+        {
+          "name": "区域中位ΔE76",
+          "type": "FLOAT",
+          "links": [
+            56
+          ]
+        },
+        {
+          "name": "需要局部校色",
+          "type": "BOOLEAN",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinCompare"
+      },
+      "widgets_values": [
+        3.0
+      ]
+    },
+    {
+      "id": 58,
+      "type": "H3SkinCorrect",
+      "pos": [
+        5080,
+        320
+      ],
+      "title": "必要时只对皮肤局部校色 · H3SkinCorrect",
+      "size": [
+        440,
+        440
+      ],
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 27
+        },
+        {
+          "name": "reference",
+          "type": "H3_SKIN_PROFILE",
+          "link": 28
+        },
+        {
+          "name": "target",
+          "type": "H3_SKIN_PROFILE",
+          "link": 29
+        },
+        {
+          "name": "needs_correction",
+          "type": "BOOLEAN",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "必要时局部校色的结果",
+          "type": "IMAGE",
+          "links": [
+            31,
+            35
+          ]
+        },
+        {
+          "name": "实际校色区域",
+          "type": "MASK",
+          "links": [
+            42
+          ]
+        },
+        {
+          "name": "校色决策与前后数据",
+          "type": "STRING",
+          "links": [
+            51
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinCorrect"
+      },
+      "widgets_values": [
+        "auto",
+        0.75,
+        3.0,
+        18.0,
+        8.0,
+        6.0
+      ]
+    },
+    {
+      "id": 59,
+      "type": "H3SkinRecheck",
+      "pos": [
+        5580,
+        320
+      ],
+      "title": "用原坐标复测并确认改善 · H3SkinRecheck",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 58,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 31
+        },
+        {
+          "name": "reference",
+          "type": "H3_SKIN_PROFILE",
+          "link": 32
+        },
+        {
+          "name": "before",
+          "type": "H3_SKIN_PROFILE",
+          "link": 33
+        }
+      ],
+      "outputs": [
+        {
+          "name": "固定取样点的校色后复测",
+          "type": "STRING",
+          "links": [
+            52
+          ]
+        },
+        {
+          "name": "校色后区域中位ΔE76",
+          "type": "FLOAT",
+          "links": [
+            57
+          ]
+        },
+        {
+          "name": "校色后确有改善",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinRecheck"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 60,
+      "type": "SaveImage",
+      "pos": [
+        6070,
+        1010
+      ],
+      "title": "保存RGB提示词生成的校色前图 · SaveImage",
+      "size": [
+        1100,
+        670
+      ],
+      "flags": {},
+      "order": 59,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/before_rgb_prompt"
+      ]
+    },
+    {
+      "id": 61,
+      "type": "SaveImage",
+      "pos": [
+        6070,
+        240
+      ],
+      "title": "保存条件校色后的最终图 · SaveImage",
+      "size": [
+        1100,
+        670
+      ],
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 35
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/after_calibrated"
+      ]
+    },
+    {
+      "id": 68,
+      "type": "SaveImage",
+      "pos": [
+        920,
+        1120
+      ],
+      "title": "保存前置取色色卡 · SaveImage",
+      "size": [
+        440,
+        380
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/reference_palette"
+      ]
+    },
+    {
+      "id": 69,
+      "type": "SaveImage",
+      "pos": [
+        4120,
+        1210
+      ],
+      "title": "保存生成肤色色卡 · SaveImage",
+      "size": [
+        440,
+        380
+      ],
+      "flags": {},
+      "order": 68,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 37
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/generated_palette"
+      ]
+    },
+    {
+      "id": 62,
+      "type": "MaskToImage",
+      "pos": [
+        3640,
+        1460
+      ],
+      "title": "显示generated_skin_mask区域 · MaskToImage",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 61,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 38
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            39
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 63,
+      "type": "SaveImage",
+      "pos": [
+        3640,
+        1770
+      ],
+      "title": "保存generated_skin_mask供检查 · SaveImage",
+      "size": [
+        440,
+        380
+      ],
+      "flags": {},
+      "order": 62,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 39
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/generated_skin_mask"
+      ]
+    },
+    {
+      "id": 64,
+      "type": "MaskToImage",
+      "pos": [
+        450,
+        1180
+      ],
+      "title": "显示reference_skin_mask区域 · MaskToImage",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 63,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 40
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            41
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 65,
+      "type": "SaveImage",
+      "pos": [
+        450,
+        1470
+      ],
+      "title": "保存reference_skin_mask供检查 · SaveImage",
+      "size": [
+        440,
+        380
+      ],
+      "flags": {},
+      "order": 64,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 41
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/reference_skin_mask"
+      ]
+    },
+    {
+      "id": 66,
+      "type": "MaskToImage",
+      "pos": [
+        5080,
+        1170
+      ],
+      "title": "显示correction_mask区域 · MaskToImage",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 65,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 42
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            43
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 67,
+      "type": "SaveImage",
+      "pos": [
+        5080,
+        1460
+      ],
+      "title": "保存correction_mask供检查 · SaveImage",
+      "size": [
+        440,
+        380
+      ],
+      "flags": {},
+      "order": 66,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 43
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/correction_mask"
+      ]
+    },
+    {
+      "id": 71,
+      "type": "LoadImage",
+      "pos": [
+        1880,
+        1940
+      ],
+      "title": "载入无RGB提示词的已有对照图 · LoadImage",
+      "size": [
+        420,
+        420
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            44,
+            45
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "h3_skin_baseline_without_rgb.png",
+        "image"
+      ]
+    },
+    {
+      "id": 72,
+      "type": "H3SkinMask",
+      "pos": [
+        2360,
+        1940
+      ],
+      "title": "以相同算法识别对照图皮肤 · H3SkinMask",
+      "size": [
+        440,
+        440
+      ],
+      "flags": {},
+      "order": 71,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 44
+        },
+        {
+          "name": "external_mask",
+          "type": "MASK",
+          "shape": 7,
+          "link": null
+        },
+        {
+          "name": "layout_report",
+          "type": "STRING",
+          "shape": 7,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "皮肤区域数据",
+          "type": "H3_SKIN_MASK",
+          "links": [
+            46
+          ]
+        },
+        {
+          "name": "皮肤遮罩",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "遮罩预览",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "分割报告",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinMask"
+      },
+      "widgets_values": [
+        "character_sheet",
+        0.55,
+        2
+      ]
+    },
+    {
+      "id": 74,
+      "type": "H3SkinMeasure",
+      "pos": [
+        2840,
+        1940
+      ],
+      "title": "以相同规则测量未加RGB的基线 · H3SkinMeasure",
+      "size": [
+        420,
+        310
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 45
+        },
+        {
+          "name": "skin_regions",
+          "type": "H3_SKIN_MASK",
+          "link": 46
+        }
+      ],
+      "outputs": [
+        {
+          "name": "肤色样本与统计",
+          "type": "H3_SKIN_PROFILE",
+          "links": [
+            48
+          ]
+        },
+        {
+          "name": "RGB与Lab取色报告",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "肤色色卡",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinMeasure"
+      },
+      "widgets_values": [
+        20,
+        80,
+        50000
+      ]
+    },
+    {
+      "id": 75,
+      "type": "H3SkinCompare",
+      "pos": [
+        3320,
+        1940
+      ],
+      "title": "比较RGB提示词之前的肤色基线 · H3SkinCompare",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 74,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "reference",
+          "type": "H3_SKIN_PROFILE",
+          "link": 47
+        },
+        {
+          "name": "target",
+          "type": "H3_SKIN_PROFILE",
+          "link": 48
+        }
+      ],
+      "outputs": [
+        {
+          "name": "生成肤色复测报告",
+          "type": "STRING",
+          "links": [
+            55
+          ]
+        },
+        {
+          "name": "区域中位ΔE76",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "需要局部校色",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinCompare"
+      },
+      "widgets_values": [
+        3.0
+      ]
+    },
+    {
+      "id": 70,
+      "type": "H3SkinSaveReport",
+      "pos": [
+        5580,
+        1150
+      ],
+      "title": "保存提示词效果与校色复测完整报告 · H3SkinSaveReport",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 69,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "reference_report",
+          "type": "STRING",
+          "link": 49
+        },
+        {
+          "name": "before_report",
+          "type": "STRING",
+          "link": 50
+        },
+        {
+          "name": "correction_report",
+          "type": "STRING",
+          "link": 51
+        },
+        {
+          "name": "after_report",
+          "type": "STRING",
+          "link": 52
+        },
+        {
+          "name": "augmented_prompt",
+          "type": "STRING",
+          "link": 53
+        },
+        {
+          "name": "layout_report",
+          "type": "STRING",
+          "link": 54
+        },
+        {
+          "name": "baseline_report",
+          "type": "STRING",
+          "link": 55
+        }
+      ],
+      "outputs": [
+        {
+          "name": "报告文件路径",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3SkinSaveReport"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/measurement"
+      ]
+    },
+    {
+      "id": 76,
+      "type": "PreviewAny",
+      "pos": [
+        4600,
+        1000
+      ],
+      "title": "查看校色前区域中位色差 · PreviewAny",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 75,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 56
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 77,
+      "type": "PreviewAny",
+      "pos": [
+        5580,
+        800
+      ],
+      "title": "查看校色后区域中位色差 · PreviewAny",
+      "size": [
+        420,
+        140
+      ],
+      "flags": {},
+      "order": 76,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 57
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 78,
+      "type": "PreviewAny",
+      "pos": [
+        1390,
+        1070
+      ],
+      "title": "查看自动补充后的完整提示词 · PreviewAny",
+      "size": [
+        700,
+        1000
+      ],
+      "flags": {},
+      "order": 77,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 58
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 79,
+      "type": "SaveImage",
+      "pos": [
+        4120,
+        1750
+      ],
+      "title": "保存语义皮肤区域叠加预览 · SaveImage",
+      "size": [
+        440,
+        380
+      ],
+      "flags": {},
+      "order": 78,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 59
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "h3_fizgig/skin_pipeline/skin_overlay"
+      ]
+    },
+    {
+      "id": 100,
+      "type": "MarkdownNote",
+      "pos": [
+        0,
+        2480
+      ],
+      "size": [
+        1600,
+        1100
+      ],
+      "title": "查看操作说明 · MarkdownNote",
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# 06_前置取色与肤色复测局部校色_3D角色展示板_H3REF+Fizgig_4096x2304\n\n前置取色 → 自动补充提示词 → 生成 → 肤色复测 → 必要时局部校色 → 同点再测。\n\n1. 参考取色由语义皮肤与RGB/Lab筛选共同确定；排除背景、白袜、紫色衣服和明显金饰，截去亮度上下20%再取中位数。参考脸部与身体分别记录。\n2. “编辑角色设计基础提示词”只描述设计与布局；H3SkinPrompt自动追加实际RGB/HEX与自然语言肤色约束。数字是软约束，不保证生成像素等于色号。\n3. 新图先按角色/细节格分别分割，再测量。mode=auto时，区域ΔE76大于threshold才局部校色；off跳过，always尝试所有有偏差区域。候选方案不改善该区域统计就不采用。\n4. 校色限制L与色度改变量，保护高光，向内羽化。最终复测固定使用校色前取样坐标与索引，不重新选更好看的像素。\n5. 输出before_rgb_prompt、after_calibrated、皮肤遮罩、色卡及measurement_*.json。报告分别判断“前置RGB提示词本身是否改善”和“局部校色是否改善”。若前置提示词未改善，报告会明确标为false。\n6. 无RGB提示词对照图是已有工作流05的实测结果。同一人物、基础提示词、seed=20261012、4096×2304、30步；换人物/提示词/种子后应同步更换这张对照图或断开报告节点baseline_report，避免误比较。\n7. 语义模型使用本地缓存的MediaPipe；不自动安装包或下载权重。眼睛、嘴唇、半透明衣料和背部可能分割不完整，先看skin_overlay和遮罩，必要时连接H3SkinMask.external_mask收紧范围。\n8. 第10个细节格按指定布局应为膝盖/小腿；若语义模型漏检且超过70%像素符合肤色，使用该格的颜色回退，必须确认该格确实是腿部。\n9. 自动排版依赖纯白背景与可检测网格。找不到3个人物会停止并报错，不默默裁掉手脚。原图背部和物理材质底色仍不能由一个RGB唯一确定。\n"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      5,
+      0,
+      "CLIP"
+    ],
+    [
+      2,
+      3,
+      0,
+      5,
+      1,
+      "VAE"
+    ],
+    [
+      3,
+      53,
+      0,
+      5,
+      2,
+      "STRING"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      3,
+      "IMAGE"
+    ],
+    [
+      5,
+      1,
+      0,
+      9,
+      0,
+      "MODEL"
+    ],
+    [
+      6,
+      1,
+      0,
+      10,
+      0,
+      "MODEL"
+    ],
+    [
+      7,
+      5,
+      0,
+      10,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      8,
+      7,
+      0,
+      11,
+      0,
+      "NOISE"
+    ],
+    [
+      9,
+      10,
+      0,
+      11,
+      1,
+      "GUIDER"
+    ],
+    [
+      10,
+      8,
+      0,
+      11,
+      2,
+      "SAMPLER"
+    ],
+    [
+      11,
+      9,
+      0,
+      11,
+      3,
+      "SIGMAS"
+    ],
+    [
+      12,
+      6,
+      0,
+      11,
+      4,
+      "LATENT"
+    ],
+    [
+      13,
+      11,
+      0,
+      12,
+      0,
+      "LATENT"
+    ],
+    [
+      14,
+      3,
+      0,
+      12,
+      1,
+      "VAE"
+    ],
+    [
+      15,
+      4,
+      0,
+      50,
+      0,
+      "IMAGE"
+    ],
+    [
+      16,
+      4,
+      0,
+      51,
+      0,
+      "IMAGE"
+    ],
+    [
+      17,
+      50,
+      0,
+      51,
+      1,
+      "H3_SKIN_MASK"
+    ],
+    [
+      18,
+      52,
+      0,
+      53,
+      0,
+      "STRING"
+    ],
+    [
+      19,
+      51,
+      0,
+      53,
+      1,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      20,
+      12,
+      0,
+      54,
+      0,
+      "IMAGE"
+    ],
+    [
+      21,
+      54,
+      0,
+      55,
+      0,
+      "IMAGE"
+    ],
+    [
+      22,
+      54,
+      1,
+      55,
+      1,
+      "STRING"
+    ],
+    [
+      23,
+      54,
+      0,
+      56,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      55,
+      0,
+      56,
+      1,
+      "H3_SKIN_MASK"
+    ],
+    [
+      25,
+      51,
+      0,
+      57,
+      0,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      26,
+      56,
+      0,
+      57,
+      1,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      27,
+      54,
+      0,
+      58,
+      0,
+      "IMAGE"
+    ],
+    [
+      28,
+      51,
+      0,
+      58,
+      1,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      29,
+      56,
+      0,
+      58,
+      2,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      30,
+      57,
+      2,
+      58,
+      3,
+      "BOOLEAN"
+    ],
+    [
+      31,
+      58,
+      0,
+      59,
+      0,
+      "IMAGE"
+    ],
+    [
+      32,
+      51,
+      0,
+      59,
+      1,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      33,
+      56,
+      0,
+      59,
+      2,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      34,
+      54,
+      0,
+      60,
+      0,
+      "IMAGE"
+    ],
+    [
+      35,
+      58,
+      0,
+      61,
+      0,
+      "IMAGE"
+    ],
+    [
+      36,
+      51,
+      2,
+      68,
+      0,
+      "IMAGE"
+    ],
+    [
+      37,
+      56,
+      2,
+      69,
+      0,
+      "IMAGE"
+    ],
+    [
+      38,
+      55,
+      1,
+      62,
+      0,
+      "MASK"
+    ],
+    [
+      39,
+      62,
+      0,
+      63,
+      0,
+      "IMAGE"
+    ],
+    [
+      40,
+      50,
+      1,
+      64,
+      0,
+      "MASK"
+    ],
+    [
+      41,
+      64,
+      0,
+      65,
+      0,
+      "IMAGE"
+    ],
+    [
+      42,
+      58,
+      1,
+      66,
+      0,
+      "MASK"
+    ],
+    [
+      43,
+      66,
+      0,
+      67,
+      0,
+      "IMAGE"
+    ],
+    [
+      44,
+      71,
+      0,
+      72,
+      0,
+      "IMAGE"
+    ],
+    [
+      45,
+      71,
+      0,
+      74,
+      0,
+      "IMAGE"
+    ],
+    [
+      46,
+      72,
+      0,
+      74,
+      1,
+      "H3_SKIN_MASK"
+    ],
+    [
+      47,
+      51,
+      0,
+      75,
+      0,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      48,
+      74,
+      0,
+      75,
+      1,
+      "H3_SKIN_PROFILE"
+    ],
+    [
+      49,
+      51,
+      1,
+      70,
+      0,
+      "STRING"
+    ],
+    [
+      50,
+      57,
+      0,
+      70,
+      1,
+      "STRING"
+    ],
+    [
+      51,
+      58,
+      2,
+      70,
+      2,
+      "STRING"
+    ],
+    [
+      52,
+      59,
+      0,
+      70,
+      3,
+      "STRING"
+    ],
+    [
+      53,
+      53,
+      0,
+      70,
+      4,
+      "STRING"
+    ],
+    [
+      54,
+      54,
+      1,
+      70,
+      5,
+      "STRING"
+    ],
+    [
+      55,
+      75,
+      0,
+      70,
+      6,
+      "STRING"
+    ],
+    [
+      56,
+      57,
+      1,
+      76,
+      0,
+      "*"
+    ],
+    [
+      57,
+      59,
+      1,
+      77,
+      0,
+      "*"
+    ],
+    [
+      58,
+      53,
+      0,
+      78,
+      0,
+      "*"
+    ],
+    [
+      59,
+      55,
+      2,
+      79,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "01 前置语义取色与提示词自动补充",
+      "bounding": [
+        -30,
+        -70,
+        1820,
+        2380
+      ],
+      "color": "#665278",
+      "font_size": 30,
+      "flags": {}
+    },
+    {
+      "title": "02 H3 REF生成与自动排版",
+      "bounding": [
+        1850,
+        -70,
+        2210,
+        1900
+      ],
+      "color": "#3f6075",
+      "font_size": 30,
+      "flags": {}
+    },
+    {
+      "title": "03 生成肤色复测与条件局部校色",
+      "bounding": [
+        4090,
+        250,
+        1980,
+        1900
+      ],
+      "color": "#416858",
+      "font_size": 30,
+      "flags": {}
+    },
+    {
+      "title": "04 校色前后图像输出",
+      "bounding": [
+        6040,
+        170,
+        1180,
+        1620
+      ],
+      "color": "#756047",
+      "font_size": 30,
+      "flags": {}
+    },
+    {
+      "title": "05 无RGB提示词对照（已有图，不重复采样）",
+      "bounding": [
+        1850,
+        1870,
+        1940,
+        610
+      ],
+      "color": "#655d75",
+      "font_size": 30,
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.25,
+      "offset": [
+        80,
+        180
+      ]
+    }
+  },
+  "version": 0.4
+}

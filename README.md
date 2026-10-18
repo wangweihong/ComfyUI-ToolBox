@@ -181,3 +181,11 @@ python3 -m pip install -r requirements.txt
 | details | STRING | JSON 详情，包含模型分数、阈值、命中标签和判定来源 |
 
 该检测仅覆盖成人性内容，不是暴力、仇恨或违法内容的完整安全审核。自动分类可能误报或漏报，不应作为高风险场景中的唯一审核措施。
+
+## 参考取色与肤色复测局部校色
+
+新增 `ToolBox/SkinColor` 的8个节点：前置取色 → 自动补充提示词 → 生成后复测 → 必要时局部校色 → 固定像素再测。节点与工作流名称使用“功能 + 节点”，内部H3Skin标识保留兼容。
+
+[节点与模型说明](docs/skin_color_pipeline.md) · [3D角色展示板示例工作流](examples/skin_color/)
+
+按需安装 `requirements-skin-color.txt`，分割模型放置在 `models/mediapipe/selfie_multiclass_256x256.tflite`。RGB提示词是软约束，必须以复测报告与遮罩预览判断效果。

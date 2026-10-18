@@ -737,5 +737,29 @@
         "tooltip": "以灰色为中心显示放大的修正成分，仅供诊断。若能辨认明显的人物或织物细节，修正限制可能过高。"
       }
     }
+  },
+  "H3SkinMask": {
+    "display_name": "识别皮肤区域 · H3SkinMask"
+  },
+  "H3SkinMeasure": {
+    "display_name": "提取RGB与Lab肤色 · H3SkinMeasure"
+  },
+  "H3SkinPrompt": {
+    "display_name": "自动补充肤色提示词 · H3SkinPrompt"
+  },
+  "H3SkinCompare": {
+    "display_name": "量化肤色偏差 · H3SkinCompare"
+  },
+  "H3SkinCorrect": {
+    "display_name": "条件触发局部校色 · H3SkinCorrect"
+  },
+  "H3SkinRecheck": {
+    "display_name": "固定取样点复测 · H3SkinRecheck"
+  },
+  "H3SkinBoardLayout": {
+    "display_name": "三视图与细节60/40排版 · H3SkinBoardLayout"
+  },
+  "H3SkinSaveReport": {
+    "display_name": "保存肤色闭环报告 · H3SkinSaveReport"
   }
 }
