@@ -8,26 +8,28 @@
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
 
+## VAE 去网格（DeGrid）
+
+`ToolBoxVAEDeGrid`（`tb-vae-degrid` / `tb-VAE去网格`）去除 Qwen Image、Qwen Image 2.1、Wan 2.1 VAE 解码中的 2px 网格。支持逐图自动检测与校准、手动修正限制、干净图原像素透传、网格放大预览和中英文执行状态；无需新模型或额外依赖。
+
+连接：`VAE Decode → ToolBoxVAEDeGrid → 锐化 / 放大 / 保存`。应在任何缩放或修复前使用，不自动改变已有工作流。
+
+[使用说明](docs/degrid.md) · [对比工作流](examples/degrid/01-去网格对比.json)。
+
 ## 丝袜纹理与引导编辑
 
 为图片中的丝袜添加沿腿部弧度贴合的织物纹理、花纹、英文印花和钩丝效果。推荐使用 `NFStockingTexture` 一体化节点，在同一窗口完成部位选区、走向编辑和纹理预览。
-
-### 开源来源与致谢
-
-**本功能的核心算法来源于开源项目 [silvermoong/stocking-texture-tool](https://github.com/silvermoong/stocking-texture-tool)**，包括走向求解、织物纹理渲染和抗摩尔纹处理。感谢原作者 Silvermoong 的开源贡献；原项目采用 MIT 许可证，本仓库保留了原作者版权声明及完整许可，详见 [来源与移植说明](nodes/stocking_texture/UPSTREAM.md) 和 [上游 MIT 许可证](nodes/stocking_texture/LICENSE)。
-
-本项目在该核心算法基础上实现了 ComfyUI 节点、编辑器、预览接口、模型适配及示例工作流，并扩展了八种花纹、英文印花和钩丝/抽丝效果。
 
 ### 功能介绍
 
 | 功能 | 说明 |
 | --- | --- |
-| 一体化编辑 | 「部位／走向／纹理」三页完成编辑；打开窗口只准备必要上游，无需先运行完整工作流 |
+| 一体化编辑 | 「部位／走向／纹理」三页完成编辑；打开窗口只准备必要输入，无需先运行完整工作流 |
 | 选区与修边 | 支持画笔、橡皮、外部 MASK，以及可选 SAM ViT-B 点选；候选范围可预览、应用或取消 |
 | SAM3 语义识别 | 可选连接 Easy-Sam3 image 模型加载器，按 `stockings` 等文本逐图识别部位，再手工修边 |
 | 走向与深度 | 手绘横向引导控制纹理弧度；缺少手绘引导时可生成基础走向，可选灰度深度辅助贴合与隔开 |
 | 14 种样式 | 原有细线、针织、斜单线、加濑风、油光（试验）；新版增加透肤自适应 Coil 线圈，以及波点、爱心、菱格、小渔网、大渔网、蕾丝、花卉、豹纹 |
-| 上游新版渲染 | 显式切换至 f74c8ac，使用 Coil、深度摩尔纹及新版连续油光；旧工作流默认保持原输出 |
+| 扩展渲染 | 支持 Coil 线圈、深度摩尔纹及连续油光，可切换渲染版本；旧工作流默认保持原输出 |
 | 部位编辑与镜像 | 手画切开、自动贴线分割、合并、清空、走向镜像、指针删除和横／纵引导显示 |
 | 材质预设与恢复 | 按用户保存材质预设；独立自动恢复草稿，仍需保存并关闭才写入节点 |
 | PSD 互通 | 可选 psd-tools 支持 PSD/PSB 导入、引导 PSD 导出，以及成品和柔和透明 PNG |
@@ -60,14 +62,14 @@
 | [01-手工点选与统一编辑](examples/stocking_texture/unified/01-手工点选与统一编辑.json) | 画笔选区、走向与统一纹理编辑；默认选区为空，需要先编辑选区 |
 | [02-SAM3语义识别与点选修边](examples/stocking_texture/unified/02-SAM3语义识别与点选修边.json) | SAM3 文本识别，再用 SAM ViT-B 点选修边；需准备对应本地模型 |
 | [03-深度辅助与逐图批处理](examples/stocking_texture/unified/03-深度辅助与逐图批处理.json) | 两张图片组成真实批次，逐图识别并使用 Small 深度辅助；需 SAM3、SAM ViT-B 和 Small 深度模型 |
-| [04-五种纹理并排对比](examples/stocking_texture/unified/04-五种纹理并排对比.json) | 比较原有五种织物纹理，共用图片与识别来源；需对应识别模型 |
+| [04-五种纹理并排对比](examples/stocking_texture/unified/04-五种纹理并排对比.json) | 比较原有五种织物纹理，共用图片与识别结果；需对应识别模型 |
 | [05-图层合成与效果诊断](examples/stocking_texture/unified/05-图层合成与效果诊断.json) | 对应原图合成、透明图层及诊断预览；需对应识别模型 |
 | [06-八种花纹总览](examples/stocking_texture/effects/06-八种花纹总览.json) | 并行预览八种新增花纹，内置合成图选区，无需识别/深度模型 |
 | [07-英文错行印花](examples/stocking_texture/effects/07-英文错行印花.json) | BALENCIAGA 英文重复印花，可修改文本和排列参数；无需识别/深度模型 |
 | [08-钩丝与梯状抽丝](examples/stocking_texture/effects/08-钩丝与梯状抽丝.json) | 随机损伤与预设手工路径组合，可继续编辑；无需识别/深度模型 |
 | [09-花纹文字损伤组合](examples/stocking_texture/effects/09-花纹文字损伤组合.json) | 爱心花纹、PARIS 字样和损伤叠加；无需识别/深度模型 |
 
-新增上游能力示例（无需识别模型）：
+线圈、油光、图层与 PSD 示例（无需识别模型）：
 
 | 工作流 | 用途 |
 | --- | --- |
@@ -80,15 +82,13 @@
 
 高级分步例子：[手工引导](examples/stocking_texture/manual.json)、[外部遮罩与深度](examples/stocking_texture/external-depth.json)、[SAM 点选](examples/stocking_texture/sam.json)、[批次渲染](examples/stocking_texture/batch.json)。这些高级例子包含 SaveImage 节点，执行前可调整保存位置。
 
-### 效果预览与验证
+### 效果预览
 
 下图为八种新增花纹在公开合成图片上的实际渲染结果：
 
 ![八种丝袜花纹对比](docs/images/stocking_patterns_overview.png)
 
-![上游新版丝袜效果对比](docs/images/stocking_upstream_comparison.png)
-
-验证记录：[上游能力验收](docs/testing/stocking_upstream_2026-10-11.md)、[一体化编辑与模型验收](docs/testing/stocking_unified_2026-10-10.md)、[花纹、英文印花与钩丝验收](docs/testing/stocking_effects_2026-10-10.md)。
+![线圈、油光与图层效果对比](docs/images/stocking_upstream_comparison.png)
 
 ### 有序图层与部位材质
 
@@ -101,13 +101,13 @@
 | [17-有序多层文字](examples/stocking_texture/materials/17-有序多层文字.json) | 爱心＋PARIS＋BALENCIAGA |
 | [18-材质配置节点连线](examples/stocking_texture/materials/18-材质配置节点连线.json) | 五个新配置节点与只读全局材质 |
 
-English: six base fabrics can be combined with up to 16 ordered procedural pattern/text layers and final damage. Regions inherit or override the global material. The five composable configuration nodes connect through the optional material input; linked global settings are read-only while region overrides remain editable. V1 pixels and workflow ports remain compatible. See [V2 usage](docs/stocking_texture.md#有序材质图层与部位覆盖v2) and [acceptance/performance results](docs/testing/stocking_materials_2026-10-11.md).
+English: six base fabrics can be combined with up to 16 ordered procedural pattern/text layers and final damage. Regions inherit or override the global material. The five composable configuration nodes connect through the optional material input; linked global settings are read-only while region overrides remain editable. V1 pixels and workflow ports remain compatible. See [V2 usage](docs/stocking_texture.md#有序材质图层与部位覆盖v2).
 
 ![有序材质图层对比](docs/images/stocking_materials_comparison.png)
 
-### 原生高清多场景验收
+### 原生高清多场景示例
 
-新增 [19-Qwen21原生高清素材生成](examples/stocking_texture/hd/19-Qwen21原生高清测试素材生成.json) 与 [20-高清多场景大工作流](examples/stocking_texture/hd/20-高清多场景丝袜纹理与图层对比.json)。复用本地 Qwen 2.1，生成并逐张检查 12 张原生 2048×2048 图片，覆盖二次元/写实、站姿/跪姿/坐姿和连裤袜/大腿袜；540 节点工作流对比 108 个材质分支，保存完整高清结果与场景总览。模型及大图片留在本地，使用说明见 [高清示例说明](examples/stocking_texture/hd/README.md)，结果与细节图见 [高清验收记录](docs/testing/stocking_hd_2026-10-11.md)。
+[19-Qwen21原生高清素材生成](examples/stocking_texture/hd/19-Qwen21原生高清测试素材生成.json) 使用本地 Qwen 2.1 生成原生 2048×2048 图片，覆盖二次元/写实、站姿/跪姿/坐姿和连裤袜/大腿袜。[20-高清多场景大工作流](examples/stocking_texture/hd/20-高清多场景丝袜纹理与图层对比.json) 支持多场景材质分支对比，保存完整高清结果与场景总览。模型及大图片留在本地，详见 [高清示例说明](examples/stocking_texture/hd/README.md)。
 
 ## 🚀 核心功能：尺寸管理 (Size Management)
 ### tb-latent-size (ToolBoxLatentSize)

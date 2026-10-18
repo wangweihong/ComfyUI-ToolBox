@@ -1,0 +1,433 @@
+[
+  {
+    "image": "tb_degrid_demo.png",
+    "prompt_id": "dcc7b88a-5395-4c88-a219-89307b636610",
+    "status": "success",
+    "shape": [
+      384,
+      512,
+      3
+    ],
+    "queue_and_validation_seconds": 0.886,
+    "input_grid_255": 5.138839026913047,
+    "output_grid_255": 0.15854420664254576,
+    "mean_change_255": 2.0851253933376737,
+    "max_change_255": 8,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 5.138839026913047,
+          "texture_255": 2.512591425329447,
+          "checker_255": 4.095784071832895,
+          "vstripe_255": 1.0437288251705468,
+          "hstripe_255": 0.014193425886332989,
+          "limit": 0.029559899121522903,
+          "clipped_pct": 1.0523478984832764,
+          "skipped": false
+        }
+      ],
+      "text": "grid 5.14/255 (checker) — filtered (limit 0.030 auto) · edges protected: 1.1%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_01-anime-standing-pantyhose.png",
+    "prompt_id": "2c1903fd-31c3-473b-a297-f265cdc5e34f",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.331,
+    "input_grid_255": 0.9436180908232927,
+    "output_grid_255": 0.1599020103458315,
+    "mean_change_255": 0.5677843888600668,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 0.9436180908232927,
+          "texture_255": 0.5404533713590354,
+          "checker_255": 0.6465824483893812,
+          "vstripe_255": 0.29703558306209743,
+          "hstripe_255": 0.1998821587767452,
+          "limit": 0.006358275189995766,
+          "clipped_pct": 1.2231190204620361,
+          "skipped": false
+        }
+      ],
+      "text": "grid 0.94/255 (checker) — filtered (limit 0.006 auto) · edges protected: 1.2%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_02-anime-standing-thigh_high.png",
+    "prompt_id": "35100451-6a37-4a80-aba1-680a033574f6",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.31,
+    "input_grid_255": 0.8299412531778216,
+    "output_grid_255": 0.15348792483564466,
+    "mean_change_255": 0.5651605129241943,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 0.8299412531778216,
+          "texture_255": 0.5015859100967646,
+          "checker_255": 0.5621925985906273,
+          "vstripe_255": 0.27246527024544775,
+          "hstripe_255": 0.16651138459565118,
+          "limit": 0.00590101070702076,
+          "clipped_pct": 2.1859488487243652,
+          "skipped": false
+        }
+      ],
+      "text": "grid 0.83/255 (checker) — filtered (limit 0.006 auto) · edges protected: 2.2%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_03-anime-kneeling-pantyhose.png",
+    "prompt_id": "ea8a9b41-f64d-4b0d-b627-7ee9d6f07f23",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.283,
+    "input_grid_255": 1.0133980214595795,
+    "output_grid_255": 0.11881290774908848,
+    "mean_change_255": 0.5970842838287354,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.0133980214595795,
+          "texture_255": 0.5892326007597148,
+          "checker_255": 0.6950107309967279,
+          "vstripe_255": 0.3183872310910374,
+          "hstripe_255": 0.19998092378955334,
+          "limit": 0.006932148244231939,
+          "clipped_pct": 2.066159248352051,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.01/255 (checker) — filtered (limit 0.007 auto) · edges protected: 2.1%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_04-anime-kneeling-thigh_high.png",
+    "prompt_id": "6ba6fa1f-6e51-47c0-9a90-67e6a2a87feb",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.485,
+    "input_grid_255": 1.0286394786089659,
+    "output_grid_255": 0.11516704791574739,
+    "mean_change_255": 0.6005732218424479,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.0286394786089659,
+          "texture_255": 0.6000700942240655,
+          "checker_255": 0.7032630569301546,
+          "vstripe_255": 0.32537648105062544,
+          "hstripe_255": 0.19533178419806063,
+          "limit": 0.0070596481673419476,
+          "clipped_pct": 2.426084041595459,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.03/255 (checker) — filtered (limit 0.007 auto) · edges protected: 2.4%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_05-anime-sitting-pantyhose.png",
+    "prompt_id": "26900da3-6e84-4741-ad10-3f04dcd2dda6",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.297,
+    "input_grid_255": 0.9715727751608938,
+    "output_grid_255": 0.1274239062331617,
+    "mean_change_255": 0.5797075430552164,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 0.9715727751608938,
+          "texture_255": 0.5750866723246872,
+          "checker_255": 0.6893233861774206,
+          "vstripe_255": 0.2822493889834732,
+          "hstripe_255": 0.1991168560925871,
+          "limit": 0.006765725556761026,
+          "clipped_pct": 1.8398603200912476,
+          "skipped": false
+        }
+      ],
+      "text": "grid 0.97/255 (checker) — filtered (limit 0.007 auto) · edges protected: 1.8%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_06-anime-sitting-thigh_high.png",
+    "prompt_id": "0f28eba2-58b7-4b16-8cc7-66f2c378a6b8",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.309,
+    "input_grid_255": 0.9783184225670993,
+    "output_grid_255": 0.13956928654806688,
+    "mean_change_255": 0.5899904568990072,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 0.9783184225670993,
+          "texture_255": 0.5765231733676046,
+          "checker_255": 0.6822639587335289,
+          "vstripe_255": 0.29605449351947755,
+          "hstripe_255": 0.19438741612248123,
+          "limit": 0.006782625801861286,
+          "clipped_pct": 2.534667491912842,
+          "skipped": false
+        }
+      ],
+      "text": "grid 0.98/255 (checker) — filtered (limit 0.007 auto) · edges protected: 2.5%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_07-realistic-standing-pantyhose.png",
+    "prompt_id": "324fea44-ea49-4f59-b027-d4ea375f639f",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.283,
+    "input_grid_255": 1.132642866577953,
+    "output_grid_255": 0.13464838732033968,
+    "mean_change_255": 0.5878432591756185,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.132642866577953,
+          "texture_255": 0.6014859932474792,
+          "checker_255": 0.808809221489355,
+          "vstripe_255": 0.32383364508859813,
+          "hstripe_255": 0.23779463925166056,
+          "limit": 0.00707630580291152,
+          "clipped_pct": 0.6619294881820679,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.13/255 (checker) — filtered (limit 0.007 auto) · edges protected: 0.7%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_08-realistic-standing-thigh_high.png",
+    "prompt_id": "55e14b7b-abd0-445a-a60c-1bf429cc9da1",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.75,
+    "input_grid_255": 1.0281282872892916,
+    "output_grid_255": 0.1507720205700025,
+    "mean_change_255": 0.5820546944936117,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.0281282872892916,
+          "texture_255": 0.5579216871410608,
+          "checker_255": 0.7253961567766964,
+          "vstripe_255": 0.3027321305125952,
+          "hstripe_255": 0.2231145277619362,
+          "limit": 0.006563784554600716,
+          "clipped_pct": 1.0296027660369873,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.03/255 (checker) — filtered (limit 0.007 auto) · edges protected: 1.0%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_09-realistic-kneeling-pantyhose.png",
+    "prompt_id": "7212a260-0d0f-4df8-8d81-b2bb365ce1da",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.293,
+    "input_grid_255": 1.1548966099508107,
+    "output_grid_255": 0.12557981768622994,
+    "mean_change_255": 0.6017652352650961,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.1548966099508107,
+          "texture_255": 0.613876119023189,
+          "checker_255": 0.8092497009783983,
+          "vstripe_255": 0.34564690897241235,
+          "hstripe_255": 0.23956650198670104,
+          "limit": 0.007222072221338749,
+          "clipped_pct": 0.704677939414978,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.15/255 (checker) — filtered (limit 0.007 auto) · edges protected: 0.7%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_10-realistic-kneeling-thigh_high.png",
+    "prompt_id": "23f35eae-e80f-45ff-9b76-01e29a44386f",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.426,
+    "input_grid_255": 1.117950479965657,
+    "output_grid_255": 0.1277021670830436,
+    "mean_change_255": 0.5909647941589355,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.117950479965657,
+          "texture_255": 0.5948465620167553,
+          "checker_255": 0.7801662990823388,
+          "vstripe_255": 0.3377841808833182,
+          "hstripe_255": 0.2180230533122085,
+          "limit": 0.006998194847255945,
+          "clipped_pct": 0.6050586700439453,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.12/255 (checker) — filtered (limit 0.007 auto) · edges protected: 0.6%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_11-realistic-sitting-pantyhose.png",
+    "prompt_id": "6a83bc9e-6b02-485a-bb4b-8b33e07d7e7d",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.483,
+    "input_grid_255": 1.1774086207151413,
+    "output_grid_255": 0.12210009503178298,
+    "mean_change_255": 0.6045694351196289,
+    "max_change_255": 2,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.1774086207151413,
+          "texture_255": 0.6237795751076192,
+          "checker_255": 0.8360739459749311,
+          "vstripe_255": 0.34133461536839604,
+          "hstripe_255": 0.23485432437155396,
+          "limit": 0.007338583469390869,
+          "clipped_pct": 0.6591638326644897,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.18/255 (checker) — filtered (limit 0.007 auto) · edges protected: 0.7%"
+    }
+  },
+  {
+    "image": "tb_stocking_square_12-realistic-sitting-thigh_high.png",
+    "prompt_id": "261390df-f0e1-40a5-92b3-dbb54d933947",
+    "status": "success",
+    "shape": [
+      2048,
+      2048,
+      3
+    ],
+    "queue_and_validation_seconds": 2.338,
+    "input_grid_255": 1.2955192266963422,
+    "output_grid_255": 0.12679156672675163,
+    "mean_change_255": 0.6354994773864746,
+    "max_change_255": 3,
+    "reference_max_error_255": 0,
+    "node_status": {
+      "enabled": true,
+      "mode": "auto",
+      "stats": [
+        {
+          "amp_255": 1.2955192266963422,
+          "texture_255": 0.6765294133219868,
+          "checker_255": 0.920607119332999,
+          "vstripe_255": 0.37491210736334324,
+          "hstripe_255": 0.25621532346121967,
+          "limit": 0.007959169335663319,
+          "clipped_pct": 0.97734135389328,
+          "skipped": false
+        }
+      ],
+      "text": "grid 1.30/255 (checker) — filtered (limit 0.008 auto) · edges protected: 1.0%"
+    },
+    "cached_prompt_id": "473a2325-7c64-4fac-881c-b1d29b4af6b9",
+    "cached_status_replayed": true
+  }
+]

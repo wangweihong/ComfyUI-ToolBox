@@ -1,0 +1,50 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "tb_degrid_demo.png"
+    }
+  },
+  "2": {
+    "class_type": "ToolBoxVAEDeGrid",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "enabled": true,
+      "mode": "auto",
+      "limit": 0.02,
+      "skip_when_clean": true,
+      "grid_gain": 10.0,
+      "grid_view": "4x zoom"
+    }
+  },
+  "3": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    }
+  },
+  "5": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "2",
+        1
+      ]
+    }
+  }
+}

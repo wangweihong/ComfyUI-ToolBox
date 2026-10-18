@@ -693,5 +693,49 @@
   },
   "NFStockingMaterial": {
     "display_name": "tb-Stocking material"
+  },
+  "ToolBoxVAEDeGrid": {
+    "display_name": "tb-vae-degrid",
+    "description": "Remove the 2px grid from Qwen Image / Qwen Image 2.1 / Wan 2.1 VAE decodes. Connect before resize, sharpening, upscaling or restoration. Auto calibrates per image and preserves clean images. removed_grid is a preview only.",
+    "inputs": {
+      "image": {
+        "name": "Image",
+        "tooltip": "Connect directly after VAE Decode."
+      },
+      "enabled": {
+        "name": "Enabled",
+        "tooltip": "Off passes the original image through untouched for A/B comparison."
+      },
+      "mode": {
+        "name": "Mode",
+        "tooltip": "auto: calibrate each image; manual: use the limit below."
+      },
+      "limit": {
+        "name": "Correction limit",
+        "tooltip": "Manual only; ignored in auto. Maximum per-pixel correction in 0–1 units. Too high may soften fine texture."
+      },
+      "skip_when_clean": {
+        "name": "Skip clean images",
+        "tooltip": "Preserve original pixels when no phase-locked 2px grid is detected. Off forces filtering."
+      },
+      "grid_gain": {
+        "name": "Grid preview gain",
+        "tooltip": "Amplifies removed_grid only; never changes the cleaned image."
+      },
+      "grid_view": {
+        "name": "Grid preview view",
+        "tooltip": "Full frame or 4x/8x nearest-neighbor center crop. Preview only; the cleaned image is never cropped."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Image",
+        "tooltip": "Cleaned image at its original resolution."
+      },
+      "1": {
+        "name": "Removed grid",
+        "tooltip": "Amplified correction centered on gray. Preview only. Recognizable subject detail suggests too high a limit."
+      }
+    }
   }
 }

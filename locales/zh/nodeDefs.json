@@ -693,5 +693,49 @@
   },
   "NFStockingMaterial": {
     "display_name": "tb-丝袜基础材质"
+  },
+  "ToolBoxVAEDeGrid": {
+    "display_name": "tb-VAE去网格",
+    "description": "去除 Qwen Image / Qwen Image 2.1 / Wan 2.1 VAE 解码的 2px 网格。接在 VAE Decode 后、缩放、锐化、放大或修复前。自动模式逐图校准，干净图保留原始像素。removed_grid 仅供诊断预览。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "直接连接 VAE Decode 输出。"
+      },
+      "enabled": {
+        "name": "启用",
+        "tooltip": "关闭时原图直接透传，便于对比。"
+      },
+      "mode": {
+        "name": "模式",
+        "tooltip": "auto：逐图自动校准；manual：使用下方修正限制。"
+      },
+      "limit": {
+        "name": "修正限制",
+        "tooltip": "仅手动模式生效，自动模式忽略。限制 0–1 范围内的逐像素修正幅度，过高可能柔化细纹理。"
+      },
+      "skip_when_clean": {
+        "name": "跳过干净图",
+        "tooltip": "未检测到相位固定的 2px 网格时保留原始像素。关闭则强制滤波。"
+      },
+      "grid_gain": {
+        "name": "网格预览增益",
+        "tooltip": "只放大 removed_grid，不影响处理图。"
+      },
+      "grid_view": {
+        "name": "网格预览视图",
+        "tooltip": "full frame 为完整画面；4x/8x zoom 为中心裁剪后最近邻放大。仅影响预览，不裁剪处理图。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "处理图",
+        "tooltip": "原始分辨率的去网格图像。"
+      },
+      "1": {
+        "name": "移除的网格",
+        "tooltip": "以灰色为中心显示放大的修正成分，仅供诊断。若能辨认明显的人物或织物细节，修正限制可能过高。"
+      }
+    }
   }
 }
