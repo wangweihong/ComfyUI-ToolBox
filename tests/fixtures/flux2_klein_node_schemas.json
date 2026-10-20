@@ -1,0 +1,1569 @@
+{
+  "Flux2KleinRefLatentController": {
+    "display_name": "FLUX.2 Klein Ref Latent Controller",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "strength": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1000.0,
+            "step": 0.05
+          }
+        ],
+        "reference_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 7
+          }
+        ]
+      },
+      "optional": {
+        "spatial_fade": [
+          [
+            "none",
+            "center_out",
+            "edges_out",
+            "top_down",
+            "left_right"
+          ],
+          {
+            "default": "none"
+          }
+        ],
+        "spatial_fade_strength": [
+          "FLOAT",
+          {
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "conditioning",
+        "strength",
+        "reference_index"
+      ],
+      "optional": [
+        "spatial_fade",
+        "spatial_fade_strength",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "MODEL",
+      "CONDITIONING"
+    ],
+    "return_names": null,
+    "function": "control",
+    "signature": "(self, model, conditioning, strength=1.0, reference_index=0, spatial_fade='none', spatial_fade_strength=0.5, debug=False)",
+    "output_node": false
+  },
+  "Flux2KleinTextRefBalance": {
+    "display_name": "FLUX.2 Klein Text/Ref Balance",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "balance": [
+          "FLOAT",
+          {
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.001
+          }
+        ]
+      },
+      "optional": {
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "conditioning",
+        "balance"
+      ],
+      "optional": [
+        "debug"
+      ]
+    },
+    "return_types": [
+      "MODEL",
+      "CONDITIONING"
+    ],
+    "return_names": null,
+    "function": "balance_streams",
+    "signature": "(self, model, conditioning, balance=0.5, debug=False)",
+    "output_node": false
+  },
+  "Flux2KleinRefLatentWeight": {
+    "display_name": "FLUX.2 Klein Ref Latent Weight",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "reference_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 7
+          }
+        ],
+        "weight": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 5.0,
+            "step": 0.05
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "reference_index",
+        "weight"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "execute",
+    "signature": "(self, model, reference_index, weight)",
+    "output_node": false
+  },
+  "Flux2KleinTextEnhancer": {
+    "display_name": "FLUX.2 Klein Text Enhancer",
+    "inputs": {
+      "required": {
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "magnitude": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 3.0,
+            "step": 0.05,
+            "tooltip": "Scale text embeddings. <1=weaker prompt, >1=stronger"
+          }
+        ]
+      },
+      "optional": {
+        "contrast": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": -1.0,
+            "max": 2.0,
+            "step": 0.05,
+            "tooltip": "Token differentiation. >0=sharper, <0=blended"
+          }
+        ],
+        "normalize_strength": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Equalize token magnitudes"
+          }
+        ],
+        "skip_bos": [
+          "BOOLEAN",
+          {
+            "default": true,
+            "tooltip": "Skip token 0 (BOS token with huge norm)"
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "conditioning",
+        "magnitude"
+      ],
+      "optional": [
+        "contrast",
+        "normalize_strength",
+        "skip_bos",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "CONDITIONING"
+    ],
+    "return_names": null,
+    "function": "enhance",
+    "signature": "(self, conditioning, magnitude=1.0, contrast=0.0, normalize_strength=0.0, skip_bos=True, debug=False)",
+    "output_node": false
+  },
+  "Flux2KleinMultiReferenceLatent": {
+    "display_name": "Multi ReferenceLatent",
+    "inputs": {
+      "required": {
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "latent_1": [
+          "LATENT"
+        ]
+      },
+      "optional": {
+        "latent_2": [
+          "LATENT"
+        ],
+        "latent_3": [
+          "LATENT"
+        ],
+        "latent_4": [
+          "LATENT"
+        ],
+        "latent_5": [
+          "LATENT"
+        ],
+        "latent_6": [
+          "LATENT"
+        ],
+        "latent_7": [
+          "LATENT"
+        ],
+        "latent_8": [
+          "LATENT"
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "conditioning",
+        "latent_1"
+      ],
+      "optional": [
+        "latent_2",
+        "latent_3",
+        "latent_4",
+        "latent_5",
+        "latent_6",
+        "latent_7",
+        "latent_8"
+      ]
+    },
+    "return_types": [
+      "CONDITIONING"
+    ],
+    "return_names": [
+      "conditioning"
+    ],
+    "function": "apply",
+    "signature": "(self, conditioning, latent_1, **optional)",
+    "output_node": false
+  },
+  "Flux2KleinKSamplerExperimental": {
+    "display_name": "Flux2Klein KSampler Experimental",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "positive": [
+          "CONDITIONING"
+        ],
+        "latent_image": [
+          "LATENT"
+        ],
+        "steps": [
+          "INT",
+          {
+            "default": 4,
+            "min": 1,
+            "max": 200,
+            "tooltip": "Denoising steps. Distilled: 4. Base: 25-50."
+          }
+        ],
+        "seed": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 18446744073709551615
+          }
+        ],
+        "denoise": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "1.0 = full denoise from pure noise. Lower values blend noise into the input latent for img2img."
+          }
+        ],
+        "base_shift": [
+          "FLOAT",
+          {
+            "default": 0.5,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.01,
+            "tooltip": "Schedule shift at minimum resolution."
+          }
+        ],
+        "max_shift": [
+          "FLOAT",
+          {
+            "default": 1.15,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.01,
+            "tooltip": "Schedule shift at maximum resolution."
+          }
+        ]
+      },
+      "optional": {
+        "negative": [
+          "CONDITIONING"
+        ],
+        "cfg_scale": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 1.0,
+            "max": 30.0,
+            "step": 0.1,
+            "tooltip": "Classifier-free guidance scale. 1.0 = disabled (distilled default). Base model uses ~4.0. Requires negative conditioning."
+          }
+        ],
+        "guidance_embed": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 30.0,
+            "step": 0.1,
+            "tooltip": "Embedded guidance value. Only active if the loaded model has a guidance embedding layer. Klein 9B models do not — this will be ignored for them."
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "positive",
+        "latent_image",
+        "steps",
+        "seed",
+        "denoise",
+        "base_shift",
+        "max_shift"
+      ],
+      "optional": [
+        "negative",
+        "cfg_scale",
+        "guidance_embed"
+      ]
+    },
+    "return_types": [
+      "LATENT"
+    ],
+    "return_names": null,
+    "function": "sample",
+    "signature": "(self, model, positive, latent_image, steps, seed, denoise=1.0, base_shift=0.5, max_shift=1.15, negative=None, cfg_scale=1.0, guidance_embed=1.0)",
+    "output_node": false
+  },
+  "Flux2KleinEnhancer": {
+    "display_name": "FLUX.2 Klein Enhancer",
+    "inputs": {
+      "required": {
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "active_scale": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.05,
+            "tooltip": "Multiplier on every active-token embedding. 1.0 = unchanged. The model was trained on Qwen3's natural distribution; values far from 1.0 push it off-distribution."
+          }
+        ],
+        "per_token_whiten": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": -1.0,
+            "max": 5.0,
+            "step": 0.05,
+            "tooltip": "Amplifies per-token deviation from the sequence mean: (x - mean)*(1+w) + mean. >0 widens spread, <0 compresses. Was called 'contrast' in v1."
+          }
+        ],
+        "norm_equalize": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Blend each token toward the per-sequence mean L2 norm. Flattens magnitude variance — fights Qwen3's natural emphasis. 0 = no effect."
+          }
+        ]
+      },
+      "optional": {
+        "early_layer_scale": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 5.0,
+            "step": 0.05,
+            "tooltip": "Klein-specific. Scale the first Qwen3 layer slice (low-level / structural features). Klein conditioning stacks 3 layers along the embed dim; this targets the first."
+          }
+        ],
+        "mid_layer_scale": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 5.0,
+            "step": 0.05,
+            "tooltip": "Klein-specific. Scale the middle Qwen3 layer slice (intermediate semantic features)."
+          }
+        ],
+        "late_layer_scale": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 5.0,
+            "step": 0.05,
+            "tooltip": "Klein-specific. Scale the last Qwen3 layer slice (high-level / abstract semantic features)."
+          }
+        ],
+        "preserve_original": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Linear blend back the unmodified active region. 0.0 = full enhancement, 1.0 = no change."
+          }
+        ],
+        "active_end_override": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 512,
+            "step": 1,
+            "tooltip": "Override the active-region end. 0 = auto-detect from attention_mask, falls back to full sequence length if mask missing."
+          }
+        ],
+        "device": [
+          [
+            "auto",
+            "cpu"
+          ],
+          {
+            "default": "auto"
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "conditioning",
+        "active_scale",
+        "per_token_whiten",
+        "norm_equalize"
+      ],
+      "optional": [
+        "early_layer_scale",
+        "mid_layer_scale",
+        "late_layer_scale",
+        "preserve_original",
+        "active_end_override",
+        "device",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "CONDITIONING"
+    ],
+    "return_names": null,
+    "function": "enhance",
+    "signature": "(self, conditioning, active_scale=1.0, per_token_whiten=0.0, norm_equalize=0.0, early_layer_scale=1.0, mid_layer_scale=1.0, late_layer_scale=1.0, preserve_original=0.0, active_end_override=0, device='auto', debug=False)",
+    "output_node": false
+  },
+  "Flux2KleinDetailController": {
+    "display_name": "FLUX.2 Klein Detail Controller",
+    "inputs": {
+      "required": {
+        "conditioning": [
+          "CONDITIONING"
+        ]
+      },
+      "optional": {
+        "front_mult": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.05,
+            "tooltip": "Multiplier for the FRONT section. With Sectioned Encoder upstream this is the actual front token range; otherwise it's the first 25% of active tokens (arbitrary)."
+          }
+        ],
+        "mid_mult": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.05,
+            "tooltip": "Multiplier for the MID section."
+          }
+        ],
+        "end_mult": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.05,
+            "tooltip": "Multiplier for the END section."
+          }
+        ],
+        "emphasis_start": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 512,
+            "step": 1,
+            "tooltip": "Custom emphasis range start (token index)."
+          }
+        ],
+        "emphasis_end": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 512,
+            "step": 1,
+            "tooltip": "Custom emphasis range end (0 = disabled)."
+          }
+        ],
+        "emphasis_mult": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 10.0,
+            "step": 0.1,
+            "tooltip": "Multiplier applied inside [emphasis_start, emphasis_end)."
+          }
+        ],
+        "preserve_original": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Linear blend back the unmodified active region. 0 = full effect."
+          }
+        ],
+        "device": [
+          [
+            "auto",
+            "cpu"
+          ],
+          {
+            "default": "auto"
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "conditioning"
+      ],
+      "optional": [
+        "front_mult",
+        "mid_mult",
+        "end_mult",
+        "emphasis_start",
+        "emphasis_end",
+        "emphasis_mult",
+        "preserve_original",
+        "device",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "CONDITIONING"
+    ],
+    "return_names": null,
+    "function": "control",
+    "signature": "(self, conditioning, front_mult=1.0, mid_mult=1.0, end_mult=1.0, emphasis_start=0, emphasis_end=0, emphasis_mult=1.0, preserve_original=0.0, device='auto', debug=False)",
+    "output_node": false
+  },
+  "Flux2KleinSectionedEncoder": {
+    "display_name": "FLUX.2 Klein Sectioned Encoder",
+    "inputs": {
+      "required": {
+        "clip": [
+          "CLIP"
+        ]
+      },
+      "optional": {
+        "front_text": [
+          "STRING",
+          {
+            "multiline": true,
+            "default": "",
+            "tooltip": "FRONT section text."
+          }
+        ],
+        "mid_text": [
+          "STRING",
+          {
+            "multiline": true,
+            "default": "",
+            "tooltip": "MID section text."
+          }
+        ],
+        "end_text": [
+          "STRING",
+          {
+            "multiline": true,
+            "default": "",
+            "tooltip": "END section text."
+          }
+        ],
+        "combined_prompt": [
+          "STRING",
+          {
+            "multiline": true,
+            "default": "",
+            "tooltip": "Optional. Single prompt with [FRONT]/[MID]/[END] markers — overrides the three text boxes when non-empty and contains markers."
+          }
+        ],
+        "separator": [
+          [
+            "comma",
+            "period",
+            "space",
+            "newline"
+          ],
+          {
+            "default": "comma",
+            "tooltip": "How to join sections in the final prompt sent to Klein."
+          }
+        ],
+        "show_preview": [
+          "BOOLEAN",
+          {
+            "default": true
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "clip"
+      ],
+      "optional": [
+        "front_text",
+        "mid_text",
+        "end_text",
+        "combined_prompt",
+        "separator",
+        "show_preview",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "CONDITIONING",
+      "STRING",
+      "STRING",
+      "STRING",
+      "STRING"
+    ],
+    "return_names": [
+      "conditioning",
+      "front_section",
+      "mid_section",
+      "end_section",
+      "full_prompt"
+    ],
+    "function": "encode_sectioned",
+    "signature": "(self, clip, front_text='', mid_text='', end_text='', combined_prompt='', separator='comma', show_preview=True, debug=False)",
+    "output_node": true
+  },
+  "Flux2KleinMaskRefController": {
+    "display_name": "FLUX.2 Klein Mask Ref Controller",
+    "inputs": {
+      "required": {
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "mask": [
+          "MASK"
+        ]
+      },
+      "optional": {
+        "strength": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Attenuation strength in the BLACK regions of the mask. 1.0 = black regions multiplied by 0 (full attenuation). 0.5 = black regions kept at 50% of ref strength. 0.0 = mask ignored, ref passes through everywhere."
+          }
+        ],
+        "invert_mask": [
+          "BOOLEAN",
+          {
+            "default": false,
+            "tooltip": "Flip black/white. Enable if you painted the area you want attenuated rather than preserved."
+          }
+        ],
+        "feather": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 64,
+            "step": 1,
+            "tooltip": "Gaussian blur radius (in latent pixels) on mask edges. 0 = hard edges."
+          }
+        ],
+        "reference_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 7,
+            "step": 1,
+            "tooltip": "Which reference latent to attenuate when multiple are connected (0 = first)."
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "conditioning",
+        "mask"
+      ],
+      "optional": [
+        "strength",
+        "invert_mask",
+        "feather",
+        "reference_index",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "CONDITIONING"
+    ],
+    "return_names": null,
+    "function": "apply_mask",
+    "signature": "(self, conditioning, mask, strength=1.0, invert_mask=False, feather=0, reference_index=0, debug=False)",
+    "output_node": false
+  },
+  "Flux2KleinColorAnchor": {
+    "display_name": "FLUX.2 Klein Color Anchor",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "conditioning": [
+          "CONDITIONING"
+        ],
+        "strength": [
+          "FLOAT",
+          {
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Maximum correction strength. 0.3-0.6 is a good starting range. Too high and you override the model's color decisions entirely."
+          }
+        ]
+      },
+      "optional": {
+        "ramp_curve": [
+          "FLOAT",
+          {
+            "default": 1.5,
+            "min": 0.5,
+            "max": 8.0,
+            "step": 0.1,
+            "tooltip": "Controls the shape of the correction ramp. Formula: progress^(1/curve). 1.0 = linear. >1 = fast start, tapers off  (e.g. sqrt for curve=2). <1 = slow start, aggressive late  (e.g. squared for curve=0.5). For few-step schedules (4-8 steps) values of 2-4 work well because they reach useful strength quickly."
+          }
+        ],
+        "ref_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 63,
+            "tooltip": "Which reference latent to anchor colors from."
+          }
+        ],
+        "channel_weights": [
+          [
+            "uniform",
+            "by_variance"
+          ],
+          {
+            "default": "uniform",
+            "tooltip": "uniform: correct all channels equally. by_variance: weight correction by how stable each channel's mean is in the reference (low-variance channels trusted more)."
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "conditioning",
+        "strength"
+      ],
+      "optional": [
+        "ramp_curve",
+        "ref_index",
+        "channel_weights",
+        "debug"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "apply",
+    "signature": "(self, model, conditioning, strength=0.5, ramp_curve=1.5, ref_index=0, channel_weights='uniform', debug=False)",
+    "output_node": false
+  },
+  "IdentityGuidance": {
+    "display_name": "FLUX.2 Klein Identity Guidance",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "identity_latent": [
+          "LATENT",
+          {
+            "tooltip": "VAE-encoded reference image at full resolution."
+          }
+        ],
+        "strength": [
+          "FLOAT",
+          {
+            "default": 0.3,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "How hard to pull toward the reference each step. 0.3 = move 30% of the distance."
+          }
+        ],
+        "start_percent": [
+          "FLOAT",
+          {
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "When to start correcting. 0.0 = beginning of denoising."
+          }
+        ],
+        "end_percent": [
+          "FLOAT",
+          {
+            "default": 0.8,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "When to stop correcting. 0.8 = last 20% runs freely for texture refinement."
+          }
+        ],
+        "mode": [
+          [
+            "adaptive",
+            "direct",
+            "channel_match"
+          ],
+          {
+            "default": "adaptive",
+            "tooltip": "adaptive: pulls only where prediction resembles reference. direct: pulls everywhere equally. channel_match: matches color/feature statistics without copying spatial content."
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "identity_latent",
+        "strength",
+        "start_percent",
+        "end_percent",
+        "mode"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "apply",
+    "signature": "(self, model, identity_latent, strength=0.3, start_percent=0.0, end_percent=0.8, mode='adaptive')",
+    "output_node": false
+  },
+  "IdentityFeatureTransfer": {
+    "display_name": "FLUX.2 Klein Identity Feature Transfer",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL",
+          {
+            "tooltip": "Requires ReferenceLatent connected. The reference must be in the image stream."
+          }
+        ],
+        "strength": [
+          "FLOAT",
+          {
+            "default": 0.15,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "Per-block blend factor. Fires at every active block so the effect is cumulative. Start at 0.10 to 0.20."
+          }
+        ],
+        "start_block": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 23,
+            "tooltip": "First block index to apply. 0 = earliest. Index is shared across double and single blocks (resets when single blocks begin)."
+          }
+        ],
+        "end_block": [
+          "INT",
+          {
+            "default": 23,
+            "min": 0,
+            "max": 23,
+            "tooltip": "Last block index to apply. Covers 8 double blocks (0-7) then 24 single blocks (index resets 0-23). Higher values extend coverage into later single blocks."
+          }
+        ],
+        "mode": [
+          [
+            "cosine_pull",
+            "topk_replace",
+            "mean_transfer"
+          ],
+          {
+            "default": "cosine_pull",
+            "tooltip": "cosine_pull: pulls each gen token toward its best-matching ref token. topk_replace: only affects the top K%% most similar tokens. mean_transfer: shifts overall feature distribution toward the reference."
+          }
+        ],
+        "top_k_percent": [
+          "FLOAT",
+          {
+            "default": 0.25,
+            "min": 0.01,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "topk_replace mode only. Fraction of generation tokens to affect. 0.25 = top 25%% most similar."
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "strength",
+        "start_block",
+        "end_block",
+        "mode",
+        "top_k_percent"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "apply",
+    "signature": "(self, model, strength=0.15, start_block=0, end_block=23, mode='cosine_pull', top_k_percent=0.25)",
+    "output_node": false
+  },
+  "IdentityFeatureTransferAdvanced": {
+    "display_name": "FLUX.2 Klein Identity Feature Transfer Advanced",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL",
+          {
+            "tooltip": "Requires ReferenceLatent connected. The reference must be in the image stream."
+          }
+        ],
+        "reference_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 15,
+            "step": 1,
+            "tooltip": "Which reference image to draw features from when multiple are connected (0 = first)."
+          }
+        ],
+        "mode": [
+          [
+            "cosine_pull",
+            "topk_replace",
+            "mean_transfer"
+          ],
+          {
+            "default": "cosine_pull",
+            "tooltip": "cosine_pull: each generation token is pulled toward similar reference tokens. topk_replace: only the top K%% most similar tokens are affected. mean_transfer: shifts the overall feature distribution toward the reference."
+          }
+        ],
+        "top_k_percent": [
+          "FLOAT",
+          {
+            "default": 0.25,
+            "min": 0.01,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "topk_replace mode only. Fraction of generation tokens to affect."
+          }
+        ],
+        "double_enable": [
+          "BOOLEAN",
+          {
+            "default": true,
+            "tooltip": "Apply transfer on double blocks (0-7). These shape pose, color, and identity early in the network."
+          }
+        ],
+        "double_strength": [
+          "FLOAT",
+          {
+            "default": 0.15,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "Per-block blend factor for double blocks. Cumulative across blocks. Raise for stronger identity guidance, especially when the reference contains multiple subjects."
+          }
+        ],
+        "double_start": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 7,
+            "tooltip": "First double block to apply on (0-7)."
+          }
+        ],
+        "double_end": [
+          "INT",
+          {
+            "default": 7,
+            "min": 0,
+            "max": 7,
+            "tooltip": "Last double block to apply on (0-7)."
+          }
+        ],
+        "single_enable": [
+          "BOOLEAN",
+          {
+            "default": true,
+            "tooltip": "Apply transfer on single blocks (0-23). These refine style and texture later in the network."
+          }
+        ],
+        "single_strength": [
+          "FLOAT",
+          {
+            "default": 0.15,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "Per-block blend factor for single blocks. Cumulative across blocks."
+          }
+        ],
+        "single_start": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 23,
+            "tooltip": "First single block to apply on (0-23)."
+          }
+        ],
+        "single_end": [
+          "INT",
+          {
+            "default": 23,
+            "min": 0,
+            "max": 23,
+            "tooltip": "Last single block to apply on (0-23)."
+          }
+        ],
+        "block_schedule": [
+          [
+            "flat",
+            "ramp_down",
+            "ramp_up",
+            "peak_mid"
+          ],
+          {
+            "default": "flat",
+            "tooltip": "Strength curve across the active block range. flat = constant. ramp_down = stronger on early blocks. ramp_up = stronger on later blocks. peak_mid = strongest in the middle."
+          }
+        ],
+        "sim_floor": [
+          "FLOAT",
+          {
+            "default": 0.2,
+            "min": 0.0,
+            "max": 0.95,
+            "step": 0.01,
+            "tooltip": "Cosine similarity threshold gating which reference-to-generation matches contribute. Low (~0.05) = wide pull, tight identity lock, suited to subtle edits like outfit swaps. High = sparse pull, more freedom for broader edits."
+          }
+        ],
+        "mask_threshold": [
+          "FLOAT",
+          {
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "Used only when subject_mask is connected. Reference tokens whose pooled mask value falls below this are excluded from the pull. 0.5 keeps boundary tokens; raise toward 1.0 to shrink the effective mask inward."
+          }
+        ]
+      },
+      "optional": {
+        "subject_mask": [
+          "MASK",
+          {
+            "tooltip": "Optional subject mask for the reference image. When connected, the cosine pull samples only from masked-in reference tokens, leaving everything else out of the transfer. The conditioning latent is not modified, so the model still sees the full reference. Mask aspect must match the encoded reference aspect."
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "reference_index",
+        "mode",
+        "top_k_percent",
+        "double_enable",
+        "double_strength",
+        "double_start",
+        "double_end",
+        "single_enable",
+        "single_strength",
+        "single_start",
+        "single_end",
+        "block_schedule",
+        "sim_floor",
+        "mask_threshold"
+      ],
+      "optional": [
+        "subject_mask"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "apply",
+    "signature": "(self, model, reference_index=0, mode='cosine_pull', top_k_percent=0.25, double_enable=True, double_strength=0.15, double_start=0, double_end=7, single_enable=True, single_strength=0.15, single_start=0, single_end=23, block_schedule='flat', sim_floor=0.2, mask_threshold=0.5, subject_mask=None)",
+    "output_node": false
+  },
+  "IdentityFeatureTransferV3": {
+    "display_name": "FLUX.2 Klein Identity Feature Transfer V3",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL",
+          {
+            "tooltip": "Connect this after your checkpoint model. ReferenceLatent must also be connected in the conditioning path."
+          }
+        ],
+        "preset": [
+          [
+            "MIDUM_LOCK",
+            "HARD_LOCK",
+            "SOFT_LOCK",
+            "custom"
+          ],
+          {
+            "default": "MIDUM_LOCK",
+            "tooltip": "Pick how strongly the reference should hold. Any preset except custom ignores the manual settings below."
+          }
+        ],
+        "reference_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 15,
+            "step": 1,
+            "tooltip": "Which reference image to use. 0 means the first reference."
+          }
+        ],
+        "double_schedule": [
+          "STRING",
+          {
+            "default": "0-3:mid=0.25; 4:mid=0.35; 5:mid=0.65; 6-7:mid=0.45",
+            "multiline": false,
+            "tooltip": "Custom preset only. Double block schedule."
+          }
+        ],
+        "single_schedule": [
+          "STRING",
+          {
+            "default": "0:mid=0.35; 1:mid=0.25; 2-10:mid=0.30; 11-19:mid=0.25; 20:mid=0.08; 21:mid=0.10; 22:mid=0.15; 23:mid=0.20",
+            "multiline": false,
+            "tooltip": "Custom preset only. Single block schedule."
+          }
+        ],
+        "double_sim": [
+          "FLOAT",
+          {
+            "default": 0.02,
+            "min": 0.0,
+            "max": 0.95,
+            "step": 0.001,
+            "tooltip": "Custom preset only. Higher means fewer double-block matches are allowed."
+          }
+        ],
+        "single_sim": [
+          "FLOAT",
+          {
+            "default": 0.02,
+            "min": 0.0,
+            "max": 0.95,
+            "step": 0.001,
+            "tooltip": "Custom preset only. Higher means fewer single-block matches are allowed."
+          }
+        ],
+        "commit_margin": [
+          "FLOAT",
+          {
+            "default": 0.035,
+            "min": 0.0,
+            "max": 0.5,
+            "step": 0.005,
+            "tooltip": "Custom preset only. Higher means the match has to be more obvious before it locks."
+          }
+        ],
+        "commit_confirm": [
+          "INT",
+          {
+            "default": 2,
+            "min": 1,
+            "max": 16,
+            "step": 1,
+            "tooltip": "Custom preset only. How many times the same match must repeat before it locks."
+          }
+        ],
+        "commit_anchor": [
+          "FLOAT",
+          {
+            "default": 0.5,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.05,
+            "tooltip": "Custom preset only. How much pull remains after a token has locked."
+          }
+        ],
+        "mask_threshold": [
+          "FLOAT",
+          {
+            "default": 0.25,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "tooltip": "Used only when a mask is connected. Lower keeps more edge tokens. Higher keeps only the strongest mask area."
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false,
+            "tooltip": "Print the active preset and schedules to the console."
+          }
+        ]
+      },
+      "optional": {
+        "subject_mask": [
+          "MASK",
+          {
+            "tooltip": "Optional mask for the reference image. Use it when the reference has more than one subject."
+          }
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "preset",
+        "reference_index",
+        "double_schedule",
+        "single_schedule",
+        "double_sim",
+        "single_sim",
+        "commit_margin",
+        "commit_confirm",
+        "commit_anchor",
+        "mask_threshold",
+        "debug"
+      ],
+      "optional": [
+        "subject_mask"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "apply",
+    "signature": "(self, model, preset='MIDUM_LOCK', reference_index=0, double_schedule='0-3:mid=0.25; 4:mid=0.35; 5:mid=0.65; 6-7:mid=0.45', single_schedule='0:mid=0.35; 1:mid=0.25; 2-10:mid=0.30; 11-19:mid=0.25; 20:mid=0.08; 21:mid=0.10; 22:mid=0.15; 23:mid=0.20', double_sim=0.02, single_sim=0.02, commit_margin=0.035, commit_confirm=2, commit_anchor=0.5, mask_threshold=0.25, debug=False, subject_mask=None)",
+    "output_node": false
+  },
+  "IdentityFeatureTransferFinal": {
+    "display_name": "Identity Feature Transfer Final",
+    "inputs": {
+      "required": {
+        "model": [
+          "MODEL"
+        ],
+        "preset": [
+          [
+            "HARD_LOCK",
+            "MID_LOCK",
+            "SOFT_LOCK",
+            "custom"
+          ],
+          {
+            "default": "HARD_LOCK"
+          }
+        ],
+        "enabled": [
+          "BOOLEAN",
+          {
+            "default": true
+          }
+        ],
+        "reference_index": [
+          "INT",
+          {
+            "default": 0,
+            "min": 0,
+            "max": 15,
+            "step": 1
+          }
+        ],
+        "reference_indices": [
+          "STRING",
+          {
+            "default": "all",
+            "multiline": false
+          }
+        ],
+        "similarity_floor": [
+          "FLOAT",
+          {
+            "default": 0.04,
+            "min": 0.0,
+            "max": 0.95,
+            "step": 0.001
+          }
+        ],
+        "softmax_temperature": [
+          "FLOAT",
+          {
+            "default": 0.025,
+            "min": 0.0001,
+            "max": 0.25,
+            "step": 0.0001
+          }
+        ],
+        "mask_threshold": [
+          "FLOAT",
+          {
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01
+          }
+        ],
+        "double_blocks": [
+          "STRING",
+          {
+            "default": "0-7:mid_img=0.55",
+            "multiline": false
+          }
+        ],
+        "single_blocks": [
+          "STRING",
+          {
+            "default": "0:mid_img=0.22; 1:mid_img=0.24; 3:mid_img=0.28; 4:mid_img=0.22; 6:mid_img=0.26; 7:mid_img=0.27; 8:mid_img=0.25; 10:mid_img=0.27; 13:mid_img=0.27",
+            "multiline": false
+          }
+        ],
+        "debug": [
+          "BOOLEAN",
+          {
+            "default": false
+          }
+        ]
+      },
+      "optional": {
+        "sigmas": [
+          "SIGMAS",
+          {
+            "forceInput": true,
+            "tooltip": "Optional sampler sigma schedule. When connected, the existing block strengths decay per sampling step by delta_sigma_0 / delta_sigma_step."
+          }
+        ],
+        "subject_mask_1": [
+          "MASK"
+        ],
+        "subject_mask_2": [
+          "MASK"
+        ],
+        "subject_mask_3": [
+          "MASK"
+        ],
+        "subject_mask_4": [
+          "MASK"
+        ],
+        "subject_mask_5": [
+          "MASK"
+        ],
+        "subject_mask_6": [
+          "MASK"
+        ],
+        "subject_mask_7": [
+          "MASK"
+        ],
+        "subject_mask_8": [
+          "MASK"
+        ]
+      }
+    },
+    "input_order": {
+      "required": [
+        "model",
+        "preset",
+        "enabled",
+        "reference_index",
+        "reference_indices",
+        "similarity_floor",
+        "softmax_temperature",
+        "mask_threshold",
+        "double_blocks",
+        "single_blocks",
+        "debug"
+      ],
+      "optional": [
+        "sigmas",
+        "subject_mask_1",
+        "subject_mask_2",
+        "subject_mask_3",
+        "subject_mask_4",
+        "subject_mask_5",
+        "subject_mask_6",
+        "subject_mask_7",
+        "subject_mask_8"
+      ]
+    },
+    "return_types": [
+      "MODEL"
+    ],
+    "return_names": null,
+    "function": "apply",
+    "signature": "(self, model, preset='HARD_LOCK', enabled=True, reference_index=0, reference_indices='all', similarity_floor=0.04, softmax_temperature=0.025, mask_threshold=1.0, double_blocks='0-7:mid_img=0.55', single_blocks='0:mid_img=0.22; 1:mid_img=0.24; 3:mid_img=0.28; 4:mid_img=0.22; 6:mid_img=0.26; 7:mid_img=0.27; 8:mid_img=0.25; 10:mid_img=0.27; 13:mid_img=0.27', debug=False, subject_mask_1=None, subject_mask_2=None, subject_mask_3=None, subject_mask_4=None, subject_mask_5=None, subject_mask_6=None, subject_mask_7=None, subject_mask_8=None, sigmas=None)",
+    "output_node": false
+  }
+}

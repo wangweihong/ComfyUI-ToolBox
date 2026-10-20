@@ -1,0 +1,68 @@
+{
+  "1": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "flashvsr_nv111_opt.mp4"
+    }
+  },
+  "2": {
+    "class_type": "ToolBoxFlashVSRConfig",
+    "inputs": {
+      "cache_mode": "请选择",
+      "preset": "low_memory",
+      "resolution": "8K",
+      "orientation": "portrait",
+      "fps": 0.0,
+      "start_seconds": 0.0,
+      "duration_seconds": 10.0,
+      "seed": 20261018,
+      "tile_storage": "disk",
+      "cache_retention": "cleanup_after_encode",
+      "chunk_frames": 8,
+      "tile_width": 256,
+      "tile_height": 256,
+      "overlap_x": 32,
+      "overlap_y": 32,
+      "memory_budget_gib": 0.0,
+      "memory_reserve_gib": 2.0,
+      "disk_budget_gib": 0.0,
+      "disk_reserve_gib": 1.0,
+      "cache_directory": "",
+      "attention": "triton_block_sparse",
+      "dit": "turbo_dit_plus.safetensors",
+      "projector": "lq_proj_in_plus_turbo.safetensors",
+      "decoder": "TCDecoder_plus.ckpt",
+      "prompt_tensor": "posi_prompt_plus.pth",
+      "custom_width": 0,
+      "custom_height": 0
+    }
+  },
+  "3": {
+    "class_type": "ToolBoxFlashVSRUpscale",
+    "inputs": {
+      "video": [
+        "1",
+        0
+      ],
+      "config": [
+        "2",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "ToolBoxVideoEncode",
+    "inputs": {
+      "video": [
+        "3",
+        0
+      ],
+      "encoder": "auto",
+      "quality": 18,
+      "preset": "auto",
+      "container": "mp4",
+      "save_to": "temp",
+      "filename_prefix": "FlashVSR/06_FlashVSR_8K_竖屏_三节点"
+    }
+  }
+}

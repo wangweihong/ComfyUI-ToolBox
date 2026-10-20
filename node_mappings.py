@@ -12,6 +12,10 @@ from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
 from .nodes.degrid import NODE_CLASS_MAPPINGS as degrid_nodes_mapping
 from .nodes.degrid import NODE_DISPLAY_NAME_MAPPINGS as degrid_display_mapping
+from .nodes.flux2_klein import NODE_CLASS_MAPPINGS as flux2_klein_nodes_mapping
+from .nodes.flux2_klein import NODE_DISPLAY_NAME_MAPPINGS as flux2_klein_display_mapping
+from .nodes.flashvsr import NODE_CLASS_MAPPINGS as flashvsr_nodes_mapping
+from .nodes.flashvsr import NODE_DISPLAY_NAME_MAPPINGS as flashvsr_display_mapping
 from .nodes.stocking_texture.nodes import NODE_CLASS_MAPPINGS as stocking_nodes_mapping
 from .nodes.stocking_texture.nodes import NODE_DISPLAY_NAME_MAPPINGS as stocking_display_mapping
 from .nodes.stocking_texture import routes as _stocking_routes
@@ -30,6 +34,8 @@ NODE_CLASS_MAPPINGS = {
     **prompt_nodes_mapping,
     **degrid_nodes_mapping,
     **stocking_nodes_mapping,
+    **flux2_klein_nodes_mapping,
+    **flashvsr_nodes_mapping,
 }
 
 # 这里定义节点在 UI 菜单中显示的友好名称
@@ -38,6 +44,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **skin_color_display_mapping,
     **degrid_display_mapping,
     **stocking_display_mapping,
+    **flux2_klein_display_mapping,
+    **flashvsr_display_mapping,
     # latent size
     "ToolBoxLatentSize": "tb-latent-size",
     # cinematic prompt

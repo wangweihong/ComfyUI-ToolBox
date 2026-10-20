@@ -1,0 +1,1159 @@
+{
+  "date": "2026-10-19",
+  "module_tests_passed": 24,
+  "existing_regression_tests_passed": 72,
+  "live_cases_passed": 14,
+  "live_case_kind": "Real ComfyUI API, existing local Turbo models; includes one expected pre-model rejection and cache-only reencoding.",
+  "cache_modes_preencode_identical": true,
+  "cache_modes_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+  "full_source_registration_count": 57,
+  "live_toolbox_registration_count": 14,
+  "deployment": "Incremental FlashVSR module only; existing canonical/source changes preserved; standalone wrapper IDs absent.",
+  "new_node_ids": [
+    "ToolBoxFlashVSRConfig",
+    "ToolBoxFlashVSRUpscale",
+    "ToolBoxVideoEncode"
+  ],
+  "removed_node_ids": [
+    "LocalFlashVSRVideo",
+    "LocalFlashVSR8KOptimizedCore"
+  ],
+  "scope_limitations": [
+    "CPU orchestration tests use a synthetic inference adapter with real FFmpeg/VIDEO. Live cases use real CUDA/Triton models.",
+    "Low-RAM/full-disk cases are simulated budget checks. No 16/32GiB physical host certification.",
+    "Historic full-length measurements are separate; no new 10/15-second performance matrix.",
+    "Standard SaveVideo does not return info_json; its resource values are left null, not inferred.",
+    "After the main GPU cases, metadata/cache-ownership/final-write guards received focused checks; inference pixel output was unchanged.",
+    "Managed-cache destination collision is rejected before writing; covered by the final CPU orchestration suite."
+  ],
+  "warnings": [
+    "Existing PyTorch pynvml deprecation warning during CPU tests."
+  ],
+  "media_in_repository": false,
+  "cases": [
+    {
+      "case": "unselected_stops_before_model",
+      "passed": true,
+      "expected_rejection": true,
+      "api_status": "error",
+      "prompt_id": "40abc7ab-0755-412e-b434-e821174b66ac",
+      "api_wall_seconds": 0.5938391070012585,
+      "upscale_status": null,
+      "final_status": null,
+      "cache_reused": false,
+      "output": null,
+      "ffprobe": null,
+      "encoder": null,
+      "preencode_rgb_sha256": null,
+      "processing": null,
+      "current_task_peaks": {
+        "gpu_process_peak_gib": null,
+        "gpu_total_peak_gib": null,
+        "process_tree_rss_gib": null,
+        "torch_allocated_peak_gib": null,
+        "torch_reserved_peak_gib": null
+      },
+      "resource_scopes": [],
+      "note": "Short interface check, not a full-length performance test. ",
+      "error": [
+        "请先选择缓存模式：raw=未压缩磁盘缓存；lossless=无损压缩磁盘缓存；stream=编码阶段流式执行。不会自动替你选择。\n"
+      ]
+    },
+    {
+      "case": "real_model_raw",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "845f9ead-d6e5-4ed3-89dc-28b92ad520d0",
+      "api_wall_seconds": 14.001892416003102,
+      "upscale_status": "upscaled",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "preset": "custom",
+        "seed": 20261018,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.689453125,
+        "gpu_total_peak_gib": 6.97637939453125,
+        "process_tree_rss_gib": 14.108474731445312,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 4.0
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate.",
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "real_model_lossless",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "67e86a01-e61b-46f1-8951-8c6910a886fb",
+      "api_wall_seconds": 13.10068851500182,
+      "upscale_status": "upscaled",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "preset": "custom",
+        "seed": 20261018,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.564453125,
+        "gpu_total_peak_gib": 6.8890380859375,
+        "process_tree_rss_gib": 14.944908142089844,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 4.0
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate.",
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "real_model_stream",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "7c1c0f1b-9d3a-4e2f-a191-6ee59458245a",
+      "api_wall_seconds": 12.88750873099707,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "preset": "custom",
+        "seed": 20261018,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.658203125,
+        "gpu_total_peak_gib": 6.93951416015625,
+        "process_tree_rss_gib": 14.041328430175781,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 4.0
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "cached_cpu_hevc_reencode",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "340dfccc-a869-4c8e-8ed8-8efc3d9a8157",
+      "api_wall_seconds": 1.4396808669989696,
+      "upscale_status": "upscaled",
+      "final_status": "completed",
+      "cache_reused": true,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "hevc",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "fast",
+        "fallback_reasons": [],
+        "preset": "fast",
+        "quality": 18,
+        "requested": "libx265",
+        "selected": "libx265"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "preset": "custom",
+        "seed": 20261018,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 0.876953125,
+        "gpu_total_peak_gib": 3.17041015625,
+        "process_tree_rss_gib": 8.482067108154297,
+        "torch_allocated_peak_gib": 0.016847610473632812,
+        "torch_reserved_peak_gib": 0.1875
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. Cached inference statistics are from the cache creation; current peaks here use encoding only.",
+      "cached_source_upscale_resources": {
+        "gpu_process_peak_gib": 4.689453125,
+        "gpu_total_peak_gib": 6.97637939453125,
+        "process_tree_rss_gib": 14.108474731445312,
+        "sampling_interval_seconds": 0.2,
+        "scope": "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate.",
+        "system_min_available_gib": 63.80757522583008,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 4.0,
+        "wall_seconds": 12.481381359997613
+      }
+    },
+    {
+      "case": "cleared_cache_recomputes",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "ec3e3e6c-a046-4e23-86cc-b8bebf22c484",
+      "api_wall_seconds": 13.002078269000776,
+      "upscale_status": "upscaled",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "preset": "custom",
+        "seed": 20261018,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.689453125,
+        "gpu_total_peak_gib": 6.98272705078125,
+        "process_tree_rss_gib": 14.706901550292969,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 4.0
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate.",
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "standard_SaveVideo_connection",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "b50f2cbf-d3e2-48b5-a58f-6530f72237b7",
+      "api_wall_seconds": 12.777835993998451,
+      "upscale_status": "prepared",
+      "final_status": null,
+      "cache_reused": false,
+      "output": null,
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": null,
+      "preencode_rgb_sha256": null,
+      "processing": null,
+      "current_task_peaks": {
+        "gpu_process_peak_gib": null,
+        "gpu_total_peak_gib": null,
+        "process_tree_rss_gib": null,
+        "torch_allocated_peak_gib": null,
+        "torch_reserved_peak_gib": null
+      },
+      "resource_scopes": [],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "2k_nvenc_balanced",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "d90d07b1-cf67-4e71-ae62-2d1edff1657c",
+      "api_wall_seconds": 17.065365065998776,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 1440,
+        "width": 2560
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 2560,
+            "height": 1440,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "p5",
+        "fallback_reasons": [],
+        "preset": "p5",
+        "quality": 18,
+        "requested": "h264_nvenc",
+        "selected": "h264_nvenc"
+      },
+      "preencode_rgb_sha256": "e1af51687ea8b8424564ef7c93a9a5ec44c6b4b1e594d496d209dd28587b52d0",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 32,
+        "preset": "balanced",
+        "seed": 20261018,
+        "tile_height_lq": 384,
+        "tile_storage": "disk",
+        "tile_width_lq": 384,
+        "tile_x_positions_lq": [
+          0,
+          256
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 9.62890625,
+        "gpu_total_peak_gib": 11.912353515625,
+        "process_tree_rss_gib": 15.499141693115234,
+        "torch_allocated_peak_gib": 8.659874588251114,
+        "torch_reserved_peak_gib": 8.9375
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "4k_low_memory",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "a5f05a4b-0aef-407e-868f-85efbceaa071",
+      "api_wall_seconds": 36.79182963199855,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 3840,
+        "width": 2160
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 2160,
+            "height": 3840,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "03e48fc4f97ec4e7bb66555773da342b4a5be90357d7418ab68e74bae05ea1ad",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 8,
+        "preset": "low_memory",
+        "seed": 20261018,
+        "tile_height_lq": 256,
+        "tile_storage": "disk",
+        "tile_width_lq": 256,
+        "tile_x_positions_lq": [
+          0,
+          224,
+          284
+        ],
+        "tile_y_positions_lq": [
+          0,
+          224,
+          448,
+          672,
+          704
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 6.53515625,
+        "gpu_total_peak_gib": 8.822998046875,
+        "process_tree_rss_gib": 13.98891830444336,
+        "torch_allocated_peak_gib": 5.671623855829239,
+        "torch_reserved_peak_gib": 5.84375
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "8k_tested_geometry",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "a940686b-9664-46ef-9d43-af9f43773e1e",
+      "api_wall_seconds": 58.21274946400081,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.08333333333333333,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 2,
+        "height": 7680,
+        "width": 4320
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 4320,
+            "height": 7680,
+            "avg_frame_rate": "24/1",
+            "duration": "0.083333",
+            "nb_frames": "2"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.084000",
+            "nb_frames": "4"
+          }
+        ],
+        "format": {
+          "duration": "0.084000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "8566b9febfc31bd1589b96c7686e42d1d5073eecc94ca0a89c8683073e08b0dd",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 120,
+        "preset": "tested",
+        "seed": 20261018,
+        "tile_height_lq": 704,
+        "tile_storage": "disk",
+        "tile_width_lq": 576,
+        "tile_x_positions_lq": [
+          0,
+          504
+        ],
+        "tile_y_positions_lq": [
+          0,
+          608,
+          1216
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 19.12890625,
+        "gpu_total_peak_gib": 21.4132080078125,
+        "process_tree_rss_gib": 14.451404571533203,
+        "torch_allocated_peak_gib": 18.074159413576126,
+        "torch_reserved_peak_gib": 18.4375
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "native_60fps_tail",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "d218a5e9-b623-481b-9908-9aedb01c3399",
+      "api_wall_seconds": 14.810710005000146,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.08333333333333333,
+        "fps": 60.0,
+        "fps_rational": "60",
+        "frames": 5,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "hevc",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "60/1",
+            "duration": "0.083333",
+            "nb_frames": "5"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.082993",
+            "nb_frames": "5"
+          }
+        ],
+        "format": {
+          "duration": "0.083333"
+        }
+      },
+      "encoder": {
+        "actual_preset": "p5",
+        "fallback_reasons": [],
+        "preset": "p5",
+        "quality": 18,
+        "requested": "hevc_nvenc",
+        "selected": "hevc_nvenc"
+      },
+      "preencode_rgb_sha256": "228e61cefff79ca14e51e22f63fd33692a6d31f9a7b23695e0210daf03ae1f3d",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "preset": "custom",
+        "seed": 20261018,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 5.1585235595703125,
+        "gpu_total_peak_gib": 7.0621337890625,
+        "process_tree_rss_gib": 13.887115478515625,
+        "torch_allocated_peak_gib": 3.879823476076126,
+        "torch_reserved_peak_gib": 4.0
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "final_stream_preflight_metadata",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "77b750a6-f1a7-4c6e-af29-2cb97a3d7041",
+      "api_wall_seconds": 13.883147910000844,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "color_fix": false,
+        "fit_lq": {
+          "fit_height": 73,
+          "fit_width": 128,
+          "fit_x": 0,
+          "fit_y": 27
+        },
+        "models": {
+          "decoder": "TCDecoder_plus.ckpt",
+          "dit": "turbo_dit_plus.safetensors",
+          "projector": "lq_proj_in_plus_turbo.safetensors",
+          "prompt_tensor": "posi_prompt_plus.pth"
+        },
+        "output_crop_origin": [
+          0,
+          64
+        ],
+        "overlap_x_lq": 16,
+        "overlap_y_lq": 16,
+        "preset": "custom",
+        "scale": 4,
+        "seed": 20261018,
+        "temporal": 4,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.658203125,
+        "gpu_total_peak_gib": 6.47430419921875,
+        "process_tree_rss_gib": 13.17303466796875,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 3.96875
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "final_owned_raw_cleanup",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "88489b65-f0f2-4266-a74b-ca1105723261",
+      "api_wall_seconds": 13.131988336001086,
+      "upscale_status": "upscaled",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "color_fix": false,
+        "fit_lq": {
+          "fit_height": 73,
+          "fit_width": 128,
+          "fit_x": 0,
+          "fit_y": 27
+        },
+        "models": {
+          "decoder": "TCDecoder_plus.ckpt",
+          "dit": "turbo_dit_plus.safetensors",
+          "projector": "lq_proj_in_plus_turbo.safetensors",
+          "prompt_tensor": "posi_prompt_plus.pth"
+        },
+        "output_crop_origin": [
+          0,
+          64
+        ],
+        "overlap_x_lq": 16,
+        "overlap_y_lq": 16,
+        "preset": "custom",
+        "scale": 4,
+        "seed": 20261018,
+        "temporal": 4,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.689453125,
+        "gpu_total_peak_gib": 6.511962890625,
+        "process_tree_rss_gib": 14.962703704833984,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 4.0
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate.",
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    },
+    {
+      "case": "final_atomic_publish_guard",
+      "passed": true,
+      "expected_rejection": false,
+      "api_status": "success",
+      "prompt_id": "0750e030-61f5-48ec-b129-ef8aa6675d10",
+      "api_wall_seconds": 13.85347732900118,
+      "upscale_status": "prepared",
+      "final_status": "completed",
+      "cache_reused": false,
+      "output": {
+        "duration_seconds": 0.125,
+        "fps": 24.0,
+        "fps_rational": "24",
+        "frames": 3,
+        "height": 384,
+        "width": 512
+      },
+      "ffprobe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 512,
+            "height": 384,
+            "avg_frame_rate": "24/1",
+            "duration": "0.125000",
+            "nb_frames": "3"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "avg_frame_rate": "0/0",
+            "duration": "0.125000",
+            "nb_frames": "7"
+          }
+        ],
+        "format": {
+          "duration": "0.125000"
+        }
+      },
+      "encoder": {
+        "actual_preset": "ultrafast",
+        "fallback_reasons": [],
+        "preset": "ultrafast",
+        "quality": 18,
+        "requested": "libx264",
+        "selected": "libx264"
+      },
+      "preencode_rgb_sha256": "13425a14f54c3d905e8724406403b21ab0d0aa824f3079ee8ec4b0c3d1b980c6",
+      "processing": {
+        "attention": "triton_block_sparse",
+        "chunk_frames": 2,
+        "color_fix": false,
+        "fit_lq": {
+          "fit_height": 73,
+          "fit_width": 128,
+          "fit_x": 0,
+          "fit_y": 27
+        },
+        "models": {
+          "decoder": "TCDecoder_plus.ckpt",
+          "dit": "turbo_dit_plus.safetensors",
+          "projector": "lq_proj_in_plus_turbo.safetensors",
+          "prompt_tensor": "posi_prompt_plus.pth"
+        },
+        "output_crop_origin": [
+          0,
+          64
+        ],
+        "overlap_x_lq": 16,
+        "overlap_y_lq": 16,
+        "preset": "custom",
+        "scale": 4,
+        "seed": 20261018,
+        "temporal": 4,
+        "tile_height_lq": 128,
+        "tile_storage": "disk",
+        "tile_width_lq": 128,
+        "tile_x_positions_lq": [
+          0
+        ],
+        "tile_y_positions_lq": [
+          0
+        ]
+      },
+      "current_task_peaks": {
+        "gpu_process_peak_gib": 4.564453125,
+        "gpu_total_peak_gib": 6.3961181640625,
+        "process_tree_rss_gib": 13.605846405029297,
+        "torch_allocated_peak_gib": 3.878470093011856,
+        "torch_reserved_peak_gib": 3.96875
+      },
+      "resource_scopes": [
+        "Current ComfyUI process tree; RSS includes shared mappings. GPU total includes other apps. NVML process value is null when host/container PIDs cannot be mapped; Torch allocator peaks are separate."
+      ],
+      "note": "Short interface check, not a full-length performance test. "
+    }
+  ],
+  "deployed_source_sha256": {
+    "nodes/flashvsr/video.py": "b280ba6e6b08f2fb7d4e994bf0caf55da911eec9cc66d5aa5217858b12062e4a",
+    "nodes/flashvsr/encoding.py": "2a9ab874f64c9d1fa836d1c549e6d92e53e954ff453c9c57432793f2b2f62591",
+    "nodes/flashvsr/nodes.py": "09b69dea36955af52e02ddf31af5c57f473e360c660fca02f7c404882b96f008",
+    "nodes/flashvsr/cache.py": "d35b6e5350631abe27bf4552b24a66b65ec3f08e79f957673694477016cc8745",
+    "nodes/flashvsr/__init__.py": "95dc3ea08d819b9780cc871ee75358ef7966bd5b23179c4f329181e0f415b28b",
+    "nodes/flashvsr/resources.py": "5f11805875f047b9732944866927c5d90ea7c1ad87c2d088513e571b0adfc7ad",
+    "nodes/flashvsr/settings.py": "03adee5cad6e69b766b22f80299f32c35c393b99514907fd841f41239d0ef5bf",
+    "nodes/flashvsr/engine.py": "f20ebceeb33145784d8523212dbc1e2c467274181bb05dc5a776d3dfcb3c257a",
+    "web/js/flashvsr.js": "cc6c34249531777884a3dcf5183208c6b6aabcfd8d296cd8e2c9968864b93b2f"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "b2139c3af8040e0c69ba6a4f279b5882.png"
+    }
+  },
+  "2": {
+    "class_type": "SplitImageToTileList",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "tile_width": 512,
+      "tile_height": 640,
+      "overlap": 128
+    }
+  },
+  "3": {
+    "class_type": "FlashVSR_SM_Model",
+    "inputs": {
+      "dit": "turbo_dit_plus.safetensors",
+      "proj_pt": "lq_proj_in_plus_turbo.safetensors",
+      "emb_pt": "posi_prompt_plus.pth",
+      "version": "plus_turbo",
+      "tiny_long": false,
+      "offload": false,
+      "plus_temporal": "4",
+      "plus_attn": "triton_block_sparse"
+    }
+  },
+  "4": {
+    "class_type": "FlashVSR_SM_KSampler",
+    "inputs": {
+      "model": [
+        "3",
+        0
+      ],
+      "image": [
+        "2",
+        0
+      ],
+      "width": 512,
+      "height": 640,
+      "seed": 20261019,
+      "scale": 3,
+      "kv_ratio": 3.5,
+      "local_range": 11,
+      "steps": 1,
+      "cfg": 1.0,
+      "sparse_ratio": 2.0
+    }
+  },
+  "5": {
+    "class_type": "FlashVSR_SM_Vae",
+    "inputs": {
+      "vae": "none",
+      "tcd_encoder": "TCDecoder_plus.ckpt",
+      "lite_vae": "none"
+    }
+  },
+  "6": {
+    "class_type": "FlashVSR_SM_Decoder",
+    "inputs": {
+      "vae": [
+        "5",
+        0
+      ],
+      "latent": [
+        "4",
+        0
+      ],
+      "full_tiled": true,
+      "color_fix": true,
+      "fix_method": "wavelet"
+    }
+  },
+  "7": {
+    "class_type": "ImageMergeTileList",
+    "inputs": {
+      "image_list": [
+        "6",
+        0
+      ],
+      "final_width": 4320,
+      "final_height": 7680,
+      "overlap": 384
+    }
+  },
+  "8": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "7",
+        0
+      ],
+      "filename_prefix": "FlashVSR/Images/b2139c3a_8K"
+    }
+  }
+}

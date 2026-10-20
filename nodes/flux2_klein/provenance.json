@@ -1,0 +1,30 @@
+{
+  "source_project": "ComfyUI-Flux2Klein-Enhancer",
+  "source_commit": "1e3926bb9323289f5acce2cf8dfece6d2b70126c",
+  "source_versions": {
+    "pyproject.toml": "3.4.3",
+    "__init__.py": "3.4.0"
+  },
+  "adaptation": "Functional modules and example assets are unchanged; the ToolBox package entrypoint sets CATEGORY to ToolBox/Flux2Klein.",
+  "sha256": {
+    "nodes/flux2_klein/Flux2klein_Ksampler_exp.py": "e03834c6d42d280e713e58b1555149a39a087b036935c1af9b69058a6f5c616b",
+    "nodes/flux2_klein/flux2_klein_color_anchor.py": "1105fd64e6f13ec78289fcf2190b7f81de736cb6125e071454cbda9e680c3dcb",
+    "nodes/flux2_klein/flux2_klein_enhancer.py": "f162724f48e2de0fdf0eb86c63e804c462f83acbc6e88769aff48a176c447bb5",
+    "nodes/flux2_klein/flux2_klein_mask_ref_controller.py": "a1039d79ceb5598fbfa2b45aa9f4377823a3322e9f2f26bb6dd918cd4ce1fc7f",
+    "nodes/flux2_klein/flux2_klein_ref_controller.py": "80b61e102cecf7fbeffcd21dcf5c9192c25c235418f0fd929e3dc6d6c04dc857",
+    "nodes/flux2_klein/flux2_klein_text_enhancer.py": "89ab9c9abda8083b38544a63dbe395f64f771f425ed81c6d4207bf8fb297930f",
+    "nodes/flux2_klein/flux2_sectioned_encoder.py": "89914271394e22cdbaa654b3bc0cce3abe9936462e1439b8c1f29c5e50d9a639",
+    "nodes/flux2_klein/identity_feature_transfer.py": "7ed36ac46d4d031717bed60eb242f0e4548f0046670060900005618d937a498e",
+    "nodes/flux2_klein/identity_guidance.py": "2eed5a5d93601ce149099e6e4987c01fba0559573a31c563ddd414f9a43ac13b",
+    "nodes/flux2_klein/multi_reference_latent.py": "f389b8b143e9e656c0bacce544589d3fbc968b091e2c47d4d3cca54d33f78a3d",
+    "examples/flux2_klein/Flux2Klein_Ksampler_exp.json": "7c0262cf0965e7a1001ad6bce58f5bf9c5d3a88f805ed13ad44f40936e117038",
+    "examples/flux2_klein/Iden_feat_final_fixed.json": "b799334e1de73ab85bcb0ec0241636eb760f8375d74ea3605ea29413c72bb889",
+    "examples/flux2_klein/Iden_feat_final_fixed_sigma.json": "377287195fae9ea4dc60b4f9ee66a17648656f7db48f993da3994e8bcc18528f",
+    "examples/flux2_klein/Sample_color_anchor.json": "54b2a7fadc2431bf59424ba98579074caa23c17cc56a34f7c88e23e5db7ec35b",
+    "examples/flux2_klein/adv_wf.json": "59e943ba4f41ba912a8941ce1ce06c9b25c6a9ed22abec27a37e252b2b9ef04a",
+    "examples/flux2_klein/iden_transfer_v3.json": "82f012238ed6e3f98fe631162c363bddd67bfb5f1b99147c14696769bf4d7958",
+    "examples/flux2_klein/iden_wf (1).json": "34869568a9e782d238d39f59bbb5518a7cadcc514b0f351d7ea547b6da763597",
+    "examples/flux2_klein/identity_feature_transfer_v3_diagram.png": "0997366211393eb7eacc9d75d70ff85bd2b70040e023622280608de613e2120f",
+    "examples/flux2_klein/ref__latent.json": "7ccb68fff6f3cfa6dd2f74a4c63c86092aee0b48f0e835f5d0bf0b346447e06d"
+  }
+}

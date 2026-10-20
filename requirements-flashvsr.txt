@@ -1,0 +1,7 @@
+# Optional FlashVSR orchestration extras. Keep ComfyUI's existing torch/CUDA.
+numpy>=1.26
+psutil>=5.9
+av>=12
+Pillow>=10
+# Optional NVML counters (gracefully unavailable when not installed):
+nvidia-ml-py>=12

@@ -8,6 +8,14 @@
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
 
+## FLUX.2 Klein 增强与身份迁移
+
+内置原 Flux2Klein Enhancer 的全部 **16 个节点**，统一位于 `ToolBox/Flux2Klein`：文本增强、分段编码、参考图控制、多参考 latent、遮罩、颜色锚定、身份引导、四版身份特征迁移和实验采样器。保留原节点 ID、显示名称、参数和计算逻辑，已有工作流可继续使用；请停用独立的 `ComfyUI-Flux2Klein-Enhancer` 插件，避免重复注册。
+
+节点代码随 ToolBox 安装，不再单独下载原仓库；模型和示例中其他插件仍需自行准备。本次不修改外部镜像构建配置。
+
+[使用说明](docs/flux2_klein.md) · [八份原始示例与依赖说明](examples/flux2_klein/README.md)。
+
 ## VAE 去网格（DeGrid）
 
 `ToolBoxVAEDeGrid`（`tb-vae-degrid` / `tb-VAE去网格`）去除 Qwen Image、Qwen Image 2.1、Wan 2.1 VAE 解码中的 2px 网格。支持逐图自动检测与校准、手动修正限制、干净图原像素透传、网格放大预览和中英文执行状态；无需新模型或额外依赖。
@@ -189,3 +197,10 @@ python3 -m pip install -r requirements.txt
 [节点与模型说明](docs/skin_color_pipeline.md) · [3D角色展示板示例工作流](examples/skin_color/)
 
 按需安装 `requirements-skin-color.txt`，分割模型放置在 `models/mediapipe/selfie_multiclass_256x256.tflite`。RGB提示词是软约束，必须以复测报告与遮罩预览判断效果。
+
+
+## FlashVSR 视频超分
+
+提供 Config、Upscale、Video Encode 三个节点；缓存模式由使用者选择，输出为标准 `video` 与JSON文本 `info_json`，支持可调分段/空间块、资源预算和可选CPU/NVENC编码。默认不选缓存模式，不加载模型。
+
+[使用与依赖](docs/flashvsr.md) · [示例工作流](examples/flashvsr) · [历史实测与迁移验证](docs/testing/flashvsr_2026-10-19.md)。

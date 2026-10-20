@@ -1,0 +1,161 @@
+{
+  "prompt_id": "1b65990f-3ed0-4c18-bbc5-c54b880b7e4b",
+  "status": "success",
+  "source_sha256": "f5ac4d4cf4e32b91b3400acbb5fcc4ec38f101c5fda549f3805d4b97f6f5fb98",
+  "baseline": {
+    "process_tree_rss_bytes": 2551283712,
+    "gpu_total_bytes": 2567962624,
+    "gpu_process_bytes": 639631360
+  },
+  "peaks": {
+    "process_tree_rss_bytes": 10914103296,
+    "gpu_total_bytes": 13603176448,
+    "gpu_process_bytes": 11712593920
+  },
+  "sampling_interval_seconds": 0.5,
+  "resource_scope": "Host PID mapped ComfyUI process tree RSS (shared mappings counted); GPU process sum from nvidia-smi; whole GPU includes desktop/other apps. Sampled peaks, not instantaneous guaranteed maxima.",
+  "wall_seconds": 89.60200348500075,
+  "samples": 161,
+  "api_execution_seconds": 89.208,
+  "output_sha256": "47019b0487a412f7cce44a5de7aa72c4c9491cf42bfaf67bae20d6b9b064b5d6",
+  "output_bytes": 46615504,
+  "output_size": [
+    4320,
+    7680
+  ],
+  "output_images": 1,
+  "date": "2026-10-19",
+  "quality_acceptance": "failed_user_feedback_and_excess_generated_texture",
+  "source_size": [
+    1440,
+    2560
+  ],
+  "frames": 1,
+  "fps": null,
+  "config": {
+    "model": "FlashVSR+ Turbo",
+    "decoder": "TCDecoder_plus.ckpt",
+    "dtype": "bf16",
+    "temporal": 4,
+    "attention": "triton_block_sparse",
+    "offload": false,
+    "seed": 20261019,
+    "color_fix": "wavelet",
+    "source_tile": [
+      512,
+      640
+    ],
+    "source_overlap": 128,
+    "scale": 3,
+    "grid": [
+      4,
+      5
+    ],
+    "output_tile": [
+      1536,
+      1920
+    ],
+    "output_overlap": 384
+  },
+  "decoder_weight_load": {
+    "matched": 66,
+    "total": 66,
+    "missing": 0,
+    "unexpected": 0
+  },
+  "environment": {
+    "gpu": "RTX 5090 D 32GB",
+    "ram_gib": 94.16,
+    "python": "3.13.12",
+    "torch": "2.11+cu130",
+    "triton": "3.6",
+    "driver": "595.58.03",
+    "provenance": "nodes/flashvsr/provenance.json"
+  },
+  "geometry_checks": {
+    "tile_count": 20,
+    "scale3_coordinate_mapping_exact": true,
+    "native_merge_roundtrip_max_abs_error": 1.7881393432617188e-07
+  },
+  "ui_fix": {
+    "seed_control_widget": "fixed",
+    "scale_verified": 3,
+    "input_moved_to_root_for_media_dropdown": true,
+    "actual_generated_api_scale": 3
+  },
+  "diagnostics": {
+    "roi_source": [
+      720,
+      390,
+      930,
+      600
+    ],
+    "small_roi_source": [
+      640,
+      256,
+      1152,
+      896
+    ],
+    "large_roi_source": [
+      480,
+      128,
+      1248,
+      1024
+    ],
+    "face_cases_prompt_id": "1f857b0a-6e7a-43c9-98c8-0197f1db6296",
+    "face_cases_wall_seconds": 19.03396280299785,
+    "face_metrics": [
+      {
+        "case": "Original Lanczos x3",
+        "high_frequency_rms_gray_sigma1_2": 0.34703872702470207,
+        "original_resolution_rgb_mae": 0.11582766439909298,
+        "original_resolution_rgb_rmse": 0.3605236805856705
+      },
+      {
+        "case": "20-tile result",
+        "high_frequency_rms_gray_sigma1_2": 3.369504428058071,
+        "original_resolution_rgb_mae": 2.927906273620559,
+        "original_resolution_rgb_rmse": 4.614969562902392
+      },
+      {
+        "case": "scale3_color_on",
+        "high_frequency_rms_gray_sigma1_2": 3.4846646003845323,
+        "original_resolution_rgb_mae": 2.863257747543462,
+        "original_resolution_rgb_rmse": 4.423209759947957
+      },
+      {
+        "case": "scale3_color_off",
+        "high_frequency_rms_gray_sigma1_2": 3.4954561441724175,
+        "original_resolution_rgb_mae": 5.4474300831443685,
+        "original_resolution_rgb_rmse": 6.933188883023418
+      },
+      {
+        "case": "scale4_down_to3",
+        "high_frequency_rms_gray_sigma1_2": 3.706803275948294,
+        "original_resolution_rgb_mae": 2.5688133030990175,
+        "original_resolution_rgb_rmse": 3.8064392273930676
+      },
+      {
+        "case": "larger_context_scale3",
+        "high_frequency_rms_gray_sigma1_2": 3.5278237538739914,
+        "original_resolution_rgb_mae": 2.947377173091459,
+        "original_resolution_rgb_rmse": 4.56651025105779
+      }
+    ],
+    "metric_limit": "Reference difference / high-frequency strength only; not a ground-truth perceptual quality score.",
+    "repeat_case_prompt_id": "61bd5344-9146-4f6f-a2d5-34f9141b1145",
+    "repeat_case_wall_seconds": 6.139520498996717,
+    "repeat_first_frame_pixel_identical": true,
+    "repeat_fifth_not_observed_to_resolve_texture": true,
+    "diagnostic_resource_peaks": null
+  },
+  "artifact_policy": "Only statistics/workflows/comparison images in repository; input/output media outside repository.",
+  "output_sha256_before_metadata_repair": "737d0f3ddda7587054093a4fd525489d1fe413a0bfd31c2b0019e2697acf18cc",
+  "png_metadata_repair": {
+    "previous_file_sha256": "737d0f3ddda7587054093a4fd525489d1fe413a0bfd31c2b0019e2697acf18cc",
+    "idat_sha256": "a905fee21932af430ed49d0a2f8e61b0828581915b960b5a7cf8616ba44a059b",
+    "pixel_idat_bytes_unchanged": true,
+    "workflow_metadata_repaired": true,
+    "note": "Only embedded UI workflow was corrected; original execution prompt retained and image IDAT bytes unchanged."
+  }
+}

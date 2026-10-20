@@ -1,0 +1,526 @@
+{
+  "id": "1c704b07-be4a-5ceb-bf6a-fa6a007b9c65",
+  "revision": 0,
+  "last_node_id": 900,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadVideo",
+      "title": "Load Video",
+      "pos": [
+        580,
+        0
+      ],
+      "size": [
+        380,
+        760
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "file",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "file"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "动作参考.mp4"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "ToolBoxFlashVSRConfig",
+      "title": "FlashVSR Config · ToolBox",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        520,
+        1080
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "cache_mode",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "cache_mode"
+          }
+        },
+        {
+          "name": "preset",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "preset"
+          }
+        },
+        {
+          "name": "resolution",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "resolution"
+          }
+        },
+        {
+          "name": "orientation",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "orientation"
+          }
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "fps"
+          }
+        },
+        {
+          "name": "start_seconds",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "start_seconds"
+          }
+        },
+        {
+          "name": "duration_seconds",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "duration_seconds"
+          }
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "seed"
+          }
+        },
+        {
+          "name": "tile_storage",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "tile_storage"
+          }
+        },
+        {
+          "name": "cache_retention",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "cache_retention"
+          }
+        },
+        {
+          "name": "chunk_frames",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "chunk_frames"
+          }
+        },
+        {
+          "name": "tile_width",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "tile_width"
+          }
+        },
+        {
+          "name": "tile_height",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "tile_height"
+          }
+        },
+        {
+          "name": "overlap_x",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "overlap_x"
+          }
+        },
+        {
+          "name": "overlap_y",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "overlap_y"
+          }
+        },
+        {
+          "name": "memory_budget_gib",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "memory_budget_gib"
+          }
+        },
+        {
+          "name": "memory_reserve_gib",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "memory_reserve_gib"
+          }
+        },
+        {
+          "name": "disk_budget_gib",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "disk_budget_gib"
+          }
+        },
+        {
+          "name": "disk_reserve_gib",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "disk_reserve_gib"
+          }
+        },
+        {
+          "name": "cache_directory",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "cache_directory"
+          }
+        },
+        {
+          "name": "attention",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "attention"
+          }
+        },
+        {
+          "name": "dit",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "dit"
+          }
+        },
+        {
+          "name": "projector",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "projector"
+          }
+        },
+        {
+          "name": "decoder",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "decoder"
+          }
+        },
+        {
+          "name": "prompt_tensor",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "prompt_tensor"
+          }
+        },
+        {
+          "name": "custom_width",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "custom_width"
+          }
+        },
+        {
+          "name": "custom_height",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "custom_height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "config",
+          "type": "TOOLBOX_FLASHVSR_CONFIG",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ToolBoxFlashVSRConfig"
+      },
+      "widgets_values": [
+        "请选择",
+        "low_memory",
+        "4K",
+        "portrait",
+        0.0,
+        0.0,
+        18.3,
+        20261018,
+        "fixed",
+        "disk",
+        "cleanup_after_encode",
+        8,
+        256,
+        256,
+        32,
+        32,
+        0.0,
+        2.0,
+        0.0,
+        1.0,
+        "",
+        "triton_block_sparse",
+        "turbo_dit_plus.safetensors",
+        "lq_proj_in_plus_turbo.safetensors",
+        "TCDecoder_plus.ckpt",
+        "posi_prompt_plus.pth",
+        0,
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "type": "ToolBoxFlashVSRUpscale",
+      "title": "FlashVSR Upscale · ToolBox",
+      "pos": [
+        1020,
+        0
+      ],
+      "size": [
+        420,
+        240
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        },
+        {
+          "name": "config",
+          "type": "TOOLBOX_FLASHVSR_CONFIG",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "info_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ToolBoxFlashVSRUpscale"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "ToolBoxVideoEncode",
+      "title": "Video Encode · ToolBox",
+      "pos": [
+        1020,
+        360
+      ],
+      "size": [
+        420,
+        480
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 3
+        },
+        {
+          "name": "encoder",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "encoder"
+          }
+        },
+        {
+          "name": "quality",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "quality"
+          }
+        },
+        {
+          "name": "preset",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "preset"
+          }
+        },
+        {
+          "name": "container",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "container"
+          }
+        },
+        {
+          "name": "save_to",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "save_to"
+          }
+        },
+        {
+          "name": "filename_prefix",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "filename_prefix"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        },
+        {
+          "name": "info_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ToolBoxVideoEncode"
+      },
+      "widgets_values": [
+        "auto",
+        18,
+        "auto",
+        "mp4",
+        "temp",
+        "FlashVSR/07_FlashVSR_4K_竖屏60fps_三节点"
+      ]
+    },
+    {
+      "id": 900,
+      "type": "MarkdownNote",
+      "title": "模式选择与资源说明",
+      "pos": [
+        580,
+        820
+      ],
+      "size": [
+        380,
+        1050
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# ToolBox FlashVSR · 显式节点连接\n\n先在 Config.cache_mode **选择**缓存方式，再运行；默认“请选择”不会启动模型。\n\nraw：完整RGB8磁盘缓存，便于重复编码；lossless：FFV1无损缓存，大小依内容变化且增加编解码；stream：不存整段帧，实际超分在编码节点执行，重编码通常需重推理。\n\n10秒8K24fps原始帧约22.25GiB，18.22秒4K60fps约25.33GiB，另有分块暂存。这是磁盘，不是内存/显存需求。\n\n低内存默认8帧、LQ256×256、重叠32、分块磁盘暂存。可选均衡、已测几何或custom，开放分段、块宽高、重叠、RAM与磁盘预算。保护不能保证拦截瞬时OOM，不自动替你改参数。\n\nVideo Encode可选CPU/NVENC/auto，保存到temp或output。auto会记录实际编码器及回退原因。CPU编码不代表CPU超分。质量CRF/CQ数值不等价。\n\n输出video为标准VIDEO；info_json为JSON文本，可自行连接显示/解析/保存。没有强制导出的报告路径。stream准备时status=prepared，编码完成后才有最终统计。\n\n默认fps=0保留原片，时长上限遇片尾停止，保留完整比例并必要时灰边适配。示例依赖本机已有输入视频；仓库不包含视频或模型。详细依赖与历史实测见ComfyUI-ToolBox/docs/flashvsr.md。\n"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "VIDEO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "TOOLBOX_FLASHVSR_CONFIG"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowName": "07_FlashVSR_4K_竖屏60fps_三节点",
+    "ds": {
+      "scale": 0.7,
+      "offset": [
+        600,
+        260
+      ]
+    }
+  },
+  "version": 0.4
+}

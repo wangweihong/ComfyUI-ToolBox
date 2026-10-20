@@ -1,0 +1,46 @@
+{
+  "origin": "Local orchestration written during this FlashVSR testing session; migrated and refactored into ToolBox.",
+  "local_original_sha256": {
+    "optimized_8k.py": "6602c492e50604ae96c8b9bf979eca9a2f9a8cfd9dcc381828ee1546a61b9f07",
+    "benchmark.py": "1882ebb316149f6d5dc52ffbfe5d686b97e29f30d2185c694ac2b37d9a41812b",
+    "__init__.py": "42048e70f5e5d778111607b4be58232743140fc0af8ea928febfba793e5699e8",
+    "worker.py": "cea7fb1fa67c00d80992f0ceed245956e9b04f1f2ac953ddb8e27e366d3e7ae3"
+  },
+  "external_inference_dependency": {
+    "repository": "https://github.com/smthemex/ComfyUI_FlashVSR",
+    "commit": "153cf03343a116c85aee40d291125921cc33935a",
+    "license": "Apache-2.0 (upstream plugin LICENSE)",
+    "modification": "External inference code not copied into this package."
+  },
+  "models": {
+    "repository": "https://huggingface.co/ruchangyao/FlashVSR_plus",
+    "revision": "46b79520946ac67dec94d1566490690953c7debc",
+    "files": [
+      {
+        "file": "TCDecoder_plus.ckpt",
+        "bytes": 189018333,
+        "sha256": "e224bdcf2f52745cbf4d393ff5374c2ba09e90285d5d19062d2bf63b915b6161",
+        "verified": true
+      },
+      {
+        "file": "lq_proj_in_plus_turbo.safetensors",
+        "bytes": 1151384272,
+        "sha256": "e77b378ae12342eefbb58f924256f362a151b93ce73dd32808fcdaca9c051496",
+        "verified": true
+      },
+      {
+        "file": "turbo_dit_plus.safetensors",
+        "bytes": 5676070392,
+        "sha256": "7862b92178176fa3aebc34c6c071daca6b56ab1dddb8e7ff9a01c47f5226ec8b",
+        "verified": true
+      },
+      {
+        "file": "posi_prompt_plus.pth",
+        "bytes": 4195504,
+        "sha256": "4601107a11e4e11a936a6b79df579e54dbc99872132bf542151f0ffd65b4b1ef",
+        "verified": true
+      }
+    ]
+  },
+  "migrated": "2026-10-19"
+}
