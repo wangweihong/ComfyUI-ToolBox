@@ -1,0 +1,108 @@
+{
+  "30": {
+    "class_type": "MOSSPromptEnhancer",
+    "inputs": {
+      "model": "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+      "mmproj": "none",
+      "system_prompt": "none",
+      "prompt": "A studio photograph of exactly three objects on a light gray tabletop: a red cube on the left, a green glass sphere in the center, and a blue ceramic teapot on the right. Soft studio lighting, no text.",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "top_p": 0.9,
+      "top_k": 40,
+      "repeat_penalty": 1.05,
+      "ctx_size": 16384,
+      "memory_mode": "gpu_layers",
+      "n_gpu_layers": 99,
+      "n_cpu_moe_layers": 1,
+      "seed": 20261020,
+      "timeout_seconds": 600,
+      "reasoning": "off",
+      "width": 1024,
+      "height": 1024,
+      "output_mode": "Structured Layout",
+      "retry_invalid_json": true,
+      "enable_processing": true,
+      "extra_args": ""
+    },
+    "_meta": {
+      "title": "① 提示词增强 · 输入简短想法 / 选择输出模式"
+    }
+  },
+  "31": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "编译后的MOSS提示词"
+    }
+  },
+  "32": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "可编辑JSON草稿 · 顶部原点XYXY"
+    }
+  },
+  "33": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        3
+      ]
+    },
+    "_meta": {
+      "title": "GGUF推理速度"
+    }
+  },
+  "34": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "推理文字 · reasoning off时可为空"
+    }
+  },
+  "35": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": [
+        "30",
+        0
+      ],
+      "filename_prefix": "moss_prompt_enhancer/enhance_only_compiled",
+      "format": "txt"
+    },
+    "_meta": {
+      "title": "保存compiled"
+    }
+  },
+  "36": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": [
+        "30",
+        1
+      ],
+      "filename_prefix": "moss_prompt_enhancer/enhance_only_draft",
+      "format": "json"
+    },
+    "_meta": {
+      "title": "保存draft"
+    }
+  }
+}

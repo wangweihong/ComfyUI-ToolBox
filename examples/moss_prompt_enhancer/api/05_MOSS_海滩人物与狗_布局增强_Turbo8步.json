@@ -1,0 +1,271 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "moss/moss_image_sft_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "MOSS SFT · 本机BF16"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "moss/qwen3.5_9b_int8_convrot.safetensors",
+      "type": "moss_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "MOSS Qwen3.5-9B · 官方INT8编码器"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "moss/flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "FLUX2 VAE"
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": [
+        "30",
+        0
+      ],
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "② 增强结果 → MOSS文本编码"
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "负面词 · CFG1时不参与"
+    }
+  },
+  "6": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": [
+        "30",
+        4
+      ],
+      "height": [
+        "30",
+        5
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "③ 画布 · 自动跟随增强器尺寸"
+    }
+  },
+  "7": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "9",
+        0
+      ],
+      "shift": 5.0,
+      "sampling": "flow"
+    },
+    "_meta": {
+      "title": "Flow Shift 5"
+    }
+  },
+  "10": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "7",
+        0
+      ],
+      "seed": 20261020,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "positive": [
+        "4",
+        0
+      ],
+      "negative": [
+        "5",
+        0
+      ],
+      "latent_image": [
+        "6",
+        0
+      ],
+      "denoise": 1.0
+    },
+    "_meta": {
+      "title": "④ MOSS采样 · 8步 / CFG1"
+    }
+  },
+  "11": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "10",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "12": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "11",
+        0
+      ],
+      "filename_prefix": "moss_prompt_enhancer/beach"
+    },
+    "_meta": {
+      "title": "⑤ 保存成图与工作流"
+    }
+  },
+  "9": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "lora_name": "moss/moss_sft_8step_dmd_2600.safetensors",
+      "strength_model": 1.0
+    },
+    "_meta": {
+      "title": "MOSS Turbo LoRA · 2600版 / 强度1"
+    }
+  },
+  "30": {
+    "class_type": "MOSSPromptEnhancer",
+    "inputs": {
+      "model": "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+      "mmproj": "none",
+      "system_prompt": "none",
+      "prompt": "An adult woman playing with a golden retriever on a beach, a fishing boat in the distance, windy blue hour, candid 35mm photograph.",
+      "max_tokens": 4096,
+      "temperature": 0.3,
+      "top_p": 0.9,
+      "top_k": 40,
+      "repeat_penalty": 1.05,
+      "ctx_size": 16384,
+      "memory_mode": "gpu_layers",
+      "n_gpu_layers": 99,
+      "n_cpu_moe_layers": 1,
+      "seed": 20261020,
+      "timeout_seconds": 600,
+      "reasoning": "off",
+      "width": 1536,
+      "height": 1024,
+      "output_mode": "Structured Layout",
+      "retry_invalid_json": true,
+      "enable_processing": true,
+      "extra_args": ""
+    },
+    "_meta": {
+      "title": "① 提示词增强 · 输入简短想法 / 选择输出模式"
+    }
+  },
+  "31": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "编译后的MOSS提示词"
+    }
+  },
+  "32": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "可编辑JSON草稿 · 顶部原点XYXY"
+    }
+  },
+  "33": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        3
+      ]
+    },
+    "_meta": {
+      "title": "GGUF推理速度"
+    }
+  },
+  "34": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "推理文字 · reasoning off时可为空"
+    }
+  },
+  "35": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": [
+        "30",
+        0
+      ],
+      "filename_prefix": "moss_prompt_enhancer/beach_compiled",
+      "format": "txt"
+    },
+    "_meta": {
+      "title": "保存compiled"
+    }
+  },
+  "36": {
+    "class_type": "SaveText",
+    "inputs": {
+      "text": [
+        "30",
+        1
+      ],
+      "filename_prefix": "moss_prompt_enhancer/beach_draft",
+      "format": "json"
+    },
+    "_meta": {
+      "title": "保存draft"
+    }
+  }
+}

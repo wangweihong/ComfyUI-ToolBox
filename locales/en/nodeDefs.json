@@ -761,5 +761,100 @@
   },
   "H3SkinSaveReport": {
     "display_name": "Save skin pipeline report · H3SkinSaveReport"
+  },
+  "MOSSPromptEnhancer": {
+    "display_name": "tb-moss-prompt-enhancer",
+    "description": "Enhance local GGUF prompts and validate MOSS layouts using the existing llama-cpp-python library.",
+    "inputs": {
+      "model": {
+        "name": "GGUF model"
+      },
+      "mmproj": {
+        "name": "Vision projector"
+      },
+      "system_prompt": {
+        "name": "Additional system preset"
+      },
+      "prompt": {
+        "name": "Image request"
+      },
+      "max_tokens": {
+        "name": "Maximum output tokens"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "top_p": {
+        "name": "Top P"
+      },
+      "top_k": {
+        "name": "Top K"
+      },
+      "repeat_penalty": {
+        "name": "Repeat penalty"
+      },
+      "ctx_size": {
+        "name": "Context size"
+      },
+      "memory_mode": {
+        "name": "Memory placement"
+      },
+      "n_gpu_layers": {
+        "name": "GPU layers"
+      },
+      "n_cpu_moe_layers": {
+        "name": "CPU MoE layers"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "timeout_seconds": {
+        "name": "Timeout in seconds"
+      },
+      "reasoning": {
+        "name": "Reasoning"
+      },
+      "width": {
+        "name": "Width"
+      },
+      "height": {
+        "name": "Height"
+      },
+      "output_mode": {
+        "name": "Output mode"
+      },
+      "retry_invalid_json": {
+        "name": "Retry invalid JSON"
+      },
+      "image": {
+        "name": "Optional reference image"
+      },
+      "enable_processing": {
+        "name": "Enable enhancement"
+      },
+      "extra_args": {
+        "name": "Python initialization options (JSON)"
+      }
+    },
+    "outputs": {
+      "RESPONSE": {
+        "name": "Compiled prompt"
+      },
+      "DRAFT_JSON": {
+        "name": "JSON draft"
+      },
+      "REASONING": {
+        "name": "Reasoning"
+      },
+      "PERF": {
+        "name": "Performance"
+      },
+      "WIDTH": {
+        "name": "Width"
+      },
+      "HEIGHT": {
+        "name": "Height"
+      }
+    }
   }
 }

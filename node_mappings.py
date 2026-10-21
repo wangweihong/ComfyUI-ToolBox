@@ -10,6 +10,8 @@ from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
+from .nodes.moss_prompt_enhancer import NODE_CLASS_MAPPINGS as moss_nodes_mapping
+from .nodes.moss_prompt_enhancer import NODE_DISPLAY_NAME_MAPPINGS as moss_display_mapping
 from .nodes.degrid import NODE_CLASS_MAPPINGS as degrid_nodes_mapping
 from .nodes.degrid import NODE_DISPLAY_NAME_MAPPINGS as degrid_display_mapping
 from .nodes.flux2_klein import NODE_CLASS_MAPPINGS as flux2_klein_nodes_mapping
@@ -32,6 +34,7 @@ NODE_CLASS_MAPPINGS = {
     **video_compare_nodes_mapping,
     **text_nodes_mapping,
     **prompt_nodes_mapping,
+    **moss_nodes_mapping,
     **degrid_nodes_mapping,
     **stocking_nodes_mapping,
     **flux2_klein_nodes_mapping,
@@ -41,6 +44,7 @@ NODE_CLASS_MAPPINGS = {
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
     **gaussian_display_mapping,
+    **moss_display_mapping,
     **skin_color_display_mapping,
     **degrid_display_mapping,
     **stocking_display_mapping,

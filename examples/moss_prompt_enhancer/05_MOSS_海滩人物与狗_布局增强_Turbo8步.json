@@ -1,0 +1,1044 @@
+{
+  "id": "7a47d869-5b63-574d-bdcc-e5332b1b5c0a",
+  "revision": 0,
+  "last_node_id": 100,
+  "last_link_id": 20,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "title": "MOSS SFT · 本机BF16",
+      "pos": [
+        1120,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "moss/moss_image_sft_bf16.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "moss/moss_image_sft_bf16.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "MOSS Qwen3.5-9B · 官方INT8编码器",
+      "pos": [
+        1120,
+        240
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2,
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "moss/qwen3.5_9b_int8_convrot.safetensors",
+        "moss_image",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "moss/qwen3.5_9b_int8_convrot.safetensors",
+        "type": "moss_image",
+        "device": "default"
+      }
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "title": "FLUX2 VAE",
+      "pos": [
+        1120,
+        460
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "moss/flux2-vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "moss/flux2-vae.safetensors"
+      }
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "title": "② 增强结果 → MOSS文本编码",
+      "pos": [
+        1600,
+        500
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 1,
+          "widget": {
+            "name": "text"
+          }
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      }
+    },
+    {
+      "id": 5,
+      "type": "CLIPTextEncode",
+      "title": "负面词 · CFG1时不参与",
+      "pos": [
+        1600,
+        740
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "nsfw, worst quality, bad anatomy, watermark, jpeg artifact"
+      ],
+      "widgets_values_named": {
+        "text": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact"
+      }
+    },
+    {
+      "id": 6,
+      "type": "EmptyFlux2LatentImage",
+      "title": "③ 画布 · 自动跟随增强器尺寸",
+      "pos": [
+        2080,
+        500
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 4,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 5,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyFlux2LatentImage"
+      },
+      "widgets_values": [
+        1024,
+        1024,
+        1
+      ],
+      "widgets_values_named": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    {
+      "id": 7,
+      "type": "ModelSamplingAuraFlow",
+      "title": "Flow Shift 5",
+      "pos": [
+        1600,
+        260
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelSamplingAuraFlow"
+      },
+      "widgets_values": [
+        5.0,
+        "flow"
+      ],
+      "widgets_values_named": {
+        "shift": 5.0,
+        "sampling": "flow"
+      }
+    },
+    {
+      "id": 10,
+      "type": "KSampler",
+      "title": "④ MOSS采样 · 8步 / CFG1",
+      "pos": [
+        2080,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 7
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 8
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 9
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261020,
+        "fixed",
+        8,
+        1,
+        "euler",
+        "sgm_uniform",
+        1.0
+      ],
+      "widgets_values_named": {
+        "seed": 20261020,
+        "control_after_generate": "fixed",
+        "steps": 8,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "scheduler": "sgm_uniform",
+        "denoise": 1.0
+      }
+    },
+    {
+      "id": 11,
+      "type": "VAEDecode",
+      "title": "VAE解码",
+      "pos": [
+        2560,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 11
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 12,
+      "type": "SaveImage",
+      "title": "⑤ 保存成图与工作流",
+      "pos": [
+        2560,
+        260
+      ],
+      "size": [
+        480,
+        650
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "moss_prompt_enhancer/beach"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "moss_prompt_enhancer/beach"
+      }
+    },
+    {
+      "id": 9,
+      "type": "LoraLoaderModelOnly",
+      "title": "MOSS Turbo LoRA · 2600版 / 强度1",
+      "pos": [
+        1600,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoraLoaderModelOnly"
+      },
+      "widgets_values": [
+        "moss/moss_sft_8step_dmd_2600.safetensors",
+        1.0
+      ],
+      "widgets_values_named": {
+        "lora_name": "moss/moss_sft_8step_dmd_2600.safetensors",
+        "strength_model": 1.0
+      }
+    },
+    {
+      "id": 30,
+      "type": "MOSSPromptEnhancer",
+      "title": "tb-moss-prompt-enhancer · 提示词增强",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        520,
+        1370
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "RESPONSE",
+          "type": "STRING",
+          "links": [
+            1,
+            15,
+            19
+          ]
+        },
+        {
+          "name": "DRAFT_JSON",
+          "type": "STRING",
+          "links": [
+            16,
+            20
+          ]
+        },
+        {
+          "name": "REASONING",
+          "type": "STRING",
+          "links": [
+            18
+          ]
+        },
+        {
+          "name": "PERF",
+          "type": "STRING",
+          "links": [
+            17
+          ]
+        },
+        {
+          "name": "WIDTH",
+          "type": "INT",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "HEIGHT",
+          "type": "INT",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MOSSPromptEnhancer"
+      },
+      "widgets_values": [
+        "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+        "none",
+        "none",
+        "An adult woman playing with a golden retriever on a beach, a fishing boat in the distance, windy blue hour, candid 35mm photograph.",
+        4096,
+        0.3,
+        0.9,
+        40,
+        1.05,
+        16384,
+        "gpu_layers",
+        99,
+        1,
+        20261020,
+        "fixed",
+        600,
+        "off",
+        1536,
+        1024,
+        "Structured Layout",
+        true,
+        true,
+        ""
+      ],
+      "widgets_values_named": {
+        "model": "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+        "mmproj": "none",
+        "system_prompt": "none",
+        "prompt": "An adult woman playing with a golden retriever on a beach, a fishing boat in the distance, windy blue hour, candid 35mm photograph.",
+        "max_tokens": 4096,
+        "temperature": 0.3,
+        "top_p": 0.9,
+        "top_k": 40,
+        "repeat_penalty": 1.05,
+        "ctx_size": 16384,
+        "memory_mode": "gpu_layers",
+        "n_gpu_layers": 99,
+        "n_cpu_moe_layers": 1,
+        "seed": 20261020,
+        "timeout_seconds": 600,
+        "reasoning": "off",
+        "width": 1536,
+        "height": 1024,
+        "output_mode": "Structured Layout",
+        "retry_invalid_json": true,
+        "enable_processing": true,
+        "extra_args": ""
+      }
+    },
+    {
+      "id": 31,
+      "type": "PreviewAny",
+      "title": "编译后的MOSS提示词",
+      "pos": [
+        580,
+        0
+      ],
+      "size": [
+        500,
+        540
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 32,
+      "type": "PreviewAny",
+      "title": "可编辑JSON草稿 · 顶部原点XYXY",
+      "pos": [
+        580,
+        580
+      ],
+      "size": [
+        500,
+        540
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 16
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 33,
+      "type": "PreviewAny",
+      "title": "GGUF推理速度",
+      "pos": [
+        0,
+        1450
+      ],
+      "size": [
+        520,
+        200
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 34,
+      "type": "PreviewAny",
+      "title": "推理文字 · reasoning off时可为空",
+      "pos": [
+        580,
+        1150
+      ],
+      "size": [
+        500,
+        470
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 35,
+      "type": "SaveText",
+      "title": "保存compiled",
+      "pos": [
+        1120,
+        1180
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveText"
+      },
+      "widgets_values": [
+        "moss_prompt_enhancer/beach_compiled",
+        "txt"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "moss_prompt_enhancer/beach_compiled",
+        "format": "txt"
+      }
+    },
+    {
+      "id": 36,
+      "type": "SaveText",
+      "title": "保存draft",
+      "pos": [
+        1120,
+        1410
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveText"
+      },
+      "widgets_values": [
+        "moss_prompt_enhancer/beach_draft",
+        "json"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "moss_prompt_enhancer/beach_draft",
+        "format": "json"
+      }
+    },
+    {
+      "id": 100,
+      "type": "MarkdownNote",
+      "title": "使用说明",
+      "pos": [
+        1120,
+        1700
+      ],
+      "size": [
+        1920,
+        530
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# MOSS Prompt Enhancer · 本地GGUF工作流\n\n在①输入简短提示词；默认复用本机Gemma4-12B Q4_K_M，纯文本不需要mmproj。\nStructured Layout生成绝对像素XYXY草稿，再校验编译成中心原点YXYX；Caption生成详细自然语言。\nRESPONSE直连MOSS文本编码器；WIDTH/HEIGHT直连latent，修改增强器尺寸即可，需为16的倍数。\n草稿、编译结果与速度在预览节点显示；文本和PNG保存到output/moss_prompt_enhancer。\n生图使用本机MOSS SFT BF16 + 官方INT8文本编码器 + Turbo 2600版，8步CFG1、Euler/sgm_uniform、Shift5。\n复用镜像已有llama-cpp-python；每次增强结束关闭GGUF实例释放显存，MOSS仍需专用编码器。\nJSON校验通过表示格式和边界合法，不保证主体位置、文字或视觉质量。\n同一输入会复用ComfyUI缓存；要重新增强请改变seed或prompt。\n若手工修改草稿，需重新通过compile_prompt.py编译；不要把XYXY草稿直接当成MOSS条件。\n来源：https://github.com/xb1n0ry/ComfyUI-MOSS-Prompt-Enhancer\n\nToolBox 集成版：节点位于ToolBox/MOSS，复用已有llama-cpp-python。MOSSPromptEnhancer类型标识保留，勿同时启用独立插件。"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      30,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      2,
+      0,
+      4,
+      1,
+      "CLIP"
+    ],
+    [
+      3,
+      2,
+      0,
+      5,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      30,
+      4,
+      6,
+      0,
+      "INT"
+    ],
+    [
+      5,
+      30,
+      5,
+      6,
+      1,
+      "INT"
+    ],
+    [
+      6,
+      9,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      7,
+      7,
+      0,
+      10,
+      0,
+      "MODEL"
+    ],
+    [
+      8,
+      4,
+      0,
+      10,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      9,
+      5,
+      0,
+      10,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      10,
+      6,
+      0,
+      10,
+      3,
+      "LATENT"
+    ],
+    [
+      11,
+      10,
+      0,
+      11,
+      0,
+      "LATENT"
+    ],
+    [
+      12,
+      3,
+      0,
+      11,
+      1,
+      "VAE"
+    ],
+    [
+      13,
+      11,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ],
+    [
+      14,
+      1,
+      0,
+      9,
+      0,
+      "MODEL"
+    ],
+    [
+      15,
+      30,
+      0,
+      31,
+      0,
+      "*"
+    ],
+    [
+      16,
+      30,
+      1,
+      32,
+      0,
+      "*"
+    ],
+    [
+      17,
+      30,
+      3,
+      33,
+      0,
+      "*"
+    ],
+    [
+      18,
+      30,
+      2,
+      34,
+      0,
+      "*"
+    ],
+    [
+      19,
+      30,
+      0,
+      35,
+      0,
+      "STRING"
+    ],
+    [
+      20,
+      30,
+      1,
+      36,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowName": "05_MOSS_海滩人物与狗_布局增强_Turbo8步",
+    "frontendVersion": "1.55.18",
+    "ds": {
+      "scale": 0.4,
+      "offset": [
+        50,
+        60
+      ]
+    }
+  },
+  "version": 0.4
+}

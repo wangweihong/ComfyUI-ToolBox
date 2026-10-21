@@ -761,5 +761,100 @@
   },
   "H3SkinSaveReport": {
     "display_name": "保存肤色闭环报告 · H3SkinSaveReport"
+  },
+  "MOSSPromptEnhancer": {
+    "display_name": "tb-moss-prompt-enhancer",
+    "description": "复用已有 llama-cpp-python，增强提示词并校验、编译 MOSS 布局。",
+    "inputs": {
+      "model": {
+        "name": "GGUF 模型"
+      },
+      "mmproj": {
+        "name": "视觉投影模型"
+      },
+      "system_prompt": {
+        "name": "附加系统预设"
+      },
+      "prompt": {
+        "name": "图像想法"
+      },
+      "max_tokens": {
+        "name": "最大输出 tokens"
+      },
+      "temperature": {
+        "name": "温度"
+      },
+      "top_p": {
+        "name": "Top P"
+      },
+      "top_k": {
+        "name": "Top K"
+      },
+      "repeat_penalty": {
+        "name": "重复惩罚"
+      },
+      "ctx_size": {
+        "name": "上下文长度"
+      },
+      "memory_mode": {
+        "name": "内存分配方式"
+      },
+      "n_gpu_layers": {
+        "name": "GPU 层数"
+      },
+      "n_cpu_moe_layers": {
+        "name": "CPU MoE 层数"
+      },
+      "seed": {
+        "name": "随机种子"
+      },
+      "timeout_seconds": {
+        "name": "超时秒数"
+      },
+      "reasoning": {
+        "name": "推理模式"
+      },
+      "width": {
+        "name": "宽度"
+      },
+      "height": {
+        "name": "高度"
+      },
+      "output_mode": {
+        "name": "输出模式"
+      },
+      "retry_invalid_json": {
+        "name": "重试无效 JSON"
+      },
+      "image": {
+        "name": "可选参考图"
+      },
+      "enable_processing": {
+        "name": "启用增强"
+      },
+      "extra_args": {
+        "name": "Python 初始化选项（JSON）"
+      }
+    },
+    "outputs": {
+      "RESPONSE": {
+        "name": "编译提示词"
+      },
+      "DRAFT_JSON": {
+        "name": "JSON 草稿"
+      },
+      "REASONING": {
+        "name": "推理内容"
+      },
+      "PERF": {
+        "name": "推理性能"
+      },
+      "WIDTH": {
+        "name": "宽度"
+      },
+      "HEIGHT": {
+        "name": "高度"
+      }
+    }
   }
 }

@@ -1,3 +1,11 @@
+## MOSS 提示词增强
+
+新增 `ToolBox/MOSS` 下的 `tb-moss-prompt-enhancer`，保留旧节点类型 `MOSSPromptEnhancer`。复用已有CUDA llama-cpp-python，支持自然语言或布局JSON增强、官方校验编译，不依赖LLM Text Processor或CLI；可选库在执行时加载，未安装时不影响其他节点注册。
+
+[使用、依赖与迁移说明](docs/moss_prompt_enhancer.md) · [五套示例工作流](examples/moss_prompt_enhancer/README.md) · [上游来源](nodes/moss_prompt_enhancer/UPSTREAM.md)。升级时停用独立增强器插件，避免重复注册。
+
+English: MOSS prompt enhancement now lives in ToolBox, retaining the legacy workflow identifier and reusing the existing Python inference library. See the linked documentation and examples.
+
 ## 3DGS：H3单图转高斯场景
 
 提供 `LocalCOLMAPDataset`、`LocalVideoFrames`、`LocalBrushTrain`、`LocalPLYFile` 四个节点，位于 `ToolBox/3DGS`。节点始终注册，PyCOLMAP和Brush在执行时检查；不会自动安装运行依赖。
