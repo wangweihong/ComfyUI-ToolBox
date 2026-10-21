@@ -1,0 +1,433 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minmaxh3/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "加载 H3 Ref2VA · 本地INT8"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "加载 H3 Qwen3-VL 32B · INT8"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "vae/minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "_meta": {
+      "title": "加载 H3 视频VAE · INT8"
+    }
+  },
+  "4": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "vae/minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "_meta": {
+      "title": "H3音频VAE · 参考编码与锁定"
+    }
+  },
+  "5": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "h3dance_music3_funk_40s.wav"
+    },
+    "_meta": {
+      "title": "① 选择工作流01生成的WAV"
+    }
+  },
+  "6": {
+    "class_type": "DanceMVAnalyzeAudio",
+    "inputs": {
+      "audio": [
+        "5",
+        0
+      ],
+      "backend": "beat_this",
+      "output_prefix": "videos/minimaxh3/dance_mv/dance/intent/analysis"
+    },
+    "_meta": {
+      "title": "ToolBox · ② 本地Beat This! CPU＋librosa · 自动15秒选段",
+      "node_source": "ComfyUI-ToolBox",
+      "toolbox_module": "dance_mv"
+    }
+  },
+  "7": {
+    "class_type": "DanceMVIntentPlanner",
+    "inputs": {
+      "analysis_json": [
+        "6",
+        1
+      ],
+      "user_actions": "有力量的街舞，动作随重音增强，具体编排由系统决定",
+      "model": "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+      "seed": 20261021,
+      "output_prefix": "videos/minimaxh3/dance_mv/dance/intent"
+    },
+    "_meta": {
+      "title": "ToolBox · ② 用户只填动作意图 · 本地模型结合音乐自动编排",
+      "node_source": "ComfyUI-ToolBox",
+      "toolbox_module": "dance_mv"
+    }
+  },
+  "8": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "h3_bfs_original_teal_character_20261014.png"
+    },
+    "_meta": {
+      "title": "④ assets全身人物参考 · 两组共用"
+    }
+  },
+  "9": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "lora_name": "minimaxh3/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+      "strength_model": 1
+    },
+    "_meta": {
+      "title": "Ref2V Turbo4步 · 强度1"
+    }
+  },
+  "10": {
+    "class_type": "MiniMaxH3SigmaShift",
+    "inputs": {
+      "model": [
+        "9",
+        0
+      ],
+      "shift_video": 12,
+      "shift_audio": 3
+    },
+    "_meta": {
+      "title": "shift视频12 / 音频3"
+    }
+  },
+  "11": {
+    "class_type": "ModelAttentionBackend",
+    "inputs": {
+      "model": [
+        "10",
+        0
+      ],
+      "attention": "comfy kitchen attention"
+    },
+    "_meta": {
+      "title": "Kitchen INT8稠密后端"
+    }
+  },
+  "12": {
+    "class_type": "MiniMaxChunkFeedForward",
+    "inputs": {
+      "model": [
+        "11",
+        0
+      ],
+      "chunks": 8,
+      "seq_threshold": 4096
+    },
+    "_meta": {
+      "title": "FFN8块显存保护"
+    }
+  },
+  "13": {
+    "class_type": "VedaSparseAttention",
+    "inputs": {
+      "model": [
+        "12",
+        0
+      ],
+      "predictor": "minimax_h3_r2va_veda_preview_fp8.safetensors",
+      "generated_sparsity": "trained",
+      "reference_sparsity": "trained",
+      "full_attention_layers": "",
+      "full_attention_steps": "0",
+      "verbose": true
+    },
+    "_meta": {
+      "title": "VEDA R2VA · trained预算 · 首步稠密"
+    }
+  },
+  "14": {
+    "class_type": "ModelMemoryUseReportPatch",
+    "inputs": {
+      "model": [
+        "13",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "真实采样显存记录"
+    }
+  },
+  "15": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 20261021
+    },
+    "_meta": {
+      "title": "共同固定seed20261021"
+    }
+  },
+  "16": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Euler"
+    }
+  },
+  "17": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "14",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 4,
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "simple · 4步 · denoise1"
+    }
+  },
+  "40": {
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "audio_vae": [
+        "4",
+        0
+      ],
+      "prompt": [
+        "7",
+        0
+      ],
+      "width": 768,
+      "height": 1344,
+      "length": 362,
+      "ref_image_size": "match",
+      "ref_images.ref_image_0": [
+        "8",
+        0
+      ],
+      "ref_audios.ref_audio_0": [
+        "6",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "③ 自动生成的H3提示词 · 音乐＋动作意图"
+    }
+  },
+  "41": {
+    "class_type": "easy minimaxH3AudioLock",
+    "inputs": {
+      "latent": [
+        "40",
+        1
+      ],
+      "audio_vae": [
+        "4",
+        0
+      ],
+      "audio": [
+        "6",
+        0
+      ],
+      "remix_strength": 1,
+      "short_audio_mode": "silence",
+      "prepend_frames": 0,
+      "frame_rate": 24
+    },
+    "_meta": {
+      "title": "B_choreography · 音频潜变量硬锁1.0"
+    }
+  },
+  "42": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": [
+        "14",
+        0
+      ],
+      "conditioning": [
+        "40",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "B_choreography · CFG1"
+    }
+  },
+  "43": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "15",
+        0
+      ],
+      "guider": [
+        "42",
+        0
+      ],
+      "sampler": [
+        "16",
+        0
+      ],
+      "sigmas": [
+        "17",
+        0
+      ],
+      "latent_image": [
+        "41",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "B_choreography · 真实H3四步采样"
+    }
+  },
+  "44": {
+    "class_type": "LTXVSeparateAVLatent",
+    "inputs": {
+      "av_latent": [
+        "43",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "分离视频 · 输出采用原始音乐"
+    }
+  },
+  "45": {
+    "class_type": "VAEDecodeTiled",
+    "inputs": {
+      "samples": [
+        "44",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "tile_size": 1024,
+      "overlap": 128,
+      "temporal_size": 64,
+      "temporal_overlap": 8
+    },
+    "_meta": {
+      "title": "分块解码362帧"
+    }
+  },
+  "46": {
+    "class_type": "ImageFromBatch",
+    "inputs": {
+      "image": [
+        "45",
+        0
+      ],
+      "batch_index": 0,
+      "length": 360
+    },
+    "_meta": {
+      "title": "裁成360帧 · 精确15秒"
+    }
+  },
+  "47": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "46",
+        0
+      ],
+      "audio": [
+        "6",
+        0
+      ],
+      "fps": 24,
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "codec": "none"
+    },
+    "_meta": {
+      "title": "B_choreography · 24fps＋原WAV音轨"
+    }
+  },
+  "48": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "47",
+        0
+      ],
+      "filename_prefix": "videos/minimaxh3/dance_mv/dance/intent/D_music_intent",
+      "format": "mp4",
+      "format.codec": "h264",
+      "format.codec.encoding": "auto"
+    },
+    "_meta": {
+      "title": "保存 B_choreography 15秒1MP"
+    }
+  },
+  "80": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "7",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "音乐依据与自动动作时间表"
+    }
+  },
+  "81": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "7",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "本地模型生成的动作计划JSON"
+    }
+  },
+  "82": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "7",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "自动编译的H3提示词 · 查看用"
+    }
+  }
+}

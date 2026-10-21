@@ -1,0 +1,1650 @@
+{
+  "id": "b3a71ca7-46d3-53ff-a221-cfa4d9a4244e",
+  "revision": 0,
+  "last_node_id": 100,
+  "last_link_id": 35,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "title": "加载 H3 Ref2VA · 本地INT8",
+      "pos": [
+        0,
+        1400
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "minmaxh3/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "minmaxh3/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "加载 H3 Qwen3-VL 32B · INT8",
+      "pos": [
+        0,
+        1650
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "minimax",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "type": "minimax",
+        "device": "default"
+      }
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "title": "加载 H3 视频VAE · INT8",
+      "pos": [
+        450,
+        1400
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            12,
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "vae/minimax_h3_video_vae_int8_convrot.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "vae/minimax_h3_video_vae_int8_convrot.safetensors"
+      }
+    },
+    {
+      "id": 4,
+      "type": "VAELoader",
+      "title": "H3音频VAE · 参考编码与锁定",
+      "pos": [
+        450,
+        1650
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            13,
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "vae/minimax_h3_audio_vae_fp32.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "vae/minimax_h3_audio_vae_fp32.safetensors"
+      }
+    },
+    {
+      "id": 5,
+      "type": "LoadAudio",
+      "title": "① 选择工作流01生成的WAV",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "h3dance_music3_funk_40s.wav"
+      ],
+      "widgets_values_named": {
+        "audio": "h3dance_music3_funk_40s.wav"
+      }
+    },
+    {
+      "id": 6,
+      "type": "DanceMVAnalyzeAudio",
+      "title": "ToolBox · ② 本地Beat This! CPU＋librosa · 自动15秒选段",
+      "pos": [
+        500,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "音乐15秒",
+          "type": "AUDIO",
+          "links": [
+            15,
+            18,
+            31
+          ]
+        },
+        {
+          "name": "分析JSON",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "测量摘要",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "节拍点击试听",
+          "type": "AUDIO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DanceMVAnalyzeAudio",
+        "node_source": "ComfyUI-ToolBox",
+        "toolbox_module": "dance_mv"
+      },
+      "widgets_values": [
+        "beat_this",
+        "videos/minimaxh3/dance_mv/dance/intent/analysis"
+      ],
+      "widgets_values_named": {
+        "backend": "beat_this",
+        "output_prefix": "videos/minimaxh3/dance_mv/dance/intent/analysis"
+      }
+    },
+    {
+      "id": 7,
+      "type": "DanceMVIntentPlanner",
+      "title": "ToolBox · ② 用户只填动作意图 · 本地模型结合音乐自动编排",
+      "pos": [
+        1000,
+        0
+      ],
+      "size": [
+        480,
+        580
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "analysis_json",
+          "type": "STRING",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "自动H3提示词",
+          "type": "STRING",
+          "links": [
+            11,
+            35
+          ]
+        },
+        {
+          "name": "音乐与动作时间表",
+          "type": "STRING",
+          "links": [
+            33
+          ]
+        },
+        {
+          "name": "本地编排JSON",
+          "type": "STRING",
+          "links": [
+            34
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DanceMVIntentPlanner",
+        "node_source": "ComfyUI-ToolBox",
+        "toolbox_module": "dance_mv"
+      },
+      "widgets_values": [
+        "有力量的街舞，动作随重音增强，具体编排由系统决定",
+        "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+        20261021,
+        "fixed",
+        "videos/minimaxh3/dance_mv/dance/intent"
+      ],
+      "widgets_values_named": {
+        "user_actions": "有力量的街舞，动作随重音增强，具体编排由系统决定",
+        "model": "Gemma4-12B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf",
+        "seed": 20261021,
+        "control_after_generate": "fixed",
+        "output_prefix": "videos/minimaxh3/dance_mv/dance/intent"
+      }
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "title": "④ assets全身人物参考 · 两组共用",
+      "pos": [
+        0,
+        500
+      ],
+      "size": [
+        430,
+        440
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "h3_bfs_original_teal_character_20261014.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "h3_bfs_original_teal_character_20261014.png"
+      }
+    },
+    {
+      "id": 9,
+      "type": "LoraLoaderModelOnly",
+      "title": "Ref2V Turbo4步 · 强度1",
+      "pos": [
+        1500,
+        1400
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoraLoaderModelOnly"
+      },
+      "widgets_values": [
+        "minimaxh3/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "minimaxh3/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+        "strength_model": 1
+      }
+    },
+    {
+      "id": 10,
+      "type": "MiniMaxH3SigmaShift",
+      "title": "shift视频12 / 音频3",
+      "pos": [
+        1950,
+        1400
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MiniMaxH3SigmaShift"
+      },
+      "widgets_values": [
+        12,
+        3
+      ],
+      "widgets_values_named": {
+        "shift_video": 12,
+        "shift_audio": 3
+      }
+    },
+    {
+      "id": 11,
+      "type": "ModelAttentionBackend",
+      "title": "Kitchen INT8稠密后端",
+      "pos": [
+        1500,
+        1650
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelAttentionBackend"
+      },
+      "widgets_values": [
+        "comfy kitchen attention"
+      ],
+      "widgets_values_named": {
+        "attention": "comfy kitchen attention"
+      }
+    },
+    {
+      "id": 12,
+      "type": "MiniMaxChunkFeedForward",
+      "title": "FFN8块显存保护",
+      "pos": [
+        1950,
+        1650
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MiniMaxChunkFeedForward"
+      },
+      "widgets_values": [
+        8,
+        4096
+      ],
+      "widgets_values_named": {
+        "chunks": 8,
+        "seq_threshold": 4096
+      }
+    },
+    {
+      "id": 13,
+      "type": "VedaSparseAttention",
+      "title": "VEDA R2VA · trained预算 · 首步稠密",
+      "pos": [
+        2400,
+        1400
+      ],
+      "size": [
+        450,
+        430
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VedaSparseAttention"
+      },
+      "widgets_values": [
+        "minimax_h3_r2va_veda_preview_fp8.safetensors",
+        "trained",
+        "trained",
+        "",
+        "0",
+        true
+      ],
+      "widgets_values_named": {
+        "predictor": "minimax_h3_r2va_veda_preview_fp8.safetensors",
+        "generated_sparsity": "trained",
+        "reference_sparsity": "trained",
+        "full_attention_layers": "",
+        "full_attention_steps": "0",
+        "verbose": true
+      }
+    },
+    {
+      "id": 14,
+      "type": "ModelMemoryUseReportPatch",
+      "title": "真实采样显存记录",
+      "pos": [
+        2400,
+        1900
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            9,
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelMemoryUseReportPatch"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 15,
+      "type": "RandomNoise",
+      "title": "共同固定seed20261021",
+      "pos": [
+        1950,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        20261021,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "noise_seed": 20261021,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 16,
+      "type": "KSamplerSelect",
+      "title": "Euler",
+      "pos": [
+        1950,
+        230
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler"
+      ],
+      "widgets_values_named": {
+        "sampler_name": "euler"
+      }
+    },
+    {
+      "id": 17,
+      "type": "BasicScheduler",
+      "title": "simple · 4步 · denoise1",
+      "pos": [
+        1950,
+        460
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            24
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicScheduler"
+      },
+      "widgets_values": [
+        "simple",
+        4,
+        1
+      ],
+      "widgets_values_named": {
+        "scheduler": "simple",
+        "steps": 4,
+        "denoise": 1
+      }
+    },
+    {
+      "id": 40,
+      "type": "MiniMaxH3ReferenceToVideo",
+      "title": "③ 自动生成的H3提示词 · 音乐＋动作意图",
+      "pos": [
+        2450,
+        0
+      ],
+      "size": [
+        450,
+        580
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 10
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "link": 11,
+          "widget": {
+            "name": "prompt"
+          }
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 12,
+          "shape": 7
+        },
+        {
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 13,
+          "shape": 7
+        },
+        {
+          "name": "ref_images.ref_image_0",
+          "type": "IMAGE",
+          "link": 14,
+          "shape": 7
+        },
+        {
+          "name": "ref_audios.ref_audio_0",
+          "type": "AUDIO",
+          "link": 15,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            20
+          ]
+        },
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+      },
+      "widgets_values": [
+        "",
+        768,
+        1344,
+        362,
+        "match"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "width": 768,
+        "height": 1344,
+        "length": 362,
+        "ref_image_size": "match"
+      }
+    },
+    {
+      "id": 41,
+      "type": "easy minimaxH3AudioLock",
+      "title": "B_choreography · 音频潜变量硬锁1.0",
+      "pos": [
+        2950,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 16
+        },
+        {
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 17
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 18,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "easy minimaxH3AudioLock"
+      },
+      "widgets_values": [
+        1,
+        "silence",
+        0,
+        24
+      ],
+      "widgets_values_named": {
+        "remix_strength": 1,
+        "short_audio_mode": "silence",
+        "prepend_frames": 0,
+        "frame_rate": 24
+      }
+    },
+    {
+      "id": 42,
+      "type": "BasicGuider",
+      "title": "B_choreography · CFG1",
+      "pos": [
+        2950,
+        300
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 19
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 20
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            22
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicGuider"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 43,
+      "type": "SamplerCustomAdvanced",
+      "title": "B_choreography · 真实H3四步采样",
+      "pos": [
+        3400,
+        0
+      ],
+      "size": [
+        420,
+        270
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 21
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 22
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 23
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 24
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            26
+          ]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 44,
+      "type": "LTXVSeparateAVLatent",
+      "title": "分离视频 · 输出采用原始音乐",
+      "pos": [
+        3400,
+        350
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "av_latent",
+          "type": "LATENT",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_latent",
+          "type": "LATENT",
+          "links": [
+            27
+          ]
+        },
+        {
+          "name": "audio_latent",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LTXVSeparateAVLatent"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 45,
+      "type": "VAEDecodeTiled",
+      "title": "分块解码362帧",
+      "pos": [
+        3900,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 27
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecodeTiled"
+      },
+      "widgets_values": [
+        1024,
+        128,
+        64,
+        8
+      ],
+      "widgets_values_named": {
+        "tile_size": 1024,
+        "overlap": 128,
+        "temporal_size": 64,
+        "temporal_overlap": 8
+      }
+    },
+    {
+      "id": 46,
+      "type": "ImageFromBatch",
+      "title": "裁成360帧 · 精确15秒",
+      "pos": [
+        3900,
+        400
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageFromBatch"
+      },
+      "widgets_values": [
+        0,
+        360
+      ],
+      "widgets_values_named": {
+        "batch_index": 0,
+        "length": 360
+      }
+    },
+    {
+      "id": 47,
+      "type": "CreateVideo",
+      "title": "B_choreography · 24fps＋原WAV音轨",
+      "pos": [
+        4350,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 30
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 31,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            32
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        24,
+        "auto",
+        "sRGB",
+        "none"
+      ],
+      "widgets_values_named": {
+        "fps": 24,
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "codec": "none"
+      }
+    },
+    {
+      "id": 48,
+      "type": "SaveVideo",
+      "title": "保存 B_choreography 15秒1MP",
+      "pos": [
+        4800,
+        0
+      ],
+      "size": [
+        430,
+        440
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 32
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "videos/minimaxh3/dance_mv/dance/intent/D_music_intent",
+        "mp4",
+        "h264",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "videos/minimaxh3/dance_mv/dance/intent/D_music_intent",
+        "format": "mp4",
+        "format.codec": "h264",
+        "format.codec.encoding": "auto"
+      }
+    },
+    {
+      "id": 80,
+      "type": "PreviewAny",
+      "title": "音乐依据与自动动作时间表",
+      "pos": [
+        1000,
+        700
+      ],
+      "size": [
+        480,
+        600
+      ],
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 33
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 81,
+      "type": "PreviewAny",
+      "title": "本地模型生成的动作计划JSON",
+      "pos": [
+        1500,
+        700
+      ],
+      "size": [
+        480,
+        600
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 82,
+      "type": "PreviewAny",
+      "title": "自动编译的H3提示词 · 查看用",
+      "pos": [
+        2450,
+        650
+      ],
+      "size": [
+        480,
+        600
+      ],
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 35
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 100,
+      "type": "MarkdownNote",
+      "title": "音乐＋用户动作意图：自动反推编舞流程",
+      "pos": [
+        0,
+        2300
+      ],
+      "size": [
+        3700,
+        400
+      ],
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "先运行01生成音乐。第二张只输入用户想要的动作，例如“有力量的街舞，动作随重音增强，具体编排由系统决定”。Beat This!＋librosa测量音乐；本地Gemma4读取实际拍点、首拍、强弱与乐句能量，再自动选择动作和过渡；程序按实测时间编译H3提示词并直连Ref2VA。没有手工成品提示词输入。时间由测量数据决定，不允许语言模型虚构。模型结束后释放显存再运行H3。输出15秒1MP、Turbo4步＋VEDA，原音乐Audio Reference＋Audio Lock1.0，CreateVideo none单次保存。计划和成片执行效果需分别检查。\n\nDanceMV节点来源：ComfyUI-ToolBox / ToolBox/DanceMV；请停用旧独立包，避免重复注册。"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      5,
+      0,
+      6,
+      0,
+      "AUDIO"
+    ],
+    [
+      2,
+      6,
+      1,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      1,
+      0,
+      9,
+      0,
+      "MODEL"
+    ],
+    [
+      4,
+      9,
+      0,
+      10,
+      0,
+      "MODEL"
+    ],
+    [
+      5,
+      10,
+      0,
+      11,
+      0,
+      "MODEL"
+    ],
+    [
+      6,
+      11,
+      0,
+      12,
+      0,
+      "MODEL"
+    ],
+    [
+      7,
+      12,
+      0,
+      13,
+      0,
+      "MODEL"
+    ],
+    [
+      8,
+      13,
+      0,
+      14,
+      0,
+      "MODEL"
+    ],
+    [
+      9,
+      14,
+      0,
+      17,
+      0,
+      "MODEL"
+    ],
+    [
+      10,
+      2,
+      0,
+      40,
+      0,
+      "CLIP"
+    ],
+    [
+      11,
+      7,
+      0,
+      40,
+      1,
+      "STRING"
+    ],
+    [
+      12,
+      3,
+      0,
+      40,
+      2,
+      "VAE"
+    ],
+    [
+      13,
+      4,
+      0,
+      40,
+      3,
+      "VAE"
+    ],
+    [
+      14,
+      8,
+      0,
+      40,
+      4,
+      "IMAGE"
+    ],
+    [
+      15,
+      6,
+      0,
+      40,
+      5,
+      "AUDIO"
+    ],
+    [
+      16,
+      40,
+      1,
+      41,
+      0,
+      "LATENT"
+    ],
+    [
+      17,
+      4,
+      0,
+      41,
+      1,
+      "VAE"
+    ],
+    [
+      18,
+      6,
+      0,
+      41,
+      2,
+      "AUDIO"
+    ],
+    [
+      19,
+      14,
+      0,
+      42,
+      0,
+      "MODEL"
+    ],
+    [
+      20,
+      40,
+      0,
+      42,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      21,
+      15,
+      0,
+      43,
+      0,
+      "NOISE"
+    ],
+    [
+      22,
+      42,
+      0,
+      43,
+      1,
+      "GUIDER"
+    ],
+    [
+      23,
+      16,
+      0,
+      43,
+      2,
+      "SAMPLER"
+    ],
+    [
+      24,
+      17,
+      0,
+      43,
+      3,
+      "SIGMAS"
+    ],
+    [
+      25,
+      41,
+      0,
+      43,
+      4,
+      "LATENT"
+    ],
+    [
+      26,
+      43,
+      0,
+      44,
+      0,
+      "LATENT"
+    ],
+    [
+      27,
+      44,
+      0,
+      45,
+      0,
+      "LATENT"
+    ],
+    [
+      28,
+      3,
+      0,
+      45,
+      1,
+      "VAE"
+    ],
+    [
+      29,
+      45,
+      0,
+      46,
+      0,
+      "IMAGE"
+    ],
+    [
+      30,
+      46,
+      0,
+      47,
+      0,
+      "IMAGE"
+    ],
+    [
+      31,
+      6,
+      0,
+      47,
+      1,
+      "AUDIO"
+    ],
+    [
+      32,
+      47,
+      0,
+      48,
+      0,
+      "VIDEO"
+    ],
+    [
+      33,
+      7,
+      1,
+      80,
+      0,
+      "*"
+    ],
+    [
+      34,
+      7,
+      2,
+      81,
+      0,
+      "*"
+    ],
+    [
+      35,
+      7,
+      0,
+      82,
+      0,
+      "*"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowName": "02_音乐节奏反推_用户动作意图_自动H3_15秒1MP",
+    "frontendVersion": "1.53.10",
+    "ds": {
+      "scale": 0.2,
+      "offset": [
+        50,
+        50
+      ]
+    },
+    "node_sources": {
+      "DanceMVAnalyzeAudio": "ComfyUI-ToolBox",
+      "DanceMVIntentPlanner": "ComfyUI-ToolBox"
+    }
+  },
+  "version": 0.4
+}

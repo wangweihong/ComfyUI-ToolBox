@@ -1,0 +1,139 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "diffusion_models/minimax_music3_dit_fp16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Music3 FP16 · 已有本地模型"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Music3 INT8文本编码器"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "vae/minimax_music3_dav.safetensors"
+    },
+    "_meta": {
+      "title": "Music3音频VAE"
+    }
+  },
+  "4": {
+    "class_type": "MiniMaxMusic3TextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "caption": "Global Metadata: Instrumental funk-pop and hip-hop dance groove, 120 BPM target, 4/4 meter, bright confident playful mood, clean punchy studio production. A compact forty-second dance instrumental with a steady audible pulse throughout. No rubato, no long ambient intro, no fadeout before forty seconds.\nVocal Details: Strictly instrumental. No lead vocal, no singing, no rap, no spoken words, no humming, no vocal samples.\nArrangement: Tight dry kick on a steady four-beat pulse, crisp snare backbeats, closed eighth-note hi-hats, syncopated electric bass, short clean rhythm-guitar chops, warm electric-piano stabs. Enter the full drum groove within the first two seconds. Maintain a stable groove with small fills at eight-bar boundaries and a little lift in the middle. Keep the drums and bass clearly audible, with enough rhythmic space for grounded step-touch street dancing.",
+      "lyrics": "[Intro]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Outro]",
+      "seed": 20261021,
+      "max_duration": 40.0,
+      "cfg_scale": 1.7,
+      "top_k": 50
+    },
+    "_meta": {
+      "title": "① 音乐风格与纯音乐结构 · 目标120BPM"
+    }
+  },
+  "5": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "零负条件"
+    }
+  },
+  "6": {
+    "class_type": "EmptyMiniMaxMusic3LatentAudio",
+    "inputs": {
+      "seconds": [
+        "4",
+        1
+      ],
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "跟随Music3实际时长"
+    }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "4",
+        0
+      ],
+      "negative": [
+        "5",
+        0
+      ],
+      "latent_image": [
+        "6",
+        0
+      ],
+      "seed": 20261021,
+      "steps": 30,
+      "cfg": 1.7,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    },
+    "_meta": {
+      "title": "② 固定种子 · Euler/simple30步"
+    }
+  },
+  "8": {
+    "class_type": "VAEDecodeAudioTiled",
+    "inputs": {
+      "samples": [
+        "7",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ],
+      "tile_size": 1536,
+      "overlap": 64
+    },
+    "_meta": {
+      "title": "分块解码音乐 · 原工作流参数"
+    }
+  },
+  "9": {
+    "class_type": "DanceMVSaveWav",
+    "inputs": {
+      "audio": [
+        "8",
+        0
+      ],
+      "output_prefix": "videos/minimaxh3/dance_mv/dance/music",
+      "filename": "music3_funk_120bpm_40s.wav"
+    },
+    "_meta": {
+      "title": "ToolBox · ③ 保存40秒音乐WAV · 下一张加载",
+      "node_source": "ComfyUI-ToolBox",
+      "toolbox_module": "dance_mv"
+    }
+  }
+}

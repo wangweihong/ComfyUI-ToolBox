@@ -26,7 +26,11 @@ from .nodes.stocking_texture import routes as _stocking_routes
 from .nodes.skin_color_pipeline import NODE_CLASS_MAPPINGS as skin_color_nodes_mapping
 from .nodes.skin_color_pipeline import NODE_DISPLAY_NAME_MAPPINGS as skin_color_display_mapping
 
+from .nodes.dance_mv import NODE_CLASS_MAPPINGS as dance_mv_nodes_mapping
+from .nodes.dance_mv import NODE_DISPLAY_NAME_MAPPINGS as dance_mv_display_mapping
+
 NODE_CLASS_MAPPINGS = {
+    **dance_mv_nodes_mapping,
     **gaussian_nodes_mapping,
     **skin_color_nodes_mapping,
     **latent_nodes_mapping,
@@ -43,6 +47,7 @@ NODE_CLASS_MAPPINGS = {
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **dance_mv_display_mapping,
     **gaussian_display_mapping,
     **moss_display_mapping,
     **skin_color_display_mapping,

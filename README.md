@@ -212,3 +212,17 @@ python3 -m pip install -r requirements.txt
 提供 Config、Upscale、Video Encode 三个节点；缓存模式由使用者选择，输出为标准 `video` 与JSON文本 `info_json`，支持可调分段/空间块、资源预算和可选CPU/NVENC编码。默认不选缓存模式，不加载模型。
 
 [使用与依赖](docs/flashvsr.md) · [示例工作流](examples/flashvsr) · [历史实测与迁移验证](docs/testing/flashvsr_2026-10-19.md)。
+
+
+<!-- TOOLBOX_DANCE_MV -->
+## DanceMV：音乐节奏与用户动作意图自动编排
+
+新增 `ToolBox/DanceMV` 下的 `tb-dance-audio-analysis`、`tb-dance-intent-planner` 和 `tb-dance-save-wav`。输入实际音乐与用户想要的动作，本地Beat This!＋librosa测量节拍与能量，本地GGUF模型自动编排并输出H3提示词、动作时间表及JSON。
+
+保留原DanceMV节点ID和端口，两个历史辅助节点作为旧版兼容入口。迁移后停用独立ComfyUI-H3-DanceMV包，避免重复注册。
+
+[使用与依赖](docs/dance_mv.md) · [两张示例工作流](examples/dance_mv/README.md)。本次只迁移和更新工作流，按用户要求未重新运行测试或生成。
+
+English: measured music plus user movement intent drives local choreography planning and H3 prompt compilation. Legacy workflow IDs remain compatible; optional inference libraries load on execution.
+
+<!-- /TOOLBOX_DANCE_MV -->

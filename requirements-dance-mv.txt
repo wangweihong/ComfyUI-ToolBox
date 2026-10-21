@@ -1,0 +1,6 @@
+# Optional dependencies for ToolBox/DanceMV; use the ComfyUI Python runtime.
+beat-this==1.1.0
+librosa>=0.11
+soundfile>=0.13
+# Reuse a working CUDA llama-cpp-python (local setup: 0.3.40) and existing GGUF.
+# Do not replace an existing CUDA wheel with a generic CPU wheel.

@@ -1,0 +1,548 @@
+{
+  "id": "55aa848e-63f3-5474-bc8e-0ae781ddd27e",
+  "revision": 0,
+  "last_node_id": 100,
+  "last_link_id": 10,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "title": "Music3 FP16 · 已有本地模型",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "diffusion_models/minimax_music3_dit_fp16.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "diffusion_models/minimax_music3_dit_fp16.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "Music3 INT8文本编码器",
+      "pos": [
+        0,
+        240
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors",
+        "minimax",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors",
+        "type": "minimax",
+        "device": "default"
+      }
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "title": "Music3音频VAE",
+      "pos": [
+        0,
+        500
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "vae/minimax_music3_dav.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "vae/minimax_music3_dav.safetensors"
+      }
+    },
+    {
+      "id": 4,
+      "type": "MiniMaxMusic3TextEncode",
+      "title": "① 音乐风格与纯音乐结构 · 目标120BPM",
+      "pos": [
+        500,
+        0
+      ],
+      "size": [
+        550,
+        1000
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            2,
+            5
+          ]
+        },
+        {
+          "name": "seconds",
+          "type": "FLOAT",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MiniMaxMusic3TextEncode"
+      },
+      "widgets_values": [
+        "Global Metadata: Instrumental funk-pop and hip-hop dance groove, 120 BPM target, 4/4 meter, bright confident playful mood, clean punchy studio production. A compact forty-second dance instrumental with a steady audible pulse throughout. No rubato, no long ambient intro, no fadeout before forty seconds.\nVocal Details: Strictly instrumental. No lead vocal, no singing, no rap, no spoken words, no humming, no vocal samples.\nArrangement: Tight dry kick on a steady four-beat pulse, crisp snare backbeats, closed eighth-note hi-hats, syncopated electric bass, short clean rhythm-guitar chops, warm electric-piano stabs. Enter the full drum groove within the first two seconds. Maintain a stable groove with small fills at eight-bar boundaries and a little lift in the middle. Keep the drums and bass clearly audible, with enough rhythmic space for grounded step-touch street dancing.",
+        "[Intro]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Outro]",
+        20261021,
+        "fixed",
+        40.0,
+        1.7,
+        50
+      ],
+      "widgets_values_named": {
+        "caption": "Global Metadata: Instrumental funk-pop and hip-hop dance groove, 120 BPM target, 4/4 meter, bright confident playful mood, clean punchy studio production. A compact forty-second dance instrumental with a steady audible pulse throughout. No rubato, no long ambient intro, no fadeout before forty seconds.\nVocal Details: Strictly instrumental. No lead vocal, no singing, no rap, no spoken words, no humming, no vocal samples.\nArrangement: Tight dry kick on a steady four-beat pulse, crisp snare backbeats, closed eighth-note hi-hats, syncopated electric bass, short clean rhythm-guitar chops, warm electric-piano stabs. Enter the full drum groove within the first two seconds. Maintain a stable groove with small fills at eight-bar boundaries and a little lift in the middle. Keep the drums and bass clearly audible, with enough rhythmic space for grounded step-touch street dancing.",
+        "lyrics": "[Intro]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Instrumental]\n\n[Outro]",
+        "seed": 20261021,
+        "control_after_generate": "fixed",
+        "max_duration": 40.0,
+        "cfg_scale": 1.7,
+        "top_k": 50
+      }
+    },
+    {
+      "id": 5,
+      "type": "ConditioningZeroOut",
+      "title": "零负条件",
+      "pos": [
+        1080,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConditioningZeroOut"
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
+    },
+    {
+      "id": 6,
+      "type": "EmptyMiniMaxMusic3LatentAudio",
+      "title": "跟随Music3实际时长",
+      "pos": [
+        1080,
+        220
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "seconds",
+          "type": "FLOAT",
+          "link": 3,
+          "widget": {
+            "name": "seconds"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyMiniMaxMusic3LatentAudio"
+      },
+      "widgets_values": [
+        120.0,
+        1
+      ],
+      "widgets_values_named": {
+        "seconds": 120.0,
+        "batch_size": 1
+      }
+    },
+    {
+      "id": 7,
+      "type": "KSampler",
+      "title": "② 固定种子 · Euler/simple30步",
+      "pos": [
+        1550,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 4
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 5
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 6
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261021,
+        "fixed",
+        30,
+        1.7,
+        "euler",
+        "simple",
+        1.0
+      ],
+      "widgets_values_named": {
+        "seed": 20261021,
+        "control_after_generate": "fixed",
+        "steps": 30,
+        "cfg": 1.7,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1.0
+      }
+    },
+    {
+      "id": 8,
+      "type": "VAEDecodeAudioTiled",
+      "title": "分块解码音乐 · 原工作流参数",
+      "pos": [
+        2010,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 8
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecodeAudioTiled"
+      },
+      "widgets_values": [
+        1536,
+        64
+      ],
+      "widgets_values_named": {
+        "tile_size": 1536,
+        "overlap": 64
+      }
+    },
+    {
+      "id": 9,
+      "type": "DanceMVSaveWav",
+      "title": "ToolBox · ③ 保存40秒音乐WAV · 下一张加载",
+      "pos": [
+        2470,
+        0
+      ],
+      "size": [
+        430,
+        180
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "wav_path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DanceMVSaveWav",
+        "node_source": "ComfyUI-ToolBox",
+        "toolbox_module": "dance_mv"
+      },
+      "widgets_values": [
+        "videos/minimaxh3/dance_mv/dance/music",
+        "music3_funk_120bpm_40s.wav"
+      ],
+      "widgets_values_named": {
+        "output_prefix": "videos/minimaxh3/dance_mv/dance/music",
+        "filename": "music3_funk_120bpm_40s.wav"
+      }
+    },
+    {
+      "id": 100,
+      "type": "MarkdownNote",
+      "title": "使用说明与能力边界",
+      "pos": [
+        0,
+        1100
+      ],
+      "size": [
+        2900,
+        420
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "音乐生成独立运行。120 BPM仅为音乐生成目标，实测拍点由工作流02分析。保存FLOAT WAV，固定seed20261021、40秒、30步Euler/simple CFG1.7。运行脚本会将输出复制为input/h3dance_music3_funk_40s.wav；手动使用时将生成WAV上传到02的LoadAudio。\n\nDanceMV节点来源：ComfyUI-ToolBox / ToolBox/DanceMV；请停用旧独立包，避免重复注册。"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      4,
+      0,
+      "CLIP"
+    ],
+    [
+      2,
+      4,
+      0,
+      5,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      3,
+      4,
+      1,
+      6,
+      0,
+      "FLOAT"
+    ],
+    [
+      4,
+      1,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      5,
+      4,
+      0,
+      7,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      6,
+      5,
+      0,
+      7,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      6,
+      0,
+      7,
+      3,
+      "LATENT"
+    ],
+    [
+      8,
+      7,
+      0,
+      8,
+      0,
+      "LATENT"
+    ],
+    [
+      9,
+      3,
+      0,
+      8,
+      1,
+      "VAE"
+    ],
+    [
+      10,
+      8,
+      0,
+      9,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflowName": "01_Music3_120BPM街舞纯音乐_40秒",
+    "frontendVersion": "1.53.10",
+    "ds": {
+      "scale": 0.3,
+      "offset": [
+        50,
+        50
+      ]
+    },
+    "node_sources": {
+      "DanceMVSaveWav": "ComfyUI-ToolBox"
+    }
+  },
+  "version": 0.4
+}

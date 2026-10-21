@@ -856,5 +856,133 @@
         "name": "Height"
       }
     }
+  },
+  "DanceMVAnalyzeAudio": {
+    "display_name": "tb-dance-audio-analysis",
+    "description": "Analyze beats, downbeats, accents and energy locally with Beat This! and librosa, then select a 15-second excerpt.",
+    "inputs": {
+      "audio": {
+        "name": "Music audio"
+      },
+      "backend": {
+        "name": "Beat-analysis backend"
+      },
+      "output_prefix": {
+        "name": "Output subfolder"
+      }
+    },
+    "outputs": {
+      "音乐15秒": {
+        "name": "15-second music"
+      },
+      "分析JSON": {
+        "name": "Analysis JSON"
+      },
+      "测量摘要": {
+        "name": "Measurement summary"
+      },
+      "节拍点击试听": {
+        "name": "Beat-click preview"
+      }
+    }
+  },
+  "DanceMVIntentPlanner": {
+    "display_name": "tb-dance-intent-planner",
+    "description": "Combine measured music with desired movements; a local GGUF model plans choreography and compiles the H3 prompt.",
+    "inputs": {
+      "analysis_json": {
+        "name": "Music analysis JSON"
+      },
+      "user_actions": {
+        "name": "Desired movements",
+        "tooltip": "Describe movements, dance style, ordering or exclusions; the local model generates the final prompt."
+      },
+      "model": {
+        "name": "Local GGUF planner model"
+      },
+      "seed": {
+        "name": "Seed"
+      },
+      "output_prefix": {
+        "name": "Output subfolder"
+      }
+    },
+    "outputs": {
+      "自动H3提示词": {
+        "name": "Automatic H3 prompt"
+      },
+      "音乐与动作时间表": {
+        "name": "Music and movement timeline"
+      },
+      "本地编排JSON": {
+        "name": "Local choreography JSON"
+      }
+    }
+  },
+  "DanceMVSaveWav": {
+    "display_name": "tb-dance-save-wav",
+    "description": "Save a FLOAT WAV and pass the audio through for the next workflow.",
+    "inputs": {
+      "audio": {
+        "name": "Music audio"
+      },
+      "output_prefix": {
+        "name": "Output subfolder"
+      },
+      "filename": {
+        "name": "WAV filename"
+      }
+    },
+    "outputs": {
+      "audio": {
+        "name": "Audio"
+      },
+      "wav_path": {
+        "name": "WAV path"
+      }
+    }
+  },
+  "DanceMVChoreography": {
+    "display_name": "tb-dance-template-legacy",
+    "description": "Deprecated fixed-template compatibility node. Use tb-dance-intent-planner for new workflows.",
+    "inputs": {
+      "analysis_json": {
+        "name": "Music analysis JSON"
+      },
+      "manual_override": {
+        "name": "Legacy full-prompt override"
+      },
+      "output_prefix": {
+        "name": "Output subfolder"
+      }
+    },
+    "outputs": {
+      "A基线提示词": {
+        "name": "Legacy baseline prompt"
+      },
+      "B编舞提示词": {
+        "name": "Legacy template prompt"
+      },
+      "中文动作表": {
+        "name": "Chinese movement table"
+      }
+    }
+  },
+  "DanceMVAfterVideo": {
+    "display_name": "tb-dance-after-video-legacy",
+    "description": "Legacy sequencing helper for historical A/B workflows.",
+    "inputs": {
+      "prior_video": {
+        "name": "Previous video"
+      },
+      "conditioning": {
+        "name": "Conditioning"
+      }
+    },
+    "outputs": {
+      "CONDITIONING": {
+        "name": "Conditioning"
+      }
+    }
   }
 }

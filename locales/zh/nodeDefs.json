@@ -856,5 +856,133 @@
         "name": "高度"
       }
     }
+  },
+  "DanceMVAnalyzeAudio": {
+    "display_name": "tb-dance-audio-analysis",
+    "description": "本地Beat This!与librosa分析拍点、首拍、重音及能量，并自动选择15秒片段。",
+    "inputs": {
+      "audio": {
+        "name": "音乐音频"
+      },
+      "backend": {
+        "name": "节拍分析后端"
+      },
+      "output_prefix": {
+        "name": "输出子目录"
+      }
+    },
+    "outputs": {
+      "音乐15秒": {
+        "name": "音乐15秒"
+      },
+      "分析JSON": {
+        "name": "分析JSON"
+      },
+      "测量摘要": {
+        "name": "测量摘要"
+      },
+      "节拍点击试听": {
+        "name": "节拍点击试听"
+      }
+    }
+  },
+  "DanceMVIntentPlanner": {
+    "display_name": "tb-dance-intent-planner",
+    "description": "结合实测音乐和用户动作意图，由本地GGUF模型自动编排并生成H3提示词。",
+    "inputs": {
+      "analysis_json": {
+        "name": "音乐分析JSON"
+      },
+      "user_actions": {
+        "name": "用户想要的动作",
+        "tooltip": "只需描述动作、舞种、顺序或禁止事项；成品提示词由本地模型自动生成。"
+      },
+      "model": {
+        "name": "本地GGUF编排模型"
+      },
+      "seed": {
+        "name": "随机种子"
+      },
+      "output_prefix": {
+        "name": "输出子目录"
+      }
+    },
+    "outputs": {
+      "自动H3提示词": {
+        "name": "自动H3提示词"
+      },
+      "音乐与动作时间表": {
+        "name": "音乐与动作时间表"
+      },
+      "本地编排JSON": {
+        "name": "本地编排JSON"
+      }
+    }
+  },
+  "DanceMVSaveWav": {
+    "display_name": "tb-dance-save-wav",
+    "description": "保存FLOAT WAV并保留音频输出，供下一张工作流读取。",
+    "inputs": {
+      "audio": {
+        "name": "音乐音频"
+      },
+      "output_prefix": {
+        "name": "输出子目录"
+      },
+      "filename": {
+        "name": "WAV文件名"
+      }
+    },
+    "outputs": {
+      "audio": {
+        "name": "音频"
+      },
+      "wav_path": {
+        "name": "WAV路径"
+      }
+    }
+  },
+  "DanceMVChoreography": {
+    "display_name": "tb-dance-template-legacy",
+    "description": "旧版固定动作模板，仅用于兼容历史工作流。新流程使用tb-dance-intent-planner。",
+    "inputs": {
+      "analysis_json": {
+        "name": "音乐分析JSON"
+      },
+      "manual_override": {
+        "name": "历史完整提示词覆盖"
+      },
+      "output_prefix": {
+        "name": "输出子目录"
+      }
+    },
+    "outputs": {
+      "A基线提示词": {
+        "name": "历史A基线提示词"
+      },
+      "B编舞提示词": {
+        "name": "历史B模板提示词"
+      },
+      "中文动作表": {
+        "name": "中文动作表"
+      }
+    }
+  },
+  "DanceMVAfterVideo": {
+    "display_name": "tb-dance-after-video-legacy",
+    "description": "历史A/B工作流的顺序执行兼容节点。",
+    "inputs": {
+      "prior_video": {
+        "name": "前一段视频"
+      },
+      "conditioning": {
+        "name": "条件"
+      }
+    },
+    "outputs": {
+      "CONDITIONING": {
+        "name": "条件"
+      }
+    }
   }
 }
