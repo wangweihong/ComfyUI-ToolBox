@@ -1,5 +1,5 @@
 """Local GGUF inference through the image's existing llama-cpp-python package."""
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import base64
 import io
 import json
@@ -92,6 +92,49 @@ def load_model(model, mmproj, image, ctx_size, memory_mode, n_gpu_layers,
             llm.close()
 
 
+@contextmanager
+def vision_template_options(handler, reasoning):
+    """Forward the toggle to MTMD's Jinja template, preserving handler defaults."""
+    if reasoning == "auto":
+        yield
+        return
+    original = getattr(handler, "extra_template_arguments", None)
+    if original is None:
+        if reasoning == "on":
+            raise RuntimeError(
+                "The installed vision handler cannot forward enable_thinking. "
+                "Use a llama-cpp-python MTMD handler with extra_template_arguments support."
+            )
+        yield
+        return
+    handler.extra_template_arguments = dict(original, enable_thinking=reasoning == "on")
+    try:
+        yield
+    finally:
+        handler.extra_template_arguments = original
+
+
+def reasoning_markers(template):
+    # Gemma4 uses native channels rather than the <think> convention.
+    if "<|channel>thought" in template and "<channel|>" in template:
+        return "<|channel>thought", "<channel|>"
+    return "<think>", "</think>"
+
+
+def split_reasoning(raw, start, end, prefilled=False):
+    if prefilled:
+        raw = start + raw
+    pattern = re.escape(start) + r"(.*?)" + re.escape(end)
+    thinking = re.findall(pattern, raw, flags=re.DOTALL)
+    response = re.sub(pattern, "", raw, flags=re.DOTALL).strip()
+    if start in response or end in response:
+        raise RuntimeError(
+            "Model reasoning ended without a complete closing marker. "
+            "Increase max_tokens/ctx_size or disable reasoning; no partial reasoning is sent to MOSS."
+        )
+    return response, "\n".join(part.strip() for part in thinking).strip()
+
+
 def generate(llm, system, prompt, image, max_tokens, temperature, top_p, top_k,
              repeat_penalty, seed, reasoning, deadline):
     llama_cpp, _, Jinja2ChatFormatter = require_llama_cpp()
@@ -108,14 +151,19 @@ def generate(llm, system, prompt, image, max_tokens, temperature, top_p, top_k,
     llama_cpp.llama_set_abort_callback(llm.ctx, callback, None)
     llama_cpp.llama_perf_context_reset(llm.ctx)
     messages = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+    template = llm.metadata.get("tokenizer.chat_template") or ""
+    start, end = reasoning_markers(template)
     params = dict(max_tokens=max_tokens, temperature=temperature, top_p=top_p, top_k=top_k,
                   repeat_penalty=repeat_penalty, seed=seed if seed >= 0 else None, stream=True,
-                  reasoning_budget=0 if reasoning == "off" else -1)
+                  reasoning_budget=0 if reasoning == "off" else -1,
+                  reasoning_start=start, reasoning_end=end)
     stream = None
     chunks = []
+    separate_reasoning = []
+    prefilled = False
+    resources = ExitStack()
     try:
         if image is None:
-            template = llm.metadata.get("tokenizer.chat_template")
             if not template:
                 raise ValueError("The selected GGUF must contain tokenizer.chat_template")
             def token_text(token):
@@ -125,10 +173,13 @@ def generate(llm, system, prompt, image, max_tokens, temperature, top_p, top_k,
                                             eos_token=token_text(llm.token_eos()), stop_token_ids=stops)
             template_args = {} if reasoning == "auto" else {"enable_thinking": reasoning == "on"}
             formatted = formatter(messages=messages, **template_args)
+            prefilled = formatted.prompt.rstrip().endswith(start)
+            params["reasoning_start_in_prompt"] = prefilled
             tokens = llm.tokenize(formatted.prompt.encode("utf-8"), add_bos=not formatted.added_special, special=True)
             stream = llm.create_completion(prompt=tokens, stop=formatted.stop,
                                             stopping_criteria=formatted.stopping_criteria, **params)
         else:
+            resources.enter_context(vision_template_options(llm.chat_handler, reasoning))
             content = [{"type": "text", "text": prompt}]
             for tensor in image:
                 array = (tensor.detach().cpu().numpy() * 255).clip(0, 255).astype(np.uint8)
@@ -141,7 +192,9 @@ def generate(llm, system, prompt, image, max_tokens, temperature, top_p, top_k,
         for chunk in stream:
             check()
             choice = chunk["choices"][0]
-            chunks.append(choice.get("text", choice.get("delta", {}).get("content", "")) or "")
+            delta = choice.get("delta", {})
+            chunks.append(choice.get("text", delta.get("content", "")) or "")
+            separate_reasoning.append(delta.get("reasoning_content", delta.get("reasoning", "")) or "")
         check()
         perf = llama_cpp.llama_perf_context(llm.ctx)
         prompt_rate = 1000 * perf.n_p_eval / perf.t_p_eval_ms if perf.t_p_eval_ms else 0
@@ -150,14 +203,18 @@ def generate(llm, system, prompt, image, max_tokens, temperature, top_p, top_k,
                    f"Prompt: {prompt_rate:.1f} t/s | Generation: {generation_rate:.1f} t/s | "
                    f"prompt_tokens={perf.n_p_eval}, generated_tokens={perf.n_eval}")
         raw = "".join(chunks).strip()
-        thinking = re.findall(r"<think>(.*?)</think>", raw, flags=re.DOTALL)
-        response = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
-        return response, "\n".join(thinking).strip(), metrics
+        response, thinking = split_reasoning(raw, start, end, prefilled)
+        return response, "\n".join(x for x in ("".join(separate_reasoning).strip(), thinking) if x), metrics
     except Exception:
         check()
         raise
     finally:
-        if stream is not None:
-            stream.close()
-        # The ctypes callback must stay alive until native decoding has stopped.
-        llama_cpp.llama_set_abort_callback(llm.ctx, llama_cpp.ggml_abort_callback(), None)
+        try:
+            if stream is not None:
+                stream.close()
+        finally:
+            try:
+                resources.close()
+            finally:
+                # The ctypes callback must stay alive until native decoding has stopped.
+                llama_cpp.llama_set_abort_callback(llm.ctx, llama_cpp.ggml_abort_callback(), None)

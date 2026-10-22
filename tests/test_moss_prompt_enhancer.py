@@ -257,6 +257,67 @@ class MossPromptEnhancer(unittest.TestCase):
                                           1, 'off', time.monotonic()-1)
         self.assertEqual(closed, [True])
 
+    def test_vision_reasoning_reaches_template_and_uses_gemma_channels(self):
+        for mode, enabled in [('on', True), ('off', False), ('auto', None)]:
+            original = {'keep_existing': 'value'}
+            handler = types.SimpleNamespace(extra_template_arguments=original)
+            captured = {}
+            closed = []
+
+            def completion(**kwargs):
+                captured.update(kwargs)
+                try:
+                    self.assertEqual(handler.extra_template_arguments.get('enable_thinking'), enabled)
+                    self.assertEqual(handler.extra_template_arguments['keep_existing'], 'value')
+                    text = ('<|channel>thought\ninspect geometry\n<channel|>' if enabled else '')
+                    yield {'choices': [{'delta': {'content': text + '{"caption":"blue cup"}'}}]}
+                finally:
+                    closed.append(True)
+
+            llm = types.SimpleNamespace(ctx=object(), chat_handler=handler,
+                metadata={'tokenizer.chat_template': '<|channel>thought\n<channel|>'},
+                create_chat_completion=completion)
+            native = types.SimpleNamespace(__version__='test', ggml_abort_callback=lambda fn=None: fn,
+                llama_set_abort_callback=lambda *args: None, llama_perf_context_reset=lambda ctx: None,
+                llama_perf_context=lambda ctx: types.SimpleNamespace(n_p_eval=10, n_eval=5,
+                                                                    t_p_eval_ms=1, t_eval_ms=1))
+            with patch.object(self.backend, 'require_llama_cpp', return_value=(native, None, None)):
+                response, reasoning, _ = self.backend.generate(
+                    llm, 'system', 'prompt', [], 1024, .3, .9, 40, 1.05, 1, mode, time.monotonic()+10)
+            self.assertEqual(response, '{"caption":"blue cup"}')
+            self.assertEqual(reasoning, 'inspect geometry' if enabled else '')
+            self.assertEqual(captured['reasoning_start'], '<|channel>thought')
+            self.assertEqual(captured['reasoning_end'], '<channel|>')
+            self.assertEqual(captured['reasoning_budget'], 0 if mode == 'off' else -1)
+            self.assertIs(handler.extra_template_arguments, original)
+            self.assertEqual(closed, [True])
+
+    def test_vision_template_arguments_restore_on_failure_and_reject_unsupported_on(self):
+        original = {'enable_thinking': True, 'other': 1}
+        handler = types.SimpleNamespace(extra_template_arguments=original)
+        with self.assertRaisesRegex(RuntimeError, 'generation failed'):
+            with self.backend.vision_template_options(handler, 'off'):
+                self.assertFalse(handler.extra_template_arguments['enable_thinking'])
+                raise RuntimeError('generation failed')
+        self.assertIs(handler.extra_template_arguments, original)
+        with self.assertRaisesRegex(RuntimeError, 'cannot forward enable_thinking'):
+            with self.backend.vision_template_options(object(), 'on'):
+                self.fail('Unsupported handlers must not silently ignore reasoning=on')
+
+    def test_reasoning_is_separate_from_json_and_truncated_thinking_is_rejected(self):
+        for template, start, end in [('', '<think>', '</think>'),
+                                    ('<|channel>thought <channel|>', '<|channel>thought', '<channel|>')]:
+            self.assertEqual(self.backend.reasoning_markers(template), (start, end))
+            # Reasoning can contain braces; it must be removed before JSON extraction.
+            text = 'consider {a} before answering'
+            response, reasoning = self.backend.split_reasoning(start+text+end+'{"caption":"cup"}', start, end)
+            self.assertEqual(json.loads(response), {'caption': 'cup'})
+            self.assertEqual(reasoning, text)
+            self.assertEqual(self.backend.split_reasoning(text+end+'{"caption":"cup"}', start, end, True),
+                             (response, reasoning))
+            with self.assertRaisesRegex(RuntimeError, 'Increase max_tokens/ctx_size'):
+                self.backend.split_reasoning(start+'unfinished {draft}', start, end)
+
     def test_docs_link_to_existing_files(self):
         for file in [ROOT/'docs/moss_prompt_enhancer.md', ROOT/'examples/moss_prompt_enhancer/README.md',
                      ROOT/'nodes/moss_prompt_enhancer/UPSTREAM.md']:

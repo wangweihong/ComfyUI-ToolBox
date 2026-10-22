@@ -336,7 +336,7 @@ class MOSSPromptEnhancer:
                 }),
                 "reasoning": (["auto", "on", "off"], {
                     "default": "off",
-                    "tooltip": "Reasoning output mode.",
+                    "tooltip": "Enable or disable the model's thinking template for text and supported MTMD vision models. Auto uses template defaults. Thinking shares max_tokens with the final JSON.",
                 }),
                 "width": ("INT", {
                     "default": 1024,

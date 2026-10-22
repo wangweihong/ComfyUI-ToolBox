@@ -29,6 +29,10 @@
 
 每次增强创建自己的模型上下文，不共享其他节点的模型实例。加载前调用ComfyUI已有卸载入口及已注册的llama清理钩子；JSON重试复用同一个上下文，完成或异常后关闭模型，给MOSS生图腾出显存。超时包含加载时间，但加载本身需等待返回后检查；解码阶段通过原生回调与逐token检查响应超时/取消。
 
+`reasoning=on/off`分别向文本模板和受支持的MTMD视觉模板传入 `enable_thinking=True/False`；`auto`保留模板默认设置。视觉处理器需要支持extra_template_arguments，无法传递时on会明确报错。Gemma4使用原生thought通道，其他模板默认使用think标签，推理内容从最终JSON中分离后输出到REASONING。若推理未闭合，节点报错而不把推理草稿交给MOSS。模型本身需要支持思考模板；开关不会给非推理模型增加这种能力。
+
+推理和最终JSON共同使用max_tokens预算。开启推理可将max_tokens设为8192、ctx_size设为32768，并适当增加timeout_seconds；这些是容量上限，不保证正文变长。增加篇幅需要同时调整系统预设中的长度和细节要求。
+
 ## 参考图反推：中文分块提示词
 
 新增 [06参考图反推工作流](../examples/moss_prompt_enhancer/06_参考图_llama-cpp中文分块反推_MOSS_Turbo8步.json)：上传图片后，保持比例缩放至约1MP并对齐16像素，宽高自动连接增强器和MOSS画布。默认选择已有Gemma4-12B GGUF与匹配的mmproj，Tagged Caption模式，内置预设 `image_prompt_reverse_zh.txt`。
@@ -49,7 +53,7 @@
 
 迁移只改变节点归属、菜单名称和分类。已有JSON/PNG中的 `MOSSPromptEnhancer` 及连线继续有效；较早CLI版工作流需清空extra_args。重启ComfyUI并刷新页面后重新打开磁盘JSON，避免浏览器未保存的旧参数。
 
-迁移验收覆盖依赖缺失注册、旁路、官方编译结果、重试及模型关闭，并实跑布局、Caption和中文海报生图。参考图功能已通过两张图片的Tagged Caption反推和06完整生图，见[参考图集成验收记录](testing/moss_image_prompt_reverse_2026-10-22.md)；reasoning on未做GPU验收。
+迁移验收覆盖依赖缺失注册、旁路、官方编译结果、重试及模型关闭，并实跑布局、Caption和中文海报生图。参考图功能已通过两张图片的Tagged Caption反推和06完整生图，见[参考图集成验收记录](testing/moss_image_prompt_reverse_2026-10-22.md)。视觉on/off/auto及纯文本on已做真实模型测试，见[推理开关验证记录](testing/moss_reasoning_2026-10-22.md)。
 
 [2026-10-21验收记录](testing/moss_prompt_enhancer_2026-10-21.md)。
 
