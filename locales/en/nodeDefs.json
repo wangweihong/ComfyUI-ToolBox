@@ -764,7 +764,7 @@
   },
   "MOSSPromptEnhancer": {
     "display_name": "tb-moss-prompt-enhancer",
-    "description": "Enhance local GGUF prompts and validate MOSS layouts using the existing llama-cpp-python library.",
+    "description": "Enhance prompts or describe reference images, then compile MOSS layouts or tagged captions using the existing llama-cpp-python library.",
     "inputs": {
       "model": {
         "name": "GGUF model"

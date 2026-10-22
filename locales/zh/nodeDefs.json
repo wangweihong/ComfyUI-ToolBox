@@ -764,7 +764,7 @@
   },
   "MOSSPromptEnhancer": {
     "display_name": "tb-moss-prompt-enhancer",
-    "description": "复用已有 llama-cpp-python，增强提示词并校验、编译 MOSS 布局。",
+    "description": "复用已有 llama-cpp-python，增强提示词、反推参考图，并编译 MOSS 布局或中文分块提示词。",
     "inputs": {
       "model": {
         "name": "GGUF 模型"

@@ -9,6 +9,7 @@ from .python_backend import (
     NO_MMPROJ, model_options, mmproj_options, system_prompt_options,
     full_system_prompt_path, load_model, generate,
 )
+from .tagged_caption import SYSTEM_PROMPT as TAGGED_CAPTION_SYSTEM_PROMPT, compile_tagged_caption
 
 
 # Official MOSS compile_prompt function
@@ -351,9 +352,9 @@ class MOSSPromptEnhancer:
                     "step": 16,
                     "tooltip": "Canvas height in pixels (multiple of 16).",
                 }),
-                "output_mode": (["Structured Layout", "Caption"], {
+                "output_mode": (["Structured Layout", "Caption", "Tagged Caption"], {
                     "default": "Structured Layout",
-                    "tooltip": "Structured Layout produces editable layout JSON. Caption produces natural language text.",
+                    "tooltip": "Structured Layout produces layout JSON. Caption produces prose. Tagged Caption compiles named JSON sections into tagged prose.",
                 }),
                 "retry_invalid_json": ("BOOLEAN", {
                     "default": True,
@@ -446,14 +447,18 @@ class MOSSPromptEnhancer:
                 )
                 try:
                     draft_json = self._extract_json(response)
-                    if output_mode == "Structured Layout":
+                    if output_mode == "Tagged Caption":
+                        caption = compile_tagged_caption(draft_json)
+                        compiled_prompt = compile_prompt({"caption": caption})
+                    elif output_mode == "Structured Layout":
                         if "caption" in draft_json:
                             raise ValueError("Structured Layout mode requires a layout draft, not a caption")
                         if (draft_json.get("width"), draft_json.get("height")) != (width, height):
                             raise ValueError(f"Layout dimensions must match the requested {width}x{height} canvas")
                     elif "caption" not in draft_json:
                         raise ValueError("Caption mode requires a caption draft, not a layout")
-                    compiled_prompt = compile_prompt(draft_json)
+                    if output_mode != "Tagged Caption":
+                        compiled_prompt = compile_prompt(draft_json)
                 except (ValueError, TypeError, OverflowError) as error:
                     if attempt + 1 == max_attempts:
                         raise RuntimeError(
@@ -473,6 +478,8 @@ class MOSSPromptEnhancer:
         """Select the appropriate system prompt based on output mode."""
         if output_mode == "Structured Layout":
             return MOSS_LAYOUT_SYSTEM_PROMPT
+        elif output_mode == "Tagged Caption":
+            return TAGGED_CAPTION_SYSTEM_PROMPT
         else:
             return MOSS_CAPTION_SYSTEM_PROMPT
 

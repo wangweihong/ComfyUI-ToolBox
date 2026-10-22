@@ -167,13 +167,79 @@ class MossPromptEnhancer(unittest.TestCase):
 
     def test_examples_keep_type_and_contain_no_machine_paths(self):
         workflows = list((ROOT/'examples/moss_prompt_enhancer').glob('*.json'))
-        self.assertEqual(len(workflows), 5)
+        self.assertEqual(len(workflows), 6)
         for file in workflows:
             text = file.read_text()
             self.assertNotRegex(text, r'/home/|/media/|/tmp/comfyui-')
             graph = json.loads(text)
             node = next(n for n in graph['nodes'] if n['type'] == 'MOSSPromptEnhancer')
             self.assertEqual(node['widgets_values_named']['extra_args'], '')
+
+    def test_bundled_reverse_preset_is_registered_after_user_presets(self):
+        paths, extensions = self.backend.folder_paths.folder_names_and_paths[self.backend.PROMPT_FOLDER]
+        self.assertEqual(paths[0], str(self.models/'LLM/prompts'))
+        preset = Path(paths[1])/'image_prompt_reverse_zh.txt'
+        self.assertTrue(preset.is_file())
+        self.assertEqual(extensions, {'.txt'})
+        with patch.object(self.backend.folder_paths, 'get_filename_list', return_value=[preset.name]), \
+                patch.object(self.backend.folder_paths, 'get_full_path_or_raise', return_value=str(preset)):
+            self.assertIn(preset.name, self.backend.system_prompt_options())
+            self.assertEqual(self.backend.full_system_prompt_path(preset.name), preset)
+        text = preset.read_text()
+        self.assertIn('<|分区名称|>', text)
+        self.assertIn('<|/分区名称|>', text)
+        self.assertIn('{"sections":[', text)
+
+    def test_reference_workflow_connects_image_projector_and_automatic_size(self):
+        p = ROOT/'examples/moss_prompt_enhancer/api/06_参考图_llama-cpp中文分块反推_MOSS_Turbo8步.json'
+        graph = json.loads(p.read_text())
+        enhancer = graph['30']['inputs']
+        self.assertEqual(enhancer['image'], ['41', 0])
+        self.assertEqual(enhancer['width'], ['42', 0])
+        self.assertEqual(enhancer['height'], ['42', 1])
+        self.assertNotEqual(enhancer['mmproj'], 'none')
+        self.assertEqual(enhancer['system_prompt'], 'image_prompt_reverse_zh.txt')
+        self.assertEqual(enhancer['output_mode'], 'Tagged Caption')
+        self.assertEqual(graph['4']['inputs']['text'], ['30', 0])
+        self.assertEqual(graph['41']['inputs']['resolution_steps'], 16)
+
+    def test_image_without_projector_fails_before_unloading_models(self):
+        with patch.object(self.backend, 'require_llama_cpp', return_value=(None, None, None)):
+            with self.assertRaisesRegex(ValueError, 'matching mmproj'):
+                with self.backend.load_model('model.gguf', 'none', object(), 4096, 'gpu_layers', 99, 1, 1, ''):
+                    self.fail('Should not load without a projector')
+        self.assertEqual(self.calls, [])
+
+    def test_tagged_caption_is_compiled_without_relying_on_model_punctuation(self):
+        from toolbox_moss_test.tagged_caption import compile_tagged_caption
+        draft = {'sections': [{'name': '镜头与全局比例', 'description': '方幅近景。'},
+                              {'name': '主体与动作', 'description': '双手捧着蓝杯。'}]}
+        expected = '<|镜头与全局比例|>「方幅近景。」<|/镜头与全局比例|><|主体与动作|>「双手捧着蓝杯。」<|/主体与动作|>'
+        self.assertEqual(compile_tagged_caption(draft), expected)
+
+        @contextmanager
+        def model(*args):
+            yield object()
+
+        with patch.object(self.nodes, 'load_model', model), patch.object(
+                self.nodes, 'generate', return_value=(json.dumps(draft, ensure_ascii=False), '', 'perf')):
+            result = self.node.enhance(**dict(self.params(), output_mode='Tagged Caption'))
+        self.assertEqual(result[0], expected)
+        self.assertEqual(json.loads(result[1]), draft)
+        choices = self.node.INPUT_TYPES()['required']['output_mode'][0]
+        self.assertEqual(choices, ['Structured Layout', 'Caption', 'Tagged Caption'])
+
+    def test_tagged_caption_rejects_missing_fields_and_nested_tags(self):
+        from toolbox_moss_test.tagged_caption import compile_tagged_caption
+        for draft in [
+            {'caption': 'wrong protocol'}, {'sections': []},
+            {'sections': [{'name': 'test'}]},
+            {'sections': [{'name': 'bad|name', 'description': 'text'}]},
+            {'sections': [{'name': 'test', 'description': ''}]},
+            {'sections': [{'name': 'test', 'description': '<|nested|>text'}]},
+        ]:
+            with self.assertRaises(ValueError):
+                compile_tagged_caption(draft)
 
     def test_expired_generation_deadline_closes_context(self):
         closed = []

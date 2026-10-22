@@ -17,7 +17,8 @@ MODEL_FOLDER = "moss_prompt_enhancer_models"
 PROMPT_FOLDER = "moss_prompt_enhancer_prompts"
 root = Path(folder_paths.models_dir) / "LLM"
 folder_paths.folder_names_and_paths[MODEL_FOLDER] = ([str(root)], {".gguf"})
-folder_paths.folder_names_and_paths[PROMPT_FOLDER] = ([str(root / "prompts")], {".txt"})
+folder_paths.folder_names_and_paths[PROMPT_FOLDER] = (
+    [str(root / "prompts"), str(Path(__file__).resolve().parent / "presets")], {".txt"})
 
 
 def model_options():
