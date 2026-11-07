@@ -134,7 +134,13 @@ def rebuild_prompts_without_unique(conn):
         "SELECT seq FROM sqlite_sequence WHERE name = 'prompts'"
     ).fetchone()
     previous_sequence = sequence_row[0] if sequence_row is not None else 0
-    rows = conn.execute(f"SELECT {', '.join(columns)} FROM prompts ORDER BY id").fetchall()
+    # Preserve annotation columns (including partially migrated schemas) and any
+    # other application metadata instead of silently dropping them on rebuild.
+    known = set(columns)
+    extra_columns = [row for row in conn.execute("PRAGMA table_info(prompts)") if row[1] not in known]
+    columns.extend(row[1] for row in extra_columns)
+    quoted_columns = ", ".join('"' + name.replace('"', '""') + '"' for name in columns)
+    rows = conn.execute(f"SELECT {quoted_columns} FROM prompts ORDER BY id").fetchall()
     updated_rows = 0
     migrated_rows = []
     for row in rows:
@@ -147,9 +153,17 @@ def rebuild_prompts_without_unique(conn):
 
     conn.execute("DROP TABLE IF EXISTS prompts_migrated")
     create_prompts_table(conn, "prompts_migrated")
+    for _, name, column_type, not_null, default, _ in extra_columns:
+        quoted_name = name.replace('"', '""')
+        definition = f'"{quoted_name}" {column_type}'
+        if not_null:
+            definition += " NOT NULL"
+        if default is not None:
+            definition += f" DEFAULT {default}"
+        conn.execute(f"ALTER TABLE prompts_migrated ADD COLUMN {definition}")
     placeholders = ", ".join("?" for _ in columns)
     conn.executemany(
-        f"INSERT INTO prompts_migrated ({', '.join(columns)}) VALUES ({placeholders})",
+        f"INSERT INTO prompts_migrated ({quoted_columns}) VALUES ({placeholders})",
         migrated_rows,
     )
     conn.execute("DROP TABLE prompts")

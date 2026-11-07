@@ -984,5 +984,68 @@
         "name": "条件"
       }
     }
+  },
+  "ToolBoxPromptWriter": {
+    "inputs": {
+      "sensitivity_level": {
+        "name": "敏感等级",
+        "tooltip": "手动分级 L0–L4；与类别标记相互独立。"
+      },
+      "extreme": {
+        "name": "重口味"
+      },
+      "horror": {
+        "name": "恐怖"
+      },
+      "gore": {
+        "name": "血腥"
+      },
+      "minor": {
+        "name": "未成年"
+      },
+      "nsfw": {
+        "name": "NSFW"
+      }
+    }
+  },
+  "ToolBoxRandomPrompt": {
+    "inputs": {
+      "sensitivity_level": {
+        "name": "敏感等级",
+        "tooltip": "最高等级；选择 L2 时匹配 L0–L2。"
+      },
+      "extreme": {
+        "name": "重口味"
+      },
+      "horror": {
+        "name": "恐怖"
+      },
+      "gore": {
+        "name": "血腥"
+      },
+      "minor": {
+        "name": "未成年"
+      },
+      "nsfw": {
+        "name": "NSFW"
+      },
+      "sensitivity_mode": {
+        "name": "等级筛选方式",
+        "tooltip": "max：所选等级及以下；exact：只匹配指定级别。"
+      },
+      "sensitivity_levels": {
+        "name": "指定级别",
+        "tooltip": "exact 模式使用，逗号分隔，例如 L1,L3；留空不匹配任何级别。"
+      }
+    }
+  },
+  "ToolBoxPromptReader": {
+    "display_name": "tb-prompt-reader",
+    "description": "按 ID 读取提示词；使用弹窗浏览、筛选与编辑。",
+    "inputs": {
+      "id": {
+        "name": "提示词 ID"
+      }
+    }
   }
 }

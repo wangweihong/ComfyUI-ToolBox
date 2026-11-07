@@ -10,6 +10,7 @@ from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
+from .nodes import prompt_routes as _prompt_routes
 from .nodes.moss_prompt_enhancer import NODE_CLASS_MAPPINGS as moss_nodes_mapping
 from .nodes.moss_prompt_enhancer import NODE_DISPLAY_NAME_MAPPINGS as moss_display_mapping
 from .nodes.degrid import NODE_CLASS_MAPPINGS as degrid_nodes_mapping
@@ -70,5 +71,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     # prompt
     "ToolBoxRandomPrompt": "tb-random-prompt",
     "ToolBoxPromptWriter": "tb-prompt-writer",
+    "ToolBoxPromptReader": "tb-prompt-reader",
     "ToolBoxPromptNSFWDetector": "tb-prompt-nsfw-detector",
 }

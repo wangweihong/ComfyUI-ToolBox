@@ -174,6 +174,49 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 
 该节点可在 ComfyUI 页面中将一条提示词及其元数据写入本地数据库，并输出 `id`、`prompt`、`metadata`。写入时会根据去除首尾空白后的 `prompt` 计算 SHA-1 `shasum`：`id=0` 时更新相同 `shasum` 中 ID 最小的记录，不存在时创建新记录；指定 ID 时只更新该记录，即使其他记录已有相同 `shasum`。指定不存在的 ID 会报错。旧数据库需先运行 `python3 scripts/migrate_prompt_shasum.py --db data/prompts.sqlite3` 移除 `shasum` 唯一约束。
 
+新增的可选输入位于原参数之后：`sensitivity_level`（L0–L4）、`extreme`（重口味）、`horror`（恐怖）、`gore`（血腥）、`minor`（未成年）。原 `nsfw` 继续使用；等级和五个类别标记相互独立，全部由用户手动填写，不调用分类模型、不自动关联或修正。未传入新增参数的旧 API 请求更新记录时保留已有标注，新记录默认为 L0、类别 false。输出 `metadata` 包含新增字段。
+
+| 等级 | 含义 |
+|------|------|
+| L0 | 安全 |
+| L1 | 轻度性化：丝袜/腿部特写/恋物/紧身/短裙/透视；轻微恐怖氛围 |
+| L2 | 性意味着装：内衣/内裤/比基尼/泳装；重口味（束缚捆绑未裸露）；中度血腥 |
+| L3 | 裸露/性器官/性行为；触手/异种；肢解虐杀级血腥 |
+| L4 | 未成年 + 任意性化内容 |
+
+### tb-prompt-reader (ToolBoxPromptReader)
+
+通过 `id` 读取一条记录，输出 `id`、`prompt`、`width`、`height`、`metadata`。点击节点中的“浏览提示词库”打开大弹窗：按正文、多个 tags、敏感等级、五个类别、语言、媒体类型、提示词类型、格式、动态性和建议宽高筛选。等级提供“不限”“指定级别”（可多选，如仅 L1、L3）和“等级及以下”（如 L2 匹配 L0–L2）三种模式；指定模式未选任何级别时不匹配记录。语言、媒体、格式和类别等下拉框横向排成一行；宽高匹配独立成行，先选择 9:16、4:3、1:1 等画面比例，再选择对应像素尺寸，也可切换“自定义”填写 1–16384 的整数宽高。尺寸只精确匹配库中建议宽高，不会缩放图片；默认 4:3、1024×768，未启用时不限制尺寸。标签区位于其他筛选项下方，完整加载库中全部标签，支持点击多选、按名称搜索、查看数量、移除已选和清空；多个标签仍需全部匹配。列表每页 50 条，只加载正文摘要；列表铺满主弹窗，点击卡片后再打开独立的详情弹窗，可编辑正文及 writer 支持的元数据。编辑尺寸同样先选比例、再选像素，也支持自定义宽高；打开已有记录时按原尺寸回填，非预设像素原样保留，不会自动取整或缩放。返回列表时保留筛选、页码和滚动位置。
+
+列表右上角“新增提示词”复用同一详情编辑弹窗，默认中文、image、natural、L0、1024×768，各类别标记为 false。填写后点击“保存提示词”；按去除首尾空白后的正文计算 shasum，没有匹配记录则创建，已有匹配则更新 ID 最小的记录，遵循 writer 的 `id=0` 规则。新增或更新成功会明确提示记录 ID；重复正文会突出提示“相同正文已存在，已更新记录 #ID”。保存前不能回填 reader，保存后可直接使用；列表和标签会刷新，筛选条件保持不变。
+
+“保存修改”将编辑结果写入同一数据库；若记录已被其他操作修改，会保留当前输入并提示重新加载，不覆盖新版本。“使用此提示词”将已保存记录的 ID 回填节点，执行时从数据库读取，不复制为独立文本。存在未保存修改时，切换记录、使用或关闭弹窗会提示放弃修改。reader 与 random 会在数据库文件或 WAL 变化后重新执行。
+
+random 同样新增 `sensitivity_level` 和 `nsfw/extreme/horror/gore/minor` 筛选。`sensitivity_mode=max`（默认，兼容旧工作流）使用 `sensitivity_level`：默认“全部”，选择 L2 匹配 L0–L2；`sensitivity_mode=exact` 使用新增的 `sensitivity_levels`（如 `L1,L3`），仅匹配指定级别，此时忽略最高等级输入；指定列表留空不匹配任何记录。类别可选“全部／是／否”，多个条件同时满足。原 `safety` 保留以兼容旧工作流，与新 `nsfw` 筛选同时生效；条件矛盾时没有匹配结果。固定 seed 仍按匹配记录的 ID 升序取 `seed % 数量`，输出顺序不变。
+
+### 数据库升级与测试
+
+默认数据库位于插件目录的 `data/prompts.sqlite3`；容器中应对挂载后的实际数据库执行迁移。已有全部字段的数据库无需再次迁移，程序不会自动修改旧库结构。更旧的库可先在停止写入时执行：
+
+```bash
+python3 scripts/migrate_prompt_annotations.py --db /path/to/prompts.sqlite3
+```
+
+工具先校验数据库并通过 SQLite backup 创建同目录带 UTC 时间戳的 `.bak` 文件，再以事务补齐缺失字段；已有标注保持不变，新增等级默认 L0、类别默认 false。重复执行不再修改或创建备份。如还缺少 SHA-1 或存在其唯一约束，再执行前述 SHA-1 迁移命令；重建表会保留新增字段及其他附加元数据。不使用导入脚本升级现有库，导入脚本仍会重建数据表。
+
+新库导入支持 `--sensitivity-level 0..4` 和 `--extreme --horror --gore --minor`，这些手动值会应用于本次导入的每条记录。
+
+弹窗使用 ComfyUI 同源接口：`GET /toolbox/prompts`（筛选与分页）、`POST /toolbox/prompts`（按 shasum 新增或更新）、`GET /toolbox/prompts/tags`、`GET /toolbox/prompts/{id}`、`PATCH /toolbox/prompts/{id}`。列表接口支持 `sensitivity_mode=max|exact`、`sensitivity_levels=L1,L3`；标签接口返回名称、使用次数、总数和是否有下一页，每页最多 500 个，前端自动加载所有页。标签匹配忽略英文大小写。新增入口提交全部可编辑字段，不带 ID 和 version；返回 `action=created`（HTTP 201）或 `action=updated`（HTTP 200），并包含实际记录和版本。详情包含 `version`；编辑保存需提交该版本和全部可编辑字段，过期版本返回 HTTP 409。数据库操作运行于后台线程，不依赖独立服务。
+
+验证命令（接口测试需 `aiohttp`，浏览器测试另需可用的 Playwright Chromium）：
+
+```bash
+python3 -m unittest discover -s tests -p 'test_prompt*.py'
+node --test tests/prompt_browser.test.cjs
+```
+
+浏览器测试在本机启动临时服务，仅使用合成数据库。可用 `PROMPT_TEST_PYTHON` 指定装有 `aiohttp` 的 Python，用 `NODE_PATH` 指定现有 Playwright 包目录。
+
 ## 🔞 Prompt NSFW 检测
 
 ### tb-prompt-nsfw-detector (ToolBoxPromptNSFWDetector)

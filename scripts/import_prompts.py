@@ -3,11 +3,16 @@ import argparse
 import hashlib
 import re
 import sqlite3
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+from nodes.prompt_schema import ANNOTATION_DEFAULTS, add_missing_annotations
+
 DEFAULT_INPUT_DIR = ROOT_DIR / "prompts"
 DEFAULT_DB = ROOT_DIR / "data" / "prompts.sqlite3"
 
@@ -103,6 +108,7 @@ def create_schema(conn):
             created_at TEXT NOT NULL
         )
     """)
+    add_missing_annotations(conn)
     conn.execute("CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)")
     conn.execute("""
         CREATE TABLE prompt_tags (
@@ -180,6 +186,13 @@ def import_records(records, db_path, metadata, apply_tags_to_all=False):
             ],
         )
 
+        for key, default in ANNOTATION_DEFAULTS.items():
+            value = int(metadata.get(key, default))
+            maximum = 4 if key == "sensitivity_level" else 1
+            if not 0 <= value <= maximum:
+                raise ValueError(f"Invalid {key}")
+            conn.execute(f"UPDATE prompts SET {key} = ?", (value,))
+
         if apply_tags_to_all:
             for prompt_id, _, _ in unique_records:
                 insert_tags(conn, prompt_id, metadata["tags"])
@@ -228,6 +241,11 @@ def main():
     dynamic_group.add_argument("--dynamic", action="store_true", help="Mark imported prompts as dynamic.")
     dynamic_group.add_argument("--static", action="store_true", help="Mark imported prompts as non-dynamic.")
 
+    parser.add_argument("--sensitivity-level", type=int, choices=range(5), default=0,
+                        help="Manual sensitivity level 0–4 (default: 0).")
+    for key in ANNOTATION_DEFAULTS:
+        if key != "sensitivity_level":
+            parser.add_argument(f"--{key}", action="store_true", help=f"Manually mark {key} on every imported record.")
     args = parser.parse_args()
 
     if args.width <= 0 or args.height <= 0:
@@ -258,6 +276,8 @@ def main():
         "suggested_width": args.width,
         "suggested_height": args.height,
     }
+
+    metadata.update({key: int(getattr(args, key)) for key in ANNOTATION_DEFAULTS})
 
     imported_count = import_records(records, args.db, metadata, apply_tags_to_all=args.apply_tags_to_all)
 

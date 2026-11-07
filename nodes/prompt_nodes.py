@@ -3,8 +3,11 @@ import json
 import re
 import sqlite3
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
+from .prompt_schema import ANNOTATION_DEFAULTS, CATEGORY_FIELDS, LEVEL_DESCRIPTIONS, add_missing_annotations
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -20,6 +23,8 @@ SAFETY_FILTERS = ["全部", "nsfw", "safe"]
 CONTENT_FORMAT_FILTERS = ["全部", "plaintext", "json"]
 CONTENT_FORMATS = ["plaintext", "json"]
 DYNAMIC_FILTERS = ["全部", "dynamic", "static"]
+LEVEL_FILTERS = ["全部", "L0", "L1", "L2", "L3", "L4"]
+BOOLEAN_FILTERS = ["全部", "是", "否"]
 
 NSFW_MODEL_ID = "uget/sexual_content_dection"
 NSFW_MODEL_MAX_LENGTH = 128
@@ -165,6 +170,7 @@ def require_enum(name, value, allowed):
 
 
 def create_schema(conn):
+    had_prompts = bool(conn.execute("PRAGMA table_info(prompts)").fetchall())
     conn.execute("""
         CREATE TABLE IF NOT EXISTS prompts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -181,6 +187,8 @@ def create_schema(conn):
             created_at TEXT NOT NULL
         )
     """)
+    if not had_prompts:
+        add_missing_annotations(conn)
     conn.execute("CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS prompt_tags (
@@ -193,28 +201,37 @@ def create_schema(conn):
     """)
 
 
+@contextmanager
 def connect_db(create=False):
     if not DEFAULT_PROMPT_DB.exists() and not create:
         raise ValueError(f"Prompt database not found: {DEFAULT_PROMPT_DB}. Run: python3 scripts/import_prompts.py")
 
-    DEFAULT_PROMPT_DB.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DEFAULT_PROMPT_DB)
+    if create:
+        DEFAULT_PROMPT_DB.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(DEFAULT_PROMPT_DB)
+    else:
+        conn = sqlite3.connect(DEFAULT_PROMPT_DB.resolve().as_uri() + "?mode=rw", uri=True)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    if create:
-        create_schema(conn)
-    return conn
+    try:
+        if create:
+            create_schema(conn)
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def required_prompt_columns():
     return {
         "id", "shasum", "prompt", "language", "media_type", "prompt_type", "nsfw", "content_format",
         "dynamic", "suggested_width", "suggested_height", "created_at",
+        *ANNOTATION_DEFAULTS,
     }
 
 
 def migration_command():
-    return f"python3 scripts/migrate_prompt_shasum.py --db {DEFAULT_PROMPT_DB}"
+    return f"python3 scripts/migrate_prompt_annotations.py --db {DEFAULT_PROMPT_DB}"
 
 
 def ensure_schema(conn):
@@ -222,10 +239,15 @@ def ensure_schema(conn):
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(prompts)").fetchall()}
     missing_columns = sorted(required_columns - columns)
     if missing_columns:
+        commands = []
+        if set(missing_columns) - ANNOTATION_DEFAULTS.keys():
+            commands.append(f"python3 scripts/migrate_prompt_shasum.py --db {DEFAULT_PROMPT_DB}")
+        if set(missing_columns) & ANNOTATION_DEFAULTS.keys():
+            commands.append(migration_command())
         raise ValueError(
             f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
             f"Missing columns: {', '.join(missing_columns)}. "
-            f"Run: {migration_command()}"
+            f"Run: {'; then '.join(commands)}"
         )
 
 
@@ -244,13 +266,13 @@ def has_unique_shasum_index(conn):
 
 
 def ensure_writer_schema(conn):
-    ensure_schema(conn)
     if has_unique_shasum_index(conn):
         raise ValueError(
             f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
             "The shasum column must allow duplicates. "
-            f"Run: {migration_command()}"
+            f"Run: python3 scripts/migrate_prompt_shasum.py --db {DEFAULT_PROMPT_DB}"
         )
+    ensure_schema(conn)
 
 
 def insert_tags(conn, prompt_id, tags):
@@ -307,10 +329,110 @@ def metadata_json(conn, row):
         "created_at": row["created_at"],
         "tags": row_tags(conn, row["id"]),
     }
+    metadata.update({key: row[key] if key == "sensitivity_level" else bool(row[key])
+                     for key in ANNOTATION_DEFAULTS})
     return json.dumps(metadata, ensure_ascii=False)
 
 
+class PromptConflict(ValueError):
+    pass
+
+
+def parse_level(value):
+    if isinstance(value, str) and value in LEVEL_FILTERS[1:]:
+        return int(value[1])
+    if type(value) is int and 0 <= value <= 4:
+        return value
+    raise ValueError("sensitivity_level must be L0–L4 or an integer from 0 to 4")
+
+
+def parse_levels(value):
+    if not isinstance(value, str) or len(value) > 100:
+        raise ValueError("sensitivity_levels must be a comma-separated list such as L1,L3")
+    levels = []
+    for part in value.replace("，", ",").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        level = parse_level(part.upper() if part[:1].lower() == "l" else f"L{part}")
+        if level not in levels:
+            levels.append(level)
+    return sorted(levels)
+
+
+def prompt_filter_sql(*, q="", language="全部", media_type="全部", prompt_type="全部",
+                      safety="全部", content_format="全部", dynamic="全部", match_size=False,
+                      width=1024, height=768, tags="", sensitivity_level="全部",
+                      sensitivity_mode="max", sensitivity_levels="", **categories):
+    where, params = [], []
+    for key, value, allowed in (
+        ("language", language, LANGUAGE_FILTERS), ("media_type", media_type, MEDIA_TYPE_FILTERS),
+        ("prompt_type", prompt_type, PROMPT_TYPE_FILTERS), ("content_format", content_format, CONTENT_FORMAT_FILTERS),
+    ):
+        require_enum(key, value, allowed)
+        if value != "全部":
+            where.append(f"p.{key} = ?")
+            params.append(value)
+    require_enum("safety", safety, SAFETY_FILTERS)
+    require_enum("dynamic", dynamic, DYNAMIC_FILTERS)
+    if safety != "全部":
+        where.append("p.nsfw = ?")
+        params.append(int(safety == "nsfw"))
+    if dynamic != "全部":
+        where.append("p.dynamic = ?")
+        params.append(int(dynamic == "dynamic"))
+    require_enum("sensitivity_mode", sensitivity_mode, ["max", "exact"])
+    if sensitivity_mode == "exact":
+        levels = parse_levels(sensitivity_levels)
+        if levels:
+            where.append(f"p.sensitivity_level IN ({','.join('?' for _ in levels)})")
+            params.extend(levels)
+        else:
+            where.append("0")
+    elif sensitivity_level != "全部":
+        where.append("p.sensitivity_level <= ?")
+        params.append(parse_level(sensitivity_level))
+    for key, value in categories.items():
+        if key not in CATEGORY_FIELDS:
+            raise ValueError(f"Unknown filter: {key}")
+        require_enum(key, value, BOOLEAN_FILTERS)
+        if value != "全部":
+            where.append(f"p.{key} = ?")
+            params.append(int(value == "是"))
+    if match_size:
+        where.extend(["p.suggested_width = ?", "p.suggested_height = ?"])
+        params.extend([int(width), int(height)])
+    if q:
+        # Literal substring search, including literal percent and underscore.
+        where.append("instr(lower(p.prompt), lower(?)) > 0")
+        params.append(q)
+    for tag in parse_tags(tags):
+        where.append("EXISTS (SELECT 1 FROM prompt_tags pt JOIN tags t ON t.id = pt.tag_id "
+                     "WHERE pt.prompt_id = p.id AND t.name = ? COLLATE NOCASE)")
+        params.append(tag)
+    return where, params
+
+
+def record_version(conn, row):
+    payload = [dict(row), row_tags(conn, row["id"])]
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def database_revision(**_kwargs):
+    paths = [DEFAULT_PROMPT_DB, Path(str(DEFAULT_PROMPT_DB) + "-wal")]
+    revision = []
+    for path in paths:
+        try:
+            stat = path.stat()
+            revision.append((str(path), stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino, stat.st_size))
+        except FileNotFoundError:
+            revision.append((str(path), None))
+    return tuple(revision)
+
+
 class ToolBoxRandomPrompt:
+    IS_CHANGED = staticmethod(database_revision)
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -334,7 +456,13 @@ class ToolBoxRandomPrompt:
                 "width": ("INT", {"default": 1024, "min": 1, "max": 16384, "step": 1}),
                 "height": ("INT", {"default": 768, "min": 1, "max": 16384, "step": 1}),
                 "tags": ("STRING", {"default": "", "multiline": False}),
-            }
+            },
+            "optional": {
+                "sensitivity_level": (LEVEL_FILTERS, {"default": "全部", "tooltip": "最高敏感等级，L2 包含 L0–L2"}),
+                **{key: (BOOLEAN_FILTERS, {"default": "全部"}) for key in CATEGORY_FIELDS},
+                "sensitivity_mode": (["max", "exact"], {"default": "max", "tooltip": "max：等级及以下；exact：只匹配 sensitivity_levels 中指定的级别"}),
+                "sensitivity_levels": ("STRING", {"default": "", "tooltip": "exact 模式使用，逗号分隔，如 L1,L3；留空表示不匹配任何级别"}),
+            },
         }
 
     RETURN_TYPES = ("INT", "STRING", "INT", "INT", "STRING")
@@ -344,46 +472,21 @@ class ToolBoxRandomPrompt:
 
     def random_prompt(
         self, seed, language, media_type, prompt_type, safety, content_format, dynamic,
-        match_size, width, height, tags,
+        match_size, width, height, tags, sensitivity_level="全部", nsfw="全部",
+        extreme="全部", horror="全部", gore="全部", minor="全部",
+        sensitivity_mode="max", sensitivity_levels="",
     ):
         with connect_db() as conn:
             ensure_schema(conn)
-            where = []
-            params = []
-
-            if language != "全部":
-                where.append("p.language = ?")
-                params.append(language)
-            if media_type != "全部":
-                where.append("p.media_type = ?")
-                params.append(media_type)
-            if prompt_type != "全部":
-                where.append("p.prompt_type = ?")
-                params.append(prompt_type)
-            if safety != "全部":
-                where.append("p.nsfw = ?")
-                params.append(1 if safety == "nsfw" else 0)
-            if content_format != "全部":
-                where.append("p.content_format = ?")
-                params.append(content_format)
-            if dynamic != "全部":
-                where.append("p.dynamic = ?")
-                params.append(1 if dynamic == "dynamic" else 0)
-            if match_size:
-                where.append("p.suggested_width = ?")
-                where.append("p.suggested_height = ?")
-                params.extend([int(width), int(height)])
-
-            for tag in parse_tags(tags):
-                where.append("""
-                    EXISTS (
-                        SELECT 1
-                        FROM prompt_tags pt
-                        JOIN tags t ON t.id = pt.tag_id
-                        WHERE pt.prompt_id = p.id AND t.name = ?
-                    )
-                """)
-                params.append(tag)
+            conn.execute("BEGIN")
+            where, params = prompt_filter_sql(
+                language=language, media_type=media_type, prompt_type=prompt_type,
+                safety=safety, content_format=content_format, dynamic=dynamic,
+                match_size=match_size, width=width, height=height, tags=tags,
+                sensitivity_level=sensitivity_level, nsfw=nsfw, extreme=extreme,
+                horror=horror, gore=gore, minor=minor,
+                sensitivity_mode=sensitivity_mode, sensitivity_levels=sensitivity_levels,
+            )
 
             where_sql = f"WHERE {' AND '.join(where)}" if where else ""
             count = conn.execute(f"SELECT COUNT(*) AS count FROM prompts p {where_sql}", params).fetchone()["count"]
@@ -402,6 +505,27 @@ class ToolBoxRandomPrompt:
             return (row["id"], row["prompt"], row["suggested_width"], row["suggested_height"], metadata_json(conn, row))
 
 
+class ToolBoxPromptReader:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"id": ("INT", {"default": 1, "min": 1, "max": 2**63 - 1})}}
+
+    RETURN_TYPES = ("INT", "STRING", "INT", "INT", "STRING")
+    RETURN_NAMES = ("id", "prompt", "width", "height", "metadata")
+    FUNCTION = "read_prompt"
+    CATEGORY = "eazy-toolbox/prompt"
+    IS_CHANGED = staticmethod(database_revision)
+
+    def read_prompt(self, id):
+        with connect_db() as conn:
+            ensure_schema(conn)
+            conn.execute("BEGIN")
+            row = conn.execute("SELECT * FROM prompts WHERE id = ?", (int(id),)).fetchone()
+            if row is None:
+                raise ValueError(f"prompt id does not exist: {id}")
+            return row["id"], row["prompt"], row["suggested_width"], row["suggested_height"], metadata_json(conn, row)
+
+
 class ToolBoxPromptWriter:
     @classmethod
     def INPUT_TYPES(cls):
@@ -418,6 +542,10 @@ class ToolBoxPromptWriter:
                 "width": ("INT", {"default": 1024, "min": 1, "max": 16384, "step": 1}),
                 "height": ("INT", {"default": 768, "min": 1, "max": 16384, "step": 1}),
                 "tags": ("STRING", {"default": "", "multiline": False}),
+            },
+            "optional": {
+                "sensitivity_level": (["L0", "L1", "L2", "L3", "L4"], {"default": "L0", "tooltip": "\n".join(LEVEL_DESCRIPTIONS)}),
+                **{key: ("BOOLEAN", {"default": False}) for key in ANNOTATION_DEFAULTS if key != "sensitivity_level"},
             }
         }
 
@@ -428,7 +556,8 @@ class ToolBoxPromptWriter:
 
     def write_prompt(
         self, id, prompt, language, media_type, prompt_type, nsfw, content_format, dynamic,
-        width, height, tags,
+        width, height, tags, sensitivity_level=None, extreme=None, horror=None, gore=None, minor=None,
+        *, expected_version=None, _return_action=False,
     ):
         prompt_id = int(id)
         prompt = prompt.strip()
@@ -439,6 +568,13 @@ class ToolBoxPromptWriter:
         require_enum("prompt_type", prompt_type, PROMPT_TYPES)
         require_enum("content_format", content_format, CONTENT_FORMATS)
 
+        if sensitivity_level is not None:
+            sensitivity_level = parse_level(sensitivity_level)
+        annotations = {"sensitivity_level": sensitivity_level, "extreme": extreme,
+                       "horror": horror, "gore": gore, "minor": minor}
+        for key, value in annotations.items():
+            if key != "sensitivity_level" and value is not None and not isinstance(value, bool):
+                raise ValueError(f"{key} must be a boolean")
         width = int(width or 1024)
         height = int(height or 768)
         if width <= 0 or height <= 0:
@@ -446,6 +582,7 @@ class ToolBoxPromptWriter:
 
         with connect_db(create=True) as conn:
             ensure_writer_schema(conn)
+            conn.execute("BEGIN IMMEDIATE")
             created_at = datetime.now(timezone.utc).isoformat()
             shasum = prompt_shasum(prompt)
             update_existing = False
@@ -466,6 +603,11 @@ class ToolBoxPromptWriter:
                 if existing is not None:
                     prompt_id = existing["id"]
                     update_existing = True
+
+            if expected_version is not None:
+                existing_row = conn.execute("SELECT * FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
+                if existing_row is None or record_version(conn, existing_row) != expected_version:
+                    raise PromptConflict("记录已被修改，请重新加载详情后再保存。")
 
             if update_existing:
                 conn.execute(
@@ -525,11 +667,24 @@ class ToolBoxPromptWriter:
                 )
                 prompt_id = cursor.lastrowid
 
+            # An old workflow omits these optional arguments: preserve annotations
+            # when updating; new records receive the database defaults.
+            updates = {key: int(value) for key, value in annotations.items() if value is not None}
+            if updates:
+                conn.execute(
+                    f"UPDATE prompts SET {', '.join(key + ' = ?' for key in updates)} WHERE id = ?",
+                    [*updates.values(), prompt_id],
+                )
             insert_tags(conn, prompt_id, parse_tags(tags))
             conn.commit()
 
             row = conn.execute("SELECT * FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
-            return (row["id"], row["prompt"], metadata_json(conn, row))
+            result = (row["id"], row["prompt"], metadata_json(conn, row))
+            # The browser needs the action chosen under the same write lock.
+            # Normal ComfyUI execution retains its original three outputs.
+            if _return_action:
+                return (*result, "updated" if update_existing else "created")
+            return result
 
 
 class ToolBoxPromptNSFWDetector:
@@ -583,5 +738,6 @@ class ToolBoxPromptNSFWDetector:
 NODE_CLASS_MAPPINGS = {
     "ToolBoxRandomPrompt": ToolBoxRandomPrompt,
     "ToolBoxPromptWriter": ToolBoxPromptWriter,
+    "ToolBoxPromptReader": ToolBoxPromptReader,
     "ToolBoxPromptNSFWDetector": ToolBoxPromptNSFWDetector,
 }

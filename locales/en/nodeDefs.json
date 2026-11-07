@@ -984,5 +984,68 @@
         "name": "Conditioning"
       }
     }
+  },
+  "ToolBoxPromptWriter": {
+    "inputs": {
+      "sensitivity_level": {
+        "name": "Sensitivity level",
+        "tooltip": "Manual L0–L4 rating; independent of category flags."
+      },
+      "extreme": {
+        "name": "Extreme content"
+      },
+      "horror": {
+        "name": "Horror"
+      },
+      "gore": {
+        "name": "Gore"
+      },
+      "minor": {
+        "name": "Minor"
+      },
+      "nsfw": {
+        "name": "NSFW"
+      }
+    }
+  },
+  "ToolBoxRandomPrompt": {
+    "inputs": {
+      "sensitivity_level": {
+        "name": "Sensitivity level",
+        "tooltip": "Maximum level; L2 includes L0–L2."
+      },
+      "extreme": {
+        "name": "Extreme content"
+      },
+      "horror": {
+        "name": "Horror"
+      },
+      "gore": {
+        "name": "Gore"
+      },
+      "minor": {
+        "name": "Minor"
+      },
+      "nsfw": {
+        "name": "NSFW"
+      },
+      "sensitivity_mode": {
+        "name": "Level filter mode",
+        "tooltip": "max: selected level and below; exact: only the specified levels."
+      },
+      "sensitivity_levels": {
+        "name": "Specific levels",
+        "tooltip": "Used in exact mode, e.g. L1,L3. Empty matches no levels."
+      }
+    }
+  },
+  "ToolBoxPromptReader": {
+    "display_name": "tb-prompt-reader",
+    "description": "Read prompts by ID. Browse, filter and edit in a dialog.",
+    "inputs": {
+      "id": {
+        "name": "Prompt ID"
+      }
+    }
   }
 }
