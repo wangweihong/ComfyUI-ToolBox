@@ -124,15 +124,21 @@ def test_total_registry_merges_nodes_without_collisions(klein):
     assert not set(originals).intersection(klein.NODE_CLASS_MAPPINGS)
     modules = {"tb_registry_test.nodes.flux2_klein": klein}
     relative_modules = {n.module for n in tree.body if isinstance(n, ast.ImportFrom) and n.level == 1}
-    relative_modules.update({"nodes.3dgs", "nodes.stocking_texture.routes"})
+    relative_modules.update({"nodes.3dgs"})
+    relative_modules.update(
+        "nodes." + alias.name
+        for node in tree.body if isinstance(node, ast.ImportFrom) and node.module == "nodes"
+        for alias in node.names
+    )
     for name in relative_modules - {"nodes.flux2_klein"}:
         module = types.ModuleType("tb_registry_test." + name)
         module.NODE_CLASS_MAPPINGS = originals
         module.NODE_DISPLAY_NAME_MAPPINGS = {}
         modules[module.__name__] = module
-    modules["tb_registry_test.nodes.stocking_texture"].routes = modules[
-        "tb_registry_test.nodes.stocking_texture.routes"
-    ]
+    for name, module in list(modules.items()):
+        parent, _, attribute = name.rpartition(".")
+        if parent in modules:
+            setattr(modules[parent], attribute, module)
     spec = importlib.util.spec_from_file_location("tb_registry_test.node_mappings", ROOT / "node_mappings.py")
     registry = importlib.util.module_from_spec(spec)
     with patch.dict(sys.modules, modules):

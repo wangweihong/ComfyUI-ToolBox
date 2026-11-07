@@ -302,7 +302,7 @@ test("add modal creates then upserts identical prompt and shows the existing-rec
     await detail.locator('[name="edit_resolution"]').selectOption("864x1536");
     await detail.getByRole("button", {name:"保存提示词",exact:true}).click();
     await detail.getByRole("status").filter({hasText:/已新增记录/}).waitFor();
-    const id = Number((await detail.locator("h3").innerText()).match(/#(\d+)/)[1]);
+    const id = Number((await detail.locator("h3").first().innerText()).match(/#(\d+)/)[1]);
     const total = (await (await page.request.get(`${base}/toolbox/prompts?page_size=1`)).json()).total;
     await detail.getByRole("button", {name:"返回列表",exact:true}).click();
     await page.getByRole("button", {name:"新增提示词",exact:true}).click();

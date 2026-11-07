@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ComfyUI renderer bridge fixture</title></head><body style="margin:20px;background:#282c34;color:white;font:14px sans-serif"><h1>Node renderer integration fixture</h1><div id="nodes" style="display:flex;gap:30px"></div><script type="module">
+const nativeTypes=new Set(['button','BUTTON','text','string','STRING','customtext','textarea','multiline','number','slider','combo','toggle','boolean','image','galleria','markdown','color']);
+class Node {
+ constructor(){this.widgets=[{name:'file_path',value:''},{name:'asset_id',value:''}];this.element=document.createElement('section');this.element.style.cssText='width:390px;min-height:420px;border:1px solid #68758b;padding:10px';this.id=window.nodes.length+1;this.element.dataset.node=String(this.id);this.label=document.createElement('p');this.label.textContent='Node '+this.id;this.element.append(this.label);document.getElementById('nodes').append(this.element);}
+ addDOMWidget(name,type,element,options){if(nativeTypes.has(type))throw Error('Native widget collision');const wrapper=document.createElement('div');wrapper.style.cssText='width:100%;height:'+options.getMinHeight()+'px';wrapper.dataset.widget=name;wrapper.append(element);this.element.append(wrapper);return{name,type,element,options};}
+ setSize(size){this.size=size;}
+ onRemoved(){this.element.remove();}setDirtyCanvas(){this.element.dataset.path=this.widgets[0].value;this.element.dataset.asset=this.widgets[1].value;}
+}
+window.nodes=[];
+const graph={nodes:[],history:[],beforeChange(){this.before=[...this.nodes];},afterChange(){this.history.push(this.before);},
+ add(node){node.graph=this;this.nodes.push(node);},remove(node){this.nodes=this.nodes.filter(item=>item!==node);node.onRemoved();node.graph=null;},
+ change(){window.changes=(window.changes||0)+1;}};
+window.mockApp={registerExtension:async ext=>{
+ await ext.beforeRegisterNodeDef(Node,{name:'ToolBoxMediaLibrary'});
+ window.createNode=values=>{const node=new Node();window.nodes.push(node);node.onNodeCreated();if(values){node.widgets[0].value=values[0];node.widgets[1].value=values[1];node.onConfigure();}return node;};
+ window.LiteGraph={createNode:()=>window.createNode()};
+ const button=document.createElement('button');button.textContent='顶部素材库';button.id='toolbar-library';button.onclick=()=>ext.actionBarButtons[0].onClick();document.body.prepend(button);
+ graph.add(createNode());graph.add(createNode());window.ready=true;
+},graph,canvas:{graph,canvas:{getBoundingClientRect:()=>({width:1000,height:600})},convertCanvasToOffset:point=>point,selectNode:node=>window.selectedNode=node}};
+await import('/extensions/ComfyUI-ToolBox/js/media_library.js');
+</script></body></html>

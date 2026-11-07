@@ -1,0 +1,150 @@
+{
+  "id": "47d94de7-cd84-4fbf-ae4a-f85cd11d0af0",
+  "revision": 0,
+  "last_node_id": 2,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "ToolBoxMediaLibrary",
+      "pos": [
+        180,
+        140
+      ],
+      "size": [
+        390,
+        420
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "file_path",
+          "name": "file_path",
+          "type": "STRING",
+          "widget": {
+            "name": "file_path"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "asset_id",
+          "name": "asset_id",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "asset_id"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "path",
+          "name": "path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Media Library Path - 验证原文件路径",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "Node name for S&R": "ToolBoxMediaLibrary"
+      },
+      "widgets_values": [
+        "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/本地测试视频.mp4",
+        "a41d77e50ad14a928f4138669e861f0c",
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "file_path": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/本地测试视频.mp4",
+        "asset_id": "a41d77e50ad14a928f4138669e861f0c",
+        "media_library_browser": "",
+        "media_library_preview": ""
+      }
+    },
+    {
+      "id": 2,
+      "type": "ToolBoxMediaLibrary",
+      "pos": [
+        740,
+        140
+      ],
+      "size": [
+        390,
+        420
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "file_path",
+          "name": "file_path",
+          "type": "STRING",
+          "widget": {
+            "name": "file_path"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "asset_id",
+          "name": "asset_id",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "asset_id"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "path",
+          "name": "path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "Media Library Path - 验证节点隔离",
+      "properties": {
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {}
+        },
+        "Node name for S&R": "ToolBoxMediaLibrary"
+      },
+      "widgets_values": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "file_path": "",
+        "asset_id": "",
+        "media_library_browser": "",
+        "media_library_preview": ""
+      }
+    }
+  ],
+  "links": [],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ue_links": [],
+    "ds": {
+      "scale": 1,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  },
+  "version": 0.4
+}

@@ -1,3 +1,8 @@
 prompts/
 data
 __pycache__/
+node_modules/
+.venv/
+.pytest_cache/
+test-results/
+playwright-report/

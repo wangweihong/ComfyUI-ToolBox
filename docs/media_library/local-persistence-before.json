@@ -1,0 +1,11 @@
+{
+  "recent_ids": [
+    "a41d77e50ad14a928f4138669e861f0c"
+  ],
+  "root_paths": [
+    "/root/ComfyUI/input",
+    "/root/ComfyUI/output",
+    "/root/ComfyUI/temp",
+    "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media"
+  ]
+}

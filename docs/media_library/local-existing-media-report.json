@@ -1,0 +1,51 @@
+[
+  {
+    "kind": "image",
+    "properties": {
+      "width": 448,
+      "height": 448,
+      "format": "PNG",
+      "frames": 1,
+      "aspect_ratio": "1:1"
+    },
+    "metadata_source": "none",
+    "summary_fields": [],
+    "raw_fields": [],
+    "errors": []
+  },
+  {
+    "kind": "video",
+    "properties": {
+      "duration": 9.417,
+      "width": 1152,
+      "height": 640,
+      "video_codec": "h264",
+      "fps": 24.0,
+      "audio_codec": "aac",
+      "sample_rate": "32000",
+      "channels": 2,
+      "aspect_ratio": "9:5"
+    },
+    "metadata_source": "comfyui",
+    "summary_fields": [
+      "seed",
+      "sampler",
+      "scheduler",
+      "positive",
+      "model"
+    ],
+    "raw_fields": [
+      "ffprobe",
+      "major_brand",
+      "minor_version",
+      "compatible_brands",
+      "workflow",
+      "prompt",
+      "encoder",
+      "language",
+      "handler_name",
+      "vendor_id"
+    ],
+    "errors": []
+  }
+]

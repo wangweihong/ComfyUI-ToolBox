@@ -1,0 +1,36 @@
+{
+  "file_types": [
+    "image",
+    "video",
+    "audio",
+    "text",
+    "ply",
+    "other"
+  ],
+  "range": true,
+  "compatible_preview": true,
+  "video_node_execution": {
+    "path": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/本地测试视频.mp4",
+    "outputs": {
+      "2": {
+        "text": [
+          "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/本地测试视频.mp4"
+        ]
+      }
+    }
+  },
+  "stable_id_after_rename_move": {
+    "saved_old_path": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/测试文本.txt",
+    "resolved_path": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/移动目标/已重命名测试文本.txt",
+    "outputs": {
+      "2": {
+        "text": [
+          "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/移动目标/已重命名测试文本.txt"
+        ]
+      }
+    }
+  },
+  "recent_limit_and_dedup": true,
+  "batch_delete_only_created_files": 25,
+  "test_files_retained": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media"
+}

@@ -1,0 +1,3 @@
+https://github.com/laurigates/comfyui-gallery-loader
+commit bda772adc2bac4dca1e53b86e339011147c5dfbc
+Files: image_meta.py, LICENSE

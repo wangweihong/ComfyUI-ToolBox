@@ -1,0 +1,36 @@
+{
+  "base": "http://127.0.0.1:8188",
+  "renderers": [
+    {
+      "rendererEvidence": {
+        "enabled": false,
+        "nodeTitleInDom": false
+      },
+      "name": "classic",
+      "path": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/本地测试视频.mp4",
+      "selection": true,
+      "playback": true,
+      "seek": true,
+      "metadata": true,
+      "isolatedSelection": true,
+      "savedWorkflowRestored": true
+    },
+    {
+      "rendererEvidence": {
+        "enabled": true,
+        "nodeTitleInDom": true
+      },
+      "name": "Nodes 2.0",
+      "path": "/root/ComfyUI/custom_nodes/comfyui-media-library/local-test-media/本地测试视频.mp4",
+      "selection": true,
+      "playback": true,
+      "seek": true,
+      "metadata": true,
+      "isolatedSelection": true,
+      "savedWorkflowRestored": true
+    }
+  ],
+  "pluginErrors": [],
+  "otherErrors": [],
+  "originalRendererRestored": true
+}

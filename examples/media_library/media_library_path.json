@@ -1,0 +1,50 @@
+{
+  "last_node_id": 1,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "ToolBoxMediaLibrary",
+      "pos": [
+        180,
+        140
+      ],
+      "size": [
+        390,
+        420
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "path",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ToolBoxMediaLibrary"
+      },
+      "widgets_values": [
+        "",
+        ""
+      ],
+      "title": "tb-media-library - 读取素材原文件路径"
+    }
+  ],
+  "links": [],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  },
+  "version": 0.4
+}

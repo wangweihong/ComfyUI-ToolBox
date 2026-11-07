@@ -22,10 +22,9 @@ from .nodes.flux2_klein import NODE_CLASS_MAPPINGS as flux2_klein_nodes_mapping
 from .nodes.flux2_klein import NODE_DISPLAY_NAME_MAPPINGS as flux2_klein_display_mapping
 from .nodes.flashvsr import NODE_CLASS_MAPPINGS as flashvsr_nodes_mapping
 from .nodes.flashvsr import NODE_DISPLAY_NAME_MAPPINGS as flashvsr_display_mapping
-from .nodes.stocking_texture.nodes import NODE_CLASS_MAPPINGS as stocking_nodes_mapping
-from .nodes.stocking_texture.nodes import NODE_DISPLAY_NAME_MAPPINGS as stocking_display_mapping
-from .nodes.stocking_texture import routes as _stocking_routes
 
+
+from .nodes.media_library import NODE_CLASS_MAPPINGS as media_library_mapping, NODE_DISPLAY_NAME_MAPPINGS as media_library_display
 
 from .nodes.skin_color_pipeline import NODE_CLASS_MAPPINGS as skin_color_nodes_mapping
 from .nodes.skin_color_pipeline import NODE_DISPLAY_NAME_MAPPINGS as skin_color_display_mapping
@@ -34,6 +33,7 @@ from .nodes.dance_mv import NODE_CLASS_MAPPINGS as dance_mv_nodes_mapping
 from .nodes.dance_mv import NODE_DISPLAY_NAME_MAPPINGS as dance_mv_display_mapping
 
 NODE_CLASS_MAPPINGS = {
+    **media_library_mapping,
     **dance_mv_nodes_mapping,
     **gaussian_nodes_mapping,
     **skin_color_nodes_mapping,
@@ -46,20 +46,19 @@ NODE_CLASS_MAPPINGS = {
     **skill_nodes_mapping,
     **moss_nodes_mapping,
     **degrid_nodes_mapping,
-    **stocking_nodes_mapping,
     **flux2_klein_nodes_mapping,
     **flashvsr_nodes_mapping,
 }
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **media_library_display,
     **dance_mv_display_mapping,
     **gaussian_display_mapping,
     **prompt_media_display,
     **moss_display_mapping,
     **skin_color_display_mapping,
     **degrid_display_mapping,
-    **stocking_display_mapping,
     **flux2_klein_display_mapping,
     **flashvsr_display_mapping,
     # latent size

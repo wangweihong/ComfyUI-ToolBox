@@ -1,0 +1,26 @@
+{
+  "source": "comfyui",
+  "groups": 7,
+  "field_names": [
+    "codec_name",
+    "expert_cache_gb",
+    "experts",
+    "filename_prefix",
+    "max_frames",
+    "model_name",
+    "name",
+    "second_gpu",
+    "seed",
+    "shorten_long_pauses",
+    "speakers",
+    "split_layer",
+    "split_long_text",
+    "temperature",
+    "text",
+    "top_k",
+    "top_p",
+    "transcript",
+    "voices"
+  ],
+  "cache_upgraded": true
+}

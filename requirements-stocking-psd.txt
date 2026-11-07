@@ -1,2 +1,0 @@
-# Optional PSD/PSB import and guide export
-psd-tools>=1.24
