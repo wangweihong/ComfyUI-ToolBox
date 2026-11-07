@@ -1062,5 +1062,50 @@
         "name": "Entry ID"
       }
     }
+  },
+  "ToolBoxPromptSaveImage": {
+    "display_name": "tb-prompt-save-image",
+    "description": "Save or register output media as prompt examples without copying files.",
+    "inputs": {
+      "prompt_metadata": {
+        "name": "Prompt metadata",
+        "tooltip": "Connect the reader/random metadata output containing the prompt ID and SHA-1."
+      }
+    }
+  },
+  "ToolBoxPromptSaveVideo": {
+    "display_name": "tb-prompt-save-video",
+    "description": "Save or register output media as prompt examples without copying files.",
+    "inputs": {
+      "prompt_metadata": {
+        "name": "Prompt metadata",
+        "tooltip": "Connect the reader/random metadata output containing the prompt ID and SHA-1."
+      }
+    }
+  },
+  "ToolBoxPromptRecordMedia": {
+    "display_name": "tb-prompt-record-media",
+    "description": "Save or register output media as prompt examples without copying files.",
+    "inputs": {
+      "prompt_metadata": {
+        "name": "Prompt metadata",
+        "tooltip": "Connect the reader/random metadata output containing the prompt ID and SHA-1."
+      }
+    }
+  },
+  "ToolBoxImageMetadataReader": {
+    "display_name": "tb-image-metadata-reader",
+    "description": "Read embedded metadata from the original image file as JSON, including PNG text, ComfyUI prompt/workflow and EXIF.",
+    "inputs": {
+      "image": {
+        "name": "Image file",
+        "tooltip": "Select or upload the original image file."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Metadata JSON"
+      }
+    }
   }
 }

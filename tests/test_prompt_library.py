@@ -297,6 +297,31 @@ class PromptLibraryTest(unittest.TestCase):
         self.assertTrue(data["gore"])
         self.assertFalse(data["extreme"])
 
+    def test_update_time_sorting_is_stable_filtered_and_paged(self):
+        first = self.write("first", tags="shared")[0]
+        second = self.write("second", tags="shared")[0]
+        third = self.write("third", tags="other")[0]
+        with sqlite3.connect(self.path) as conn:
+            conn.executemany("UPDATE prompts SET created_at=? WHERE id=?", [
+                ("2026-01-03T00:00:00+00:00", first),
+                ("2026-01-01T00:00:00+00:00", second),
+                ("2026-01-03T00:00:00+00:00", third),
+            ])
+        ids = lambda **query: [row["id"] for row in library.list_prompts(query)["items"]]
+        self.assertEqual(ids(), [third, second, first])  # Existing API default.
+        self.assertEqual(ids(sort="updated_desc"), [third, first, second])
+        self.assertEqual(ids(sort="updated_asc"), [second, first, third])
+        self.assertEqual(ids(sort="id_asc"), [first, second, third])
+        self.assertEqual(ids(sort="updated_desc", tags="shared"), [first, second])
+        self.assertEqual(ids(sort="updated_desc", page="2", page_size="1"), [first])
+        self.assertEqual(library.list_prompts({"sort":"updated_desc"})["items"][0]["updated_at"], "2026-01-03T00:00:00+00:00")
+        before = self.random(seed=21)
+        self.write("first", prompt_id=first, tags="shared")
+        self.assertEqual(ids(sort="updated_desc")[0], first)
+        self.assertEqual(self.random(seed=21)[:4], before[:4])
+        with self.assertRaises(ValueError):
+            library.list_prompts({"sort": "created_at; DROP TABLE prompts"})
+
     def test_120k_records_page_payload_and_combined_filters(self):
         self.write("initial")
         with sqlite3.connect(self.path) as conn:
@@ -305,7 +330,7 @@ class PromptLibraryTest(unittest.TestCase):
                 ((str(i), f"synthetic {i} " + "x" * 500, i % 5, i % 2) for i in range(120000)),
             )
         started = time.monotonic()
-        data = library.list_prompts({"sensitivity_level": "L2", "gore": "是", "page_size": "50"})
+        data = library.list_prompts({"sensitivity_level": "L2", "gore": "是", "page_size": "50", "sort": "updated_desc"})
         elapsed = time.monotonic() - started
         self.assertEqual(data["total"], 36000)
         self.assertEqual(len(data["items"]), 50)

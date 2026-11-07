@@ -1,5 +1,6 @@
 import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_sizes.mjs";
 import {createTagField} from "./tag_picker.mjs";
+import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs";
 
 const CATEGORY_LABELS = {
     nsfw: "NSFW", extreme: "重口味", horror: "恐怖", gore: "血腥", minor: "未成年",
@@ -53,7 +54,7 @@ function button(text, action, className = "") {
     return node;
 }
 
-export function openPromptBrowser({ request, currentId, onSelect, onClose = () => {} }) {
+export function openPromptBrowser({ request, currentId, onSelect, onClose = () => {}, initialExamples=false, exampleShasum=null, exampleRequest=(path,options)=>fetch(path,options), allowUse=true }) {
     if (!document.querySelector("link[data-toolbox-prompts]")) {
         const css = element("link");
         css.rel = "stylesheet";
@@ -67,7 +68,8 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     detail.setAttribute("aria-label", "提示词详情");
     const lifetime = new AbortController();
     let closed = false, dirty = false, saving = false, page = 1, pages = 1, selected = currentId > 0 ? { id: Number(currentId) } : null;
-    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor;
+    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor, examplePanel, exampleManager;
+    let examplesOpen=initialExamples,activeExampleShasum=exampleShasum;
     let levelMode = "all";
     const exactLevels = new Set([0]);
     const selectedTags = new Set();
@@ -80,6 +82,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         if (closed || (!force && !confirmDiscard())) return;
         closed = true;
         tagEditor?.destroy();
+        examplePanel?.destroy();exampleManager?.close();
         clearTimeout(searchTimer);
         lifetime.abort(); listingRequest?.abort(); detailRequest?.abort(); tagRequest?.abort();
         detail.close(); detail.remove(); dialog.close(); dialog.remove(); onClose();
@@ -88,9 +91,11 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         if (!force && (saving || !confirmDiscard())) return;
         detailRequest?.abort(); detailRequest = null;
         tagEditor?.destroy();
+        examplePanel?.destroy();
         detail.close(); detail.replaceChildren(); dirty = false;
     };
     const headerActions = element("div", "tbp-header-actions");
+    headerActions.append(button("示例素材管理",()=>{if(!exampleManager)exampleManager=openExampleManager({request:exampleRequest,onChanged:()=>loadList(),onClose:()=>{exampleManager=null;}});}));
     headerActions.append(button("新增提示词", () => openNewPrompt(), "tbp-primary"), button("关闭", () => close()));
     header.append(heading, headerActions);
     const filters = element("form", "tbp-filters");
@@ -240,6 +245,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         selectedTags.clear(); tagSearch.value = ""; renderTagPicker();
         q.value = ""; matchSize.checked = false;
         width.value = "1024"; height.value = "768"; sizeRatio.value = DEFAULT_SIZE.ratio; updateSizeControls(true);
+        sort.value = "updated_desc";
         page = 1; loadList();
     });
     sizeControls.append(sizeHint, reset);
@@ -249,7 +255,14 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     const resultHeading = element("div", "tbp-result-heading");
     const summary = element("strong", "", "正在加载…");
     const refresh = button("刷新列表", () => loadList());
-    resultHeading.append(summary, refresh);
+    const listTools = element("div", "tbp-list-tools");
+    const sort = field(listTools, "排序", "sort", [
+        ["updated_desc", "最近更新优先"], ["updated_asc", "最早更新优先"],
+        ["id_desc", "ID 从大到小"], ["id_asc", "ID 从小到大"],
+    ], "updated_desc");
+    sort.onchange = () => { page = 1; loadList(); };
+    listTools.append(refresh);
+    resultHeading.append(summary, listTools);
     const listStatus = element("p", "tbp-status");
     listStatus.setAttribute("role", "status");
     const cards = element("div", "tbp-cards");
@@ -294,6 +307,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         query.set("match_size", String(dimensions.match_size));
         query.set("width", String(dimensions.width)); query.set("height", String(dimensions.height));
         query.set("page", String(page)); query.set("page_size", "50");
+        query.set("sort", sort.value);
         listStatus.textContent = "正在加载…";
         previous.disabled = next.disabled = true;
         try {
@@ -304,7 +318,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
             cards.replaceChildren();
             summary.textContent = `${data.total.toLocaleString()} 条提示词`;
             for (const item of data.items) {
-                const card = button("", () => loadDetail(item.id), "tbp-card");
+                const card = button("", event => loadDetail(item.id,Boolean(event.target.closest('[data-example-count]'))), "tbp-card");
                 card.dataset.id = String(item.id);
                 const badges = element("div", "tbp-badges");
                 const levelBadge = element("span", "tbp-level", `L${item.sensitivity_level}`);
@@ -312,12 +326,20 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
                 badges.append(levelBadge, element("span", "tbp-id", `#${item.id}`),
                     element("span", "tbp-meta-chip tbp-language", {zh:"中文",en:"English"}[item.language] || item.language),
                     element("span", "tbp-meta-chip tbp-media", {image:"图像",video:"视频",audio:"音频",music:"音乐"}[item.media_type] || item.media_type));
+                const examplesBadge=element('span','tbp-meta-chip tbp-example-count',`示例素材 ${item.example_count||0} 个`);examplesBadge.dataset.exampleCount='true';badges.append(examplesBadge);
                 const preview = element("p", "tbp-preview", item.preview);
                 const chips = element("div", "tbp-tags");
                 for (const [key, label] of Object.entries(CATEGORY_LABELS)) if (item[key]) chips.append(element("span", "tbp-category", label));
                 for (const tag of item.tags.slice(0, 12)) chips.append(element("span", "tbp-prompt-tag", `# ${tag}`));
                 if (item.tags.length > 12) chips.append(element("span", "", `+${item.tags.length - 12}`));
-                card.append(badges, preview, chips); cards.append(card);
+                const updated = element("time", "tbp-updated");
+                if (item.updated_at) {
+                    updated.dateTime = item.updated_at;
+                    const date = new Date(item.updated_at);
+                    updated.textContent = `更新于 ${Number.isNaN(date.getTime()) ? item.updated_at : date.toLocaleString()}`;
+                    updated.title = item.updated_at;
+                }
+                card.append(badges, preview, chips, updated); cards.append(card);
             }
             selectCards();
             listStatus.textContent = data.total ? "" : "没有匹配的提示词，请调整筛选。";
@@ -331,15 +353,15 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         }
     }
 
-    async function loadDetail(id, skipConfirm = false) {
-        if (closed || saving || (!skipConfirm && !confirmDiscard())) return;
+    async function loadDetail(id, showExamples = false, shasum=null) {
+        if (closed || saving || !confirmDiscard()) return;
         detailRequest?.abort();
         const controller = detailRequest = new AbortController();
         // Keep a dirty form intact if reloading fails.
         try {
             const record = await fetchJSON(`/${id}`, { signal: controller.signal });
             if (closed || detailRequest !== controller) return;
-            selected = record; dirty = false; renderDetail(); selectCards();
+            selected = record; dirty = false; examplesOpen=showExamples;activeExampleShasum=shasum;renderDetail(); selectCards();
             if (!detail.open) detail.showModal();
         } catch (error) {
             if (error.name !== "AbortError" && !closed && detailRequest === controller) {
@@ -357,13 +379,14 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
             content_format:"plaintext", sensitivity_level:0, width:1024, height:768, tags:[],
             nsfw:false, extreme:false, horror:false, gore:false, minor:false, dynamic:false,
         };
-        dirty = false; renderDetail(); selectCards();
+        dirty = false;examplesOpen=false;activeExampleShasum=null;renderDetail(); selectCards();
         if (!detail.open) detail.showModal();
         detail.querySelector("textarea").focus();
     }
 
     function renderDetail() {
         tagEditor?.destroy();
+        examplePanel?.destroy();examplePanel=null;
         const creating = selected.id === 0;
         detail.replaceChildren();
         const detailHeader = element("header", "tbp-header");
@@ -371,7 +394,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         detailHeader.append(title, button("返回列表", () => closeDetail()));
         const body = element("div", "tbp-detail-body");
         const info = element("p", "tbp-meta", creating ? "填写提示词和元数据，保存后即可用于工作流。"
-            : `SHA-1：${selected.shasum}\n时间：${selected.created_at}`);
+            : `SHA-1：${selected.shasum}\n更新时间：${selected.created_at}`);
         const editor = element("form", "tbp-editor");
         const promptLabel = element("label", "tbp-field");
         promptLabel.append(element("span", "", "提示词正文"));
@@ -445,6 +468,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
             onSelect(selected.id, selected); close(true);
         }, "tbp-primary");
         use.disabled = creating;
+        use.hidden=!allowUse;
         if (creating) use.title = "请先保存提示词";
         actions.append(save);
         if (!creating) actions.append(reload);
@@ -472,6 +496,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
                 });
                 if (closed || !detail.open) return;
                 selected = result; dirty = false; renderDetail();
+                window.dispatchEvent(new CustomEvent(EXAMPLES_EVENT,{detail:{prompt_ids:[result.id]}}));
                 if (creating) page = 1;
                 const notice = detail.querySelector('[role="status"]');
                 notice.textContent = creating ? result.action === "updated"
@@ -490,7 +515,16 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
                     ? "记录已被修改。当前输入已保留，请复制需要的内容后重新加载详情。" : error.message;
             } finally { saving = false; controls.forEach(({control,disabled}) => { control.disabled = disabled; }); }
         };
-        body.append(info, editor);
+        const editPane=element('div');editPane.append(info,editor);
+        const tabs=element('div','tbp-example-toolbar');
+        const editTab=button('编辑提示词',()=>showPane(false)),examplesTab=button('示例素材',()=>showPane(true));examplesTab.disabled=creating;
+        tabs.append(editTab,examplesTab);body.append(tabs,editPane);
+        if(!creating)examplePanel=createExamplesPanel({parent:body,record:selected,initialShasum:activeExampleShasum,request:exampleRequest,canAdd:()=>!dirty&&!saving,onChanged:()=>loadList()});
+        function showPane(show){
+            examplesOpen=show&&!creating;editPane.hidden=examplesOpen;editTab.setAttribute('aria-pressed',String(!examplesOpen));examplesTab.setAttribute('aria-pressed',String(examplesOpen));
+            if(examplePanel){examplePanel.container.hidden=!examplesOpen;if(examplesOpen)examplePanel.load();else for(const video of examplePanel.container.querySelectorAll('video'))video.pause();}
+        }
+        showPane(examplesOpen);
         detail.append(detailHeader, body);
     }
 
@@ -509,8 +543,10 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     dialog.addEventListener("click", event => { if (event.target === dialog) close(); }, { signal: lifetime.signal });
     detail.addEventListener("cancel", event => { event.preventDefault(); closeDetail(); }, { signal: lifetime.signal });
     detail.addEventListener("click", event => { if (event.target === detail) closeDetail(); }, { signal: lifetime.signal });
+    window.addEventListener(EXAMPLES_EVENT,()=>loadList(),{signal:lifetime.signal});
     document.body.append(dialog, detail); dialog.showModal();
     loadList(); loadTags();
+    if(initialExamples&&currentId>0)loadDetail(currentId,true,exampleShasum);
     return { close: () => close(true), dialog };
 }
 
@@ -524,6 +560,7 @@ export function attachPromptReader(node, app, api) {
         if (browser) return;
         browser = openPromptBrowser({
             currentId: Number(id.value), request: (path, options) => api.fetchApi(`/toolbox/prompts${path}`, options),
+            exampleRequest:(path,options)=>api.fetchApi(path,options),
             onSelect: value => {
                 id.value = value; id.callback?.(value); node.setDirtyCanvas(true, true); app.graph.change();
             },

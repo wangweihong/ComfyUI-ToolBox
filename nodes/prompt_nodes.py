@@ -430,8 +430,28 @@ def database_revision(**_kwargs):
     return tuple(revision)
 
 
+def prompt_data_revision(**_kwargs):
+    from .prompt_examples_schema import revision_ready
+    try:
+        with connect_db() as conn:
+            conn.execute("BEGIN")
+            if revision_ready(conn):
+                row = conn.execute("SELECT epoch,revision FROM toolbox_prompt_revision WHERE singleton=1").fetchone()
+                if row:
+                    info = DEFAULT_PROMPT_DB.stat()
+                    return (str(DEFAULT_PROMPT_DB.resolve()), info.st_dev, info.st_ino, row[0], row[1], conn.execute("PRAGMA schema_version").fetchone()[0])
+    except (ValueError, OSError, sqlite3.Error):
+        pass
+    return database_revision()
+
+
+def prompt_execution_ui(result):
+    metadata = json.loads(result[-1])
+    return {"ui": {"toolbox_prompt": [{"id": result[0], "shasum": metadata["shasum"]}]}, "result": result}
+
+
 class ToolBoxRandomPrompt:
-    IS_CHANGED = staticmethod(database_revision)
+    IS_CHANGED = staticmethod(prompt_data_revision)
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -467,8 +487,11 @@ class ToolBoxRandomPrompt:
 
     RETURN_TYPES = ("INT", "STRING", "INT", "INT", "STRING")
     RETURN_NAMES = ("id", "prompt", "width", "height", "metadata")
-    FUNCTION = "random_prompt"
+    FUNCTION = "execute_prompt"
     CATEGORY = "eazy-toolbox/prompt"
+
+    def execute_prompt(self, **kwargs):
+        return prompt_execution_ui(self.random_prompt(**kwargs))
 
     def random_prompt(
         self, seed, language, media_type, prompt_type, safety, content_format, dynamic,
@@ -512,9 +535,12 @@ class ToolBoxPromptReader:
 
     RETURN_TYPES = ("INT", "STRING", "INT", "INT", "STRING")
     RETURN_NAMES = ("id", "prompt", "width", "height", "metadata")
-    FUNCTION = "read_prompt"
+    FUNCTION = "execute_prompt"
     CATEGORY = "eazy-toolbox/prompt"
-    IS_CHANGED = staticmethod(database_revision)
+    IS_CHANGED = staticmethod(prompt_data_revision)
+
+    def execute_prompt(self, id):
+        return prompt_execution_ui(self.read_prompt(id))
 
     def read_prompt(self, id):
         with connect_db() as conn:

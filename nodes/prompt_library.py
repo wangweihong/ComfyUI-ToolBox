@@ -3,6 +3,7 @@ import json
 
 from . import prompt_nodes as prompts
 from .prompt_schema import CATEGORY_FIELDS, LEVEL_DESCRIPTIONS
+from .prompt_examples_schema import table_exists
 
 FILTER_NAMES = {
     "q", "language", "media_type", "prompt_type", "safety", "content_format", "dynamic",
@@ -12,6 +13,12 @@ FILTER_NAMES = {
 WRITE_NAMES = {
     "prompt", "language", "media_type", "prompt_type", "nsfw", "content_format", "dynamic",
     "width", "height", "tags", "sensitivity_level", "extreme", "horror", "gore", "minor",
+}
+SORT_ORDERS = {
+    "updated_desc": "p.created_at DESC, p.id DESC",
+    "updated_asc": "p.created_at ASC, p.id ASC",
+    "id_desc": "p.id DESC",
+    "id_asc": "p.id ASC",
 }
 
 
@@ -38,17 +45,21 @@ def detail(prompt_id):
         row = conn.execute("SELECT * FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
         if row is None:
             raise PromptNotFound(f"prompt id does not exist: {prompt_id}")
-        return {**json.loads(prompts.metadata_json(conn, row)), "prompt": row["prompt"],
+        count = conn.execute("SELECT COUNT(*) FROM prompt_examples WHERE prompt_id=? AND prompt_shasum=?", (prompt_id,row["shasum"])).fetchone()[0] if table_exists(conn,"prompt_examples") else 0
+        return {**json.loads(prompts.metadata_json(conn, row)), "prompt": row["prompt"], "example_count":count,
                 "version": prompts.record_version(conn, row)}
 
 
 def list_prompts(query):
-    unknown = set(query) - FILTER_NAMES - {"page", "page_size"}
+    unknown = set(query) - FILTER_NAMES - {"page", "page_size", "sort"}
     if unknown:
         raise ValueError(f"Unknown filters: {', '.join(sorted(unknown))}")
     filters = {key: value for key, value in query.items() if key in FILTER_NAMES}
     page = positive_int(query.get("page", 1), "page", 10_000_000)
     size = positive_int(query.get("page_size", 50), "page_size", 100)
+    sort = query.get("sort", "id_desc")
+    if sort not in SORT_ORDERS:
+        raise ValueError("Unknown prompt sort order")
     if len(filters.get("q", "")) > 2000 or len(filters.get("tags", "")) > 10000:
         raise ValueError("Search or tags too long")
     if "match_size" in filters:
@@ -68,12 +79,15 @@ def list_prompts(query):
         rows = conn.execute(
             "SELECT p.id, substr(p.prompt,1,320) AS preview,p.language,p.media_type,p.prompt_type,"
             "p.sensitivity_level,p.nsfw,p.extreme,p.horror,p.gore,p.minor,p.content_format,p.dynamic,"
-            "p.suggested_width AS width,p.suggested_height AS height FROM prompts p" + clause +
-            " ORDER BY p.id DESC LIMIT ? OFFSET ?", [*params, size, (page - 1) * size],
+            # Existing writer updates created_at on every save, including duplicate
+            # SHA-1 updates. Expose that timestamp without changing the database.
+            "p.suggested_width AS width,p.suggested_height AS height,p.created_at AS updated_at FROM prompts p" + clause +
+            " ORDER BY " + SORT_ORDERS[sort] + " LIMIT ? OFFSET ?", [*params, size, (page - 1) * size],
         ).fetchall()
         items = [dict(row) for row in rows]
         for item in items:
             item["tags"] = []
+            item["example_count"] = 0
         by_id = {item["id"]: item for item in items}
         if by_id:
             placeholders = ",".join("?" for _ in by_id)
@@ -82,6 +96,11 @@ def list_prompts(query):
                 f"WHERE pt.prompt_id IN ({placeholders}) ORDER BY t.name", list(by_id),
             ):
                 by_id[row[0]]["tags"].append(row[1])
+            if table_exists(conn, "prompt_examples"):
+                for row in conn.execute(
+                    f"SELECT e.prompt_id,COUNT(*) FROM prompt_examples e JOIN prompts p ON p.id=e.prompt_id AND p.shasum=e.prompt_shasum WHERE e.prompt_id IN ({placeholders}) GROUP BY e.prompt_id", list(by_id),
+                ):
+                    by_id[row[0]]["example_count"] = row[1]
         return {"items": items, "total": total, "page": page, "page_size": size}
 
 

@@ -1062,5 +1062,50 @@
         "name": "内容 ID"
       }
     }
+  },
+  "ToolBoxPromptSaveImage": {
+    "display_name": "tb-prompt-save-image",
+    "description": "使用标准 SaveImage 保存图像批次，并将实际 output 路径关联到提示词。",
+    "inputs": {
+      "prompt_metadata": {
+        "name": "提示词 metadata",
+        "tooltip": "连接 reader 或 random 的 metadata 输出（包含 ID 与 SHA-1）。"
+      }
+    }
+  },
+  "ToolBoxPromptSaveVideo": {
+    "display_name": "tb-prompt-save-video",
+    "description": "使用标准 SaveVideo 保存 VIDEO，并关联提示词示例。",
+    "inputs": {
+      "prompt_metadata": {
+        "name": "提示词 metadata",
+        "tooltip": "连接 reader 或 random 的 metadata 输出（包含 ID 与 SHA-1）。"
+      }
+    }
+  },
+  "ToolBoxPromptRecordMedia": {
+    "display_name": "tb-prompt-record-media",
+    "description": "登记已保存的 output 文件；文件 JSON 与 VHS_FILENAMES 二选一，不复制或编码素材。",
+    "inputs": {
+      "prompt_metadata": {
+        "name": "提示词 metadata",
+        "tooltip": "连接 reader 或 random 的 metadata 输出（包含 ID 与 SHA-1）。"
+      }
+    }
+  },
+  "ToolBoxImageMetadataReader": {
+    "display_name": "tb-image-metadata-reader",
+    "description": "读取原始图像文件的内嵌元数据，输出 JSON。支持 PNG 文本、ComfyUI prompt/workflow 和 EXIF。",
+    "inputs": {
+      "image": {
+        "name": "图像文件",
+        "tooltip": "选择或上传原始图像文件。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "元数据 JSON"
+      }
+    }
   }
 }

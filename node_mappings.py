@@ -9,8 +9,10 @@ from .nodes.cinematic_nodes import NODE_CLASS_MAPPINGS as cinematic_nodes_mappin
 from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
+from .nodes.image_metadata_nodes import NODE_CLASS_MAPPINGS as image_metadata_mapping
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
 from .nodes import prompt_routes as _prompt_routes
+from .nodes.prompt_media_nodes import NODE_CLASS_MAPPINGS as prompt_media_mapping, NODE_DISPLAY_NAME_MAPPINGS as prompt_media_display
 from .nodes.skill_nodes import NODE_CLASS_MAPPINGS as skill_nodes_mapping
 from .nodes import skill_routes as _skill_routes
 from .nodes.moss_prompt_enhancer import NODE_CLASS_MAPPINGS as moss_nodes_mapping
@@ -40,7 +42,9 @@ NODE_CLASS_MAPPINGS = {
     **cinematic_nodes_mapping,
     **video_compare_nodes_mapping,
     **text_nodes_mapping,
+    **image_metadata_mapping,
     **prompt_nodes_mapping,
+    **prompt_media_mapping,
     **skill_nodes_mapping,
     **moss_nodes_mapping,
     **degrid_nodes_mapping,
@@ -53,6 +57,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     **dance_mv_display_mapping,
     **gaussian_display_mapping,
+    **prompt_media_display,
     **moss_display_mapping,
     **skin_color_display_mapping,
     **degrid_display_mapping,
@@ -70,6 +75,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ParallelVideoComparison": "tb-video-comparison",
     # text
     "ToolBoxText": "tb-text",
+    "ToolBoxImageMetadataReader": "tb-image-metadata-reader",
     "ToolBoxSubjectConceptReplacer": "tb-subject-concept-replacer",
     # prompt
     "ToolBoxRandomPrompt": "tb-random-prompt",

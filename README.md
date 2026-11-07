@@ -194,6 +194,55 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 
 random 同样新增 `sensitivity_level` 和 `nsfw/extreme/horror/gore/minor` 筛选。`sensitivity_mode=max`（默认，兼容旧工作流）使用 `sensitivity_level`：默认“全部”，选择 L2 匹配 L0–L2；`sensitivity_mode=exact` 使用新增的 `sensitivity_levels`（如 `L1,L3`），仅匹配指定级别，此时忽略最高等级输入；指定列表留空不匹配任何记录。类别可选“全部／是／否”，多个条件同时满足。原 `safety` 保留以兼容旧工作流，与新 `nsfw` 筛选同时生效；条件矛盾时没有匹配结果。固定 seed 仍按匹配记录的 ID 升序取 `seed % 数量`，输出顺序不变。
 
+### 提示词生成示例与保存链路
+
+提示词列表只显示“示例素材 N 个”，不读取图片或视频。reader 节点显示当前 ID 的示例数量；random 在实际执行后显示所选记录的数量，缓存命中时也恢复 ID／SHA-1。连接输入的 reader 在执行后确认实际 ID。“查看示例”打开独立详情的“示例素材”页，直接加载原始图像或视频，支持分页、打开原文件及下载。图像懒加载，视频默认暂停；不生成缩略图、不转码、不复制素材。
+
+新增节点均位于 `eazy-toolbox/prompt`：
+
+| 节点 | 输入与用途 | 输出 |
+|------|------------|------|
+| `tb-prompt-save-image` | IMAGE、prompt_metadata、filename_prefix；复用标准 SaveImage，保存后关联 | 原 IMAGE、文件列表 JSON |
+| `tb-prompt-save-video` | VIDEO、prompt_metadata、标准 SaveVideo 的容器及编码控件；保存后关联 | 原 VIDEO、文件列表 JSON |
+| `tb-prompt-record-media` | prompt_metadata；文件列表 JSON 或 VHS_FILENAMES 二选一；登记已保存文件 | 登记结果 JSON |
+
+```mermaid
+flowchart LR
+    R["tb-random-prompt - 选择提示词"] -->|prompt| G["现有图像或视频生成链"]
+    G -->|IMAGE / VIDEO| S["tb-prompt-save-image / video - 保存并关联"]
+    R -->|metadata| S
+    V["VHS_VideoCombine - 保存最终视频"] -->|Filenames| M["tb-prompt-record-media - 登记成品"]
+    R -->|metadata| M
+```
+
+reader 的 metadata 同样可连接保存／登记节点。metadata 已含 ID 与 SHA-1，不需要手填 ID 或推测保存文件名。图像批次逐个登记；VHS 仅取最后的最终成品，不登记工作流 PNG、静音中间视频或未完成批次，不接受 temp 输出。VHS 文件夹序列模式请改用实际成品视频或图像保存节点。
+
+filename_prefix 沿用标准相对路径语法。默认图像为 `images/unspecified/prompt_examples/ComfyUI`，视频为 `videos/unspecified/prompt_examples/ComfyUI`；请将 `unspecified` 改为实际主要生成模型标识，也可连接已有输出前缀。标准保存节点的工作流／提示词元数据继续保留。保存前校验来源与前缀，实际保存成功后才登记；若数据库登记失败，保留已保存文件，并在节点提示“保存成功，关联失败”。可点击“重新登记”，或将 files JSON 接入登记节点，不必重新生成或编码。
+
+详情中“＋添加示例路径”可为已保存提示词添加 output 相对路径或当前 ComfyUI 服务器的绝对路径。路径必须指向 output 内可读取的图像／视频；不接受 URL、目录、越界或指向 output 外的符号链接，不自动换算宿主机路径。有未保存修改时需先保存；历史版本不能添加新路径。重复登记同一提示词版本的同一路径不会增加数量。“移除关联”仅解除映射，保留素材。
+
+同一 `prompts.sqlite3` 中使用独立的 `prompt_examples` 表存储相对路径、提示词 ID／生成时 SHA-1、媒体类型、登记来源与时间、执行标识、文件大小／修改时间及检查状态，不存媒体 BLOB。正文变更后旧示例保留为历史版本，默认数量只统计当前正文版本的已登记关联，包含尚未清理的失效记录。
+
+**无启动检查、定时任务、文件监听或常驻扫描。** 正常浏览不会检查／更新路径状态，素材读取失败只在页面提示。详情可人工检查本条提示词的全部版本；图库顶部“示例素材管理”可分页管理全部已登记路径，选中检查或全部检查。前端按最多 200 条逐批发起请求，显示进度，可停止后续批次；当前批次允许完成。不遍历整个 output。状态分为有效、文件不存在、暂不可访问和文件已变化；大小／修改时间变化需要确认后重新登记，权限或根目录异常不会当作删除证据。清理前显示数量，确认后再次检查，只移除仍不存在的关联；恢复或暂不可访问的文件保留关联，不删除任何文件。
+
+首次启用前，在队列空闲时执行幂等迁移：
+
+```bash
+python3 scripts/migrate_prompt_examples.py --db /path/to/prompts.sqlite3
+```
+
+工具先做完整性检查及 SQLite backup，再新增映射表、`toolbox_prompt_revision` 与提示词／标签写入触发器，重复执行不再创建备份。不修改已有正文、标签、Skill 数据或 `library_meta`。reader／random 通过提示词专用修订计数判断缓存变化，示例的登记、检查和清理不会让生成链因数据库文件变化而重算；旧库或触发器缺失时回退到原文件变化检测。SHA-1 表重建与导入工具保留示例映射并恢复触发器，Skill 的缓存机制保持原有行为。
+
+同源接口（文件读取复用 `/view`，没有缩略图接口）：
+
+- `GET /toolbox/prompts/{id}/examples`：默认当前 SHA-1，`shasum=all` 查看历史；`page`、`page_size` 默认 20、最多 100。
+- `GET /toolbox/prompt-examples`：按 `prompt_id`、`shasum`、`status=all|available|missing|unavailable|changed` 和分页管理。
+- `POST /toolbox/prompt-examples/register`：提交 `prompt_id`、`shasum`、`paths`（1–200 个路径）及 `source=manual|generated`，可附 `job_id`／`node_id`；手动界面附带记录 `version` 防止覆盖并发修改。手动添加正文版本或记录版本过期返回 409；生成结果允许登记执行时的历史 SHA-1。
+- `POST /toolbox/prompt-examples/check`、`DELETE /toolbox/prompt-examples/invalid`：提交 `ids`（1–200 个），分别检查或复查清理。
+- `DELETE /toolbox/prompt-examples/{id}`：解除单条关联，不删除素材。
+
+验证：`python3 -m unittest discover -s tests -p 'test_prompt*.py'`、`node --test tests/prompt_examples.test.mjs`。`python3 tests/prompt_examples_fixture.py --port 18774` 使用临时库与合成图像提供浏览器测试页；`tests/prompt_media_comfy_integration.py` 在 ComfyUI Python 中验证原生 PNG／VIDEO 保存及 VHS 成品登记，只使用 CPU 合成帧和临时目录，不加载生成模型。
+
 ### 标签选择与新增
 
 `tb-prompt-writer`、`tb-random-prompt` 节点显示已选标签摘要，点击“选择标签”打开统一弹窗；提示词和 Skill／模板的新增、编辑也使用同一选择器。可按名称搜索、点击多选、查看使用次数、移除或清空已选；标签目录自动读取所有分页。搜索不改变选择，“应用”才回填，“取消”或 Escape 保留原值。多标签继续全部匹配，空选表示不限制随机筛选。主图库原有的点选标签筛选区保留。
@@ -238,6 +287,8 @@ python3 scripts/migrate_prompt_annotations.py --db /path/to/prompts.sqlite3
 
 弹窗使用 ComfyUI 同源接口：`GET /toolbox/prompts`（筛选与分页）、`POST /toolbox/prompts`（按 shasum 新增或更新）、`GET /toolbox/prompts/tags`、`GET /toolbox/prompts/{id}`、`PATCH /toolbox/prompts/{id}`。列表接口支持 `sensitivity_mode=max|exact`、`sensitivity_levels=L1,L3`；标签接口返回名称、使用次数、总数和是否有下一页，每页最多 500 个，前端自动加载所有页。标签匹配忽略英文大小写。新增入口提交全部可编辑字段，不带 ID 和 version；返回 `action=created`（HTTP 201）或 `action=updated`（HTTP 200），并包含实际记录和版本。详情包含 `version`；编辑保存需提交该版本和全部可编辑字段，过期版本返回 HTTP 409。数据库操作运行于后台线程，不依赖独立服务。
 
+提示词列表默认“最近更新优先”，也可选择“最早更新优先”及 ID 升／降序，卡片显示更新时间；切换排序回到第一页并保留筛选。列表接口接受 `sort=updated_desc|updated_asc|id_desc|id_asc`，未指定时保留原有 ID 降序。更新时间沿用现有 writer 每次保存都会刷新的时间字段，不迁移数据库。移除示例关联及清理失效关联使用独立的居中确认弹窗，显示具体路径或数量，取消／Escape 不执行操作，素材文件保留。
+
 验证命令（接口测试需 `aiohttp`，浏览器测试另需可用的 Playwright Chromium）：
 
 ```bash
@@ -246,6 +297,16 @@ node --test tests/prompt_browser.test.cjs
 ```
 
 浏览器测试在本机启动临时服务，仅使用合成数据库。可用 `PROMPT_TEST_PYTHON` 指定装有 `aiohttp` 的 Python，用 `NODE_PATH` 指定现有 Playwright 包目录。
+
+## 图像元数据读取
+
+`tb-image-metadata-reader`（`ToolBoxImageMetadataReader`，分类 `eazy-toolbox/image`）直接选择或上传原始图像文件，输出一个 `metadata` 字符串端口，内容为格式化 JSON。可连接文本预览或后续处理节点，无需运行模型。
+
+支持 PNG 文本（包括生成参数）、JPEG／WebP 等图像的 EXIF，以及文件中已有的 ICC／XMP 数据。JSON 包含 `image`（文件名、格式、原始宽高和颜色模式）、`metadata`（原始内嵌字段）、`exif`（可读标签名，含 EXIF／GPS 子目录）和 `comfyui`（成功解析的 `prompt`／`workflow` 对象）。原始 JSON 文本仍保留在 `metadata` 中；二进制字段以 `{ "encoding": "base64", "data": "..." }` 保存，EXIF 分数以分子和分母表示。
+
+没有内嵌元数据时返回图像基本信息及空元数据对象；同名文件内容变化后会重新读取。节点读取原始文件而非 `IMAGE` 张量，因为解码后的像素通常不再包含文件元数据。不修改源文件，也不写入数据库。
+
+验证：`python3 -m unittest discover -s tests -p 'test_image_metadata.py'`（需要 Pillow）。
 
 ## 🔞 Prompt NSFW 检测
 

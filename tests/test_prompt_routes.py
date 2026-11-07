@@ -78,6 +78,20 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(tags["has_more"])
         self.assertEqual((await self.client.get("/toolbox/prompts?sensitivity_mode=exact&sensitivity_levels=L9")).status, 400)
 
+    async def test_list_update_sort_and_invalid_sort(self):
+        prompts.ToolBoxPromptWriter().write_prompt(0, "new synthetic", "zh", "image", "natural", False,
+                                                   "plaintext", False, 1024, 768, "night")
+        original = library.detail(1)
+        payload = {key: original[key] for key in library.WRITE_NAMES}
+        payload.update(version=original["version"], tags="night, updated")
+        self.assertEqual((await self.client.patch("/toolbox/prompts/1",json=payload)).status,200)
+        latest = await (await self.client.get("/toolbox/prompts?sort=updated_desc&page_size=1")).json()
+        self.assertEqual(latest["items"][0]["id"], 1)
+        self.assertIn("updated_at",latest["items"][0])
+        earliest = await (await self.client.get("/toolbox/prompts?sort=updated_asc&page_size=1")).json()
+        self.assertEqual(earliest["items"][0]["id"], 2)
+        self.assertEqual((await self.client.get("/toolbox/prompts?sort=bad")).status,400)
+
     async def test_create_then_duplicate_update_returns_distinct_notices(self):
         original = library.detail(1)
         payload = {key: original[key] for key in library.WRITE_NAMES}

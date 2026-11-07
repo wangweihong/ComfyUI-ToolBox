@@ -67,6 +67,11 @@
 .tbp-detail-body { padding:18px 22px;overflow:auto;min-height:0; }
 .tbp-detail-body>.tbp-meta { margin-top:0; }
 .tbp-result-heading,.tbp-pagination,.tbp-actions { display:flex;align-items:center;gap:10px;justify-content:space-between; }
+.tbp-result-heading { flex-wrap:wrap;gap:12px;margin-bottom:12px; }
+.tbp-list-tools { display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap; }
+.tbp-list-tools .tbp-field { flex-direction:row;align-items:center; }
+.tbp-list-tools select { width:auto;min-width:150px; }
+.tbp-updated { display:block;margin-top:10px;padding-top:8px;border-top:1px dashed var(--tbp-line);font-size:11px;font-weight:400;color:var(--tbp-muted); }
 .tbp-cards { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px; }
 .tb-prompts .tbp-card { display:flex;flex-direction:column;text-align:left;padding:16px;min-height:210px; }
 .tb-prompts .tbp-card[aria-pressed=true] { border-color:var(--tbp-accent);box-shadow:0 0 0 2px #5454ca22; }
@@ -130,6 +135,31 @@
 .tb-tag-node .tbt-field-actions button { padding:4px 8px;border:1px solid var(--border-color,#555);border-radius:5px;cursor:pointer;background:var(--comfy-input-bg,#333);color:var(--input-text,#ddd); }
 .tb-tag-node .tbt-summary span { font-size:11px;padding:1px 5px; }
 .tb-tag-node .tbt-field-actions button:disabled { opacity:.5;cursor:default; }
+.tbp-example-count { background:var(--tbp-tag-bg);color:var(--tbp-tag-text);cursor:pointer; }
+.tbp-example-toolbar { display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0; }
+.tbp-example-toolbar select,.tbp-example-add input { min-width:0;padding:7px 9px;border:1px solid var(--tbp-line);border-radius:7px;background:var(--tbp-surface); }
+.tbp-example-toolbar a { color:var(--tbp-tag-text);text-decoration:underline; }
+.tbp-example-toolbar button[aria-pressed=true] { border-color:var(--tbp-accent);background:var(--tbp-tag-bg); }
+.tbp-example-add { display:flex;gap:8px;margin:12px 0; }
+.tbp-example-add input { flex:1; }
+.tbp-example-items { display:grid;gap:14px;margin-top:14px; }
+.tbp-example-item { min-width:0;border:1px solid var(--tbp-line);border-radius:8px;padding:12px; }
+.tbp-example-path { white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 ui-monospace,monospace; }
+.tbp-example-media { display:block;width:100%;height:auto;max-height:65vh;object-fit:contain;background:#151515;border-radius:6px; }
+.tb-prompts.tbp-example-confirm { width:min(540px,94vw);height:fit-content;max-height:85vh;margin:auto;padding:24px;border:2px solid #cf5252;box-shadow:0 18px 70px #0008;overflow:auto;background:var(--tbp-surface); }
+.tbp-example-confirm::backdrop { background:#080c18bc;backdrop-filter:blur(3px); }
+.tbp-example-confirm h3 { margin:0 0 14px;font-size:20px; }
+.tbp-example-confirm p { margin:0 0 14px;overflow-wrap:anywhere; }
+.tbp-example-confirm-path { padding:10px 12px;border:1px solid var(--tbp-line);border-radius:7px;background:var(--tbp-bg);font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap;max-height:25vh;overflow:auto; }
+.tbp-example-confirm-note { font-size:13px;font-weight:600;color:var(--tbp-text); }
+.tbp-example-confirm .tbp-actions { justify-content:flex-end;padding-top:10px; }
+.tb-prompts button.tbp-danger { color:white;background:#b92f3a;border-color:#b92f3a;font-weight:700; }
+.tb-prompts button.tbp-danger:hover { background:#a1242f;border-color:#a1242f; }
+.tbp-example-node { display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-sizing:border-box;width:100%;height:100%;padding:4px 8px;overflow:auto;font:12px/1.5 system-ui,sans-serif; }
+.tbp-example-node>span { flex-basis:100%;overflow-wrap:anywhere; }
+.tbp-example-node button { font:inherit;padding:3px 8px;cursor:pointer;color:var(--input-text,#ddd);background:var(--comfy-input-bg,#333);border:1px solid var(--border-color,#555);border-radius:5px; }
+.tbp-example-node[data-registration=failed] { color:#f08065; }
+.tb-prompts.tbp-examples-manager { width:min(1100px,96vw); }
 .tbp-skill-description { margin:7px 0 0;font-size:12px;color:var(--tbp-muted);overflow-wrap:anywhere; }
 .tbp-skill-card .tbp-preview { -webkit-line-clamp:5; }
 .tbp-editor textarea.tbp-skill-summary { height:70px;min-height:50px; }

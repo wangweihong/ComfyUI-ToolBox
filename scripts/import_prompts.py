@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 from nodes.prompt_schema import ANNOTATION_DEFAULTS, add_missing_annotations
+from nodes.prompt_examples_schema import restore_if_initialized
 
 DEFAULT_INPUT_DIR = ROOT_DIR / "prompts"
 DEFAULT_DB = ROOT_DIR / "data" / "prompts.sqlite3"
@@ -197,6 +198,7 @@ def import_records(records, db_path, metadata, apply_tags_to_all=False):
             for prompt_id, _, _ in unique_records:
                 insert_tags(conn, prompt_id, metadata["tags"])
 
+        restore_if_initialized(conn)
         conn.commit()
 
     return len(unique_records)

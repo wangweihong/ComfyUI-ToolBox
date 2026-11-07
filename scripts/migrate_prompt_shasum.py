@@ -12,6 +12,16 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT_DIR / "data" / "prompts.sqlite3"
 
 
+def restore_example_revision(conn):
+    if not table_exists(conn, "prompt_examples"):
+        return
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('_toolbox_example_schema', ROOT_DIR/'nodes/prompt_examples_schema.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.restore_if_initialized(conn)
+
+
 def prompt_shasum(prompt):
     return hashlib.sha1(prompt.encode("utf-8")).hexdigest()
 
@@ -177,6 +187,7 @@ def rebuild_prompts_without_unique(conn):
             "INSERT INTO sqlite_sequence(name, seq) VALUES ('prompts', ?)",
             (sequence,),
         )
+    restore_example_revision(conn)
     return updated_rows
 
 

@@ -5,6 +5,7 @@ import sqlite3
 
 from . import prompt_library as library
 from .prompt_nodes import PromptConflict
+from . import prompt_examples as examples
 
 
 def register_routes():
@@ -61,12 +62,34 @@ def register_routes():
             return library.save_prompt(prompt_id, json.loads(raw))
         return await respond(operation, status=201 if request.method == "POST" else 200)
 
+    async def example_list(request):
+        return await respond(examples.list_examples, dict(request.query), request.match_info.get("id"))
+
+    async def example_write(request):
+        if request.method == "DELETE" and "id" in request.match_info:
+            return await respond(examples.remove, request.match_info["id"])
+        if request.content_type != "application/json":
+            return web.json_response({"error":"请使用 application/json"}, status=415)
+        raw=bytearray()
+        async for chunk in request.content.iter_chunked(16384):
+            raw.extend(chunk)
+            if len(raw)>1_100_000:
+                return web.json_response({"error":"示例请求过大"}, status=413)
+        operation = examples.register if request.path.endswith("/register") else examples.cleanup if request.method == "DELETE" else examples.check
+        return await respond(lambda: operation(json.loads(raw)))
+
     instance.routes.get("/toolbox/prompts/options")(options)
     instance.routes.get("/toolbox/prompts/tags")(tags)
     instance.routes.get("/toolbox/prompts")(listing)
     instance.routes.post("/toolbox/prompts")(save)
     instance.routes.get("/toolbox/prompts/{id}")(get)
     instance.routes.patch("/toolbox/prompts/{id}")(save)
+    instance.routes.get("/toolbox/prompts/{id}/examples")(example_list)
+    instance.routes.get("/toolbox/prompt-examples")(example_list)
+    instance.routes.post("/toolbox/prompt-examples/register")(example_write)
+    instance.routes.post("/toolbox/prompt-examples/check")(example_write)
+    instance.routes.delete("/toolbox/prompt-examples/invalid")(example_write)
+    instance.routes.delete("/toolbox/prompt-examples/{id}")(example_write)
 
 
 register_routes()
