@@ -44,8 +44,20 @@ async def fixture_page(_request):
     return web.Response(content_type="text/html", text="""<!doctype html><html><head><meta charset="utf-8">
         <title>Prompt browser test</title></head><body>
         <button id="open">Open</button><button id="second">Second</button>
+        <button id="toolbar">提示词库（工具栏测试）</button>
+        <label><input id="readonly" type="checkbox">只读画布测试</label>
+        <pre id="toolbar-result">[]</pre>
         <script type="module">
         import {openPromptBrowser,attachPromptReader} from '/web/js/prompt_browser.mjs';
+        import {createPromptLibraryToolbar} from '/web/js/prompt_toolbar.mjs';
+        const graph={nodes:[],beforeChange(){},afterChange(){},
+            add(node){node.graph=this;this.nodes.push(node);},remove(node){this.nodes=this.nodes.filter(item=>item!==node);node.graph=null;},
+            change(){document.querySelector('#toolbar-result').textContent=JSON.stringify(this.nodes.map(node=>({id:node.widgets[0].value,title:node.title,pos:node.pos})));}};
+        const app={canvas:{graph,canvas:{getBoundingClientRect:()=>({width:1000,height:600})},convertCanvasToOffset:point=>point,selectNode(){}}};
+        const toolbar=createPromptLibraryToolbar({app,api:{fetchApi:(path,options)=>fetch(path,options)},
+            createNode:()=>({size:[350,180],widgets:[{name:'id',value:1}],setDirtyCanvas(){}})});
+        document.querySelector('#toolbar').onclick=toolbar.onClick;
+        document.querySelector('#readonly').onchange=event=>app.canvas.read_only=event.target.checked;
         window.browsers = [];
         const request = (path,options) => fetch('/toolbox/prompts'+path,options);
         document.querySelector('#open').onclick = () => window.browsers.push(openPromptBrowser({

@@ -70,6 +70,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     let closed = false, dirty = false, saving = false, page = 1, pages = 1, selected = currentId > 0 ? { id: Number(currentId) } : null;
     let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor, examplePanel, exampleManager;
     let examplesOpen=initialExamples,activeExampleShasum=exampleShasum;
+    let using = false;
     let levelMode = "all";
     const exactLevels = new Set([0]);
     const selectedTags = new Set();
@@ -464,8 +465,16 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         const save = button(creating ? "保存提示词" : "保存修改", () => editor.requestSubmit(), "tbp-primary");
         const reload = button("重新加载详情", () => loadDetail(selected.id));
         const use = button("使用此提示词", () => {
-            if (!confirmDiscard()) return;
-            onSelect(selected.id, selected); close(true);
+            if (closed || saving || using || !confirmDiscard()) return;
+            using = true; use.disabled = true;
+            try {
+                onSelect(selected.id, selected); close(true);
+            } catch (error) {
+                status.textContent = `无法使用此提示词：${error.message || error}`;
+            } finally {
+                using = false;
+                if (!closed) use.disabled = creating;
+            }
         }, "tbp-primary");
         use.disabled = creating;
         use.hidden=!allowUse;

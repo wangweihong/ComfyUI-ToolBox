@@ -289,6 +289,8 @@ python3 scripts/migrate_prompt_annotations.py --db /path/to/prompts.sqlite3
 
 提示词列表默认“最近更新优先”，也可选择“最早更新优先”及 ID 升／降序，卡片显示更新时间；切换排序回到第一页并保留筛选。列表接口接受 `sort=updated_desc|updated_asc|id_desc|id_asc`，未指定时保留原有 ID 降序。更新时间沿用现有 writer 每次保存都会刷新的时间字段，不迁移数据库。移除示例关联及清理失效关联使用独立的居中确认弹窗，显示具体路径或数量，取消／Escape 不执行操作，素材文件保留。
 
+顶部工具栏的书本图标“提示词库”可直接打开同一弹窗，无需先添加节点。点击“使用此提示词”会在当前可视画布中央添加 `tb-prompt-reader` 并填入已保存记录 ID，支持当前子图及撤销／重做，不执行生成；节点上的原入口仍只回填该节点的 ID。顶部入口使用原生 `actionBarButtons` API，需要支持该接口的 ComfyUI 前端。
+
 验证命令（接口测试需 `aiohttp`，浏览器测试另需可用的 Playwright Chromium）：
 
 ```bash
