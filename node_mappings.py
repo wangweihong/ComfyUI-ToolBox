@@ -11,6 +11,8 @@ from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
 from .nodes import prompt_routes as _prompt_routes
+from .nodes.skill_nodes import NODE_CLASS_MAPPINGS as skill_nodes_mapping
+from .nodes import skill_routes as _skill_routes
 from .nodes.moss_prompt_enhancer import NODE_CLASS_MAPPINGS as moss_nodes_mapping
 from .nodes.moss_prompt_enhancer import NODE_DISPLAY_NAME_MAPPINGS as moss_display_mapping
 from .nodes.degrid import NODE_CLASS_MAPPINGS as degrid_nodes_mapping
@@ -39,6 +41,7 @@ NODE_CLASS_MAPPINGS = {
     **video_compare_nodes_mapping,
     **text_nodes_mapping,
     **prompt_nodes_mapping,
+    **skill_nodes_mapping,
     **moss_nodes_mapping,
     **degrid_nodes_mapping,
     **stocking_nodes_mapping,
@@ -72,5 +75,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ToolBoxRandomPrompt": "tb-random-prompt",
     "ToolBoxPromptWriter": "tb-prompt-writer",
     "ToolBoxPromptReader": "tb-prompt-reader",
+    "ToolBoxSkillReader": "tb-skill-reader",
     "ToolBoxPromptNSFWDetector": "tb-prompt-nsfw-detector",
 }

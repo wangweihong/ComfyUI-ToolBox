@@ -1005,6 +1005,9 @@
       },
       "nsfw": {
         "name": "NSFW"
+      },
+      "tags": {
+        "tooltip": "Choose tags in the picker. Multiple tags use AND matching; string inputs and existing workflows remain compatible. New tags are stored when this writer executes."
       }
     }
   },
@@ -1036,6 +1039,9 @@
       "sensitivity_levels": {
         "name": "Specific levels",
         "tooltip": "Used in exact mode, e.g. L1,L3. Empty matches no levels."
+      },
+      "tags": {
+        "tooltip": "Choose tags in the picker. Multiple tags use AND matching; string inputs and existing workflows remain compatible."
       }
     }
   },
@@ -1045,6 +1051,15 @@
     "inputs": {
       "id": {
         "name": "Prompt ID"
+      }
+    }
+  },
+  "ToolBoxSkillReader": {
+    "display_name": "tb-skill-reader",
+    "description": "Read a stored skill or prompt template by ID. Browse, create and edit raw text in dialogs.",
+    "inputs": {
+      "id": {
+        "name": "Entry ID"
       }
     }
   }

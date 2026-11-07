@@ -1,4 +1,5 @@
 import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_sizes.mjs";
+import {createTagField} from "./tag_picker.mjs";
 
 const CATEGORY_LABELS = {
     nsfw: "NSFW", extreme: "重口味", horror: "恐怖", gore: "血腥", minor: "未成年",
@@ -66,7 +67,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     detail.setAttribute("aria-label", "提示词详情");
     const lifetime = new AbortController();
     let closed = false, dirty = false, saving = false, page = 1, pages = 1, selected = currentId > 0 ? { id: Number(currentId) } : null;
-    let listingRequest, detailRequest, tagRequest, searchTimer;
+    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor;
     let levelMode = "all";
     const exactLevels = new Set([0]);
     const selectedTags = new Set();
@@ -78,6 +79,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     const close = (force = false) => {
         if (closed || (!force && !confirmDiscard())) return;
         closed = true;
+        tagEditor?.destroy();
         clearTimeout(searchTimer);
         lifetime.abort(); listingRequest?.abort(); detailRequest?.abort(); tagRequest?.abort();
         detail.close(); detail.remove(); dialog.close(); dialog.remove(); onClose();
@@ -85,6 +87,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     const closeDetail = (force = false) => {
         if (!force && (saving || !confirmDiscard())) return;
         detailRequest?.abort(); detailRequest = null;
+        tagEditor?.destroy();
         detail.close(); detail.replaceChildren(); dirty = false;
     };
     const headerActions = element("div", "tbp-header-actions");
@@ -360,6 +363,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     }
 
     function renderDetail() {
+        tagEditor?.destroy();
         const creating = selected.id === 0;
         detail.replaceChildren();
         const detailHeader = element("header", "tbp-header");
@@ -383,7 +387,8 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         fields.sensitivity_level = field(grid, "敏感等级（手动标注）", "sensitivity_level",
             LEVELS.map((label, level) => [String(level), `L${level}`]), String(selected.sensitivity_level));
         fields.sensitivity_level.title = LEVELS.join("\n");
-        fields.tags = field(grid, "Tags（逗号分隔）", "tags", null, selected.tags.join(", "));
+        tagEditor=createTagField({parent:grid,value:selected.tags.join(", "),request,allowCreate:true});
+        fields.tags=tagEditor.input;
         const editSizes = element("div", "tbp-editor-sizes");
         const initialSize = sizeSelection(selected.width, selected.height);
         const rememberedSizes = new Map([[initialSize.ratio, initialSize.resolution]]);

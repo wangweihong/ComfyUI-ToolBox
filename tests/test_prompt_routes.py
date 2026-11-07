@@ -58,6 +58,9 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
                                            headers={"Content-Type": "application/json"})
         self.assertEqual(response.status, 413)
         with patch.object(prompts, "DEFAULT_PROMPT_DB", self.path.parent / "missing.sqlite3"):
+            response=await self.client.get('/toolbox/prompts/tags')
+            self.assertEqual(response.status,200)
+            self.assertEqual((await response.json())['items'],[])
             self.assertEqual((await self.client.get("/toolbox/prompts")).status, 400)
             self.assertFalse(prompts.DEFAULT_PROMPT_DB.exists())
 

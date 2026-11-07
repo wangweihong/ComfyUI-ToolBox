@@ -194,6 +194,36 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 
 random 同样新增 `sensitivity_level` 和 `nsfw/extreme/horror/gore/minor` 筛选。`sensitivity_mode=max`（默认，兼容旧工作流）使用 `sensitivity_level`：默认“全部”，选择 L2 匹配 L0–L2；`sensitivity_mode=exact` 使用新增的 `sensitivity_levels`（如 `L1,L3`），仅匹配指定级别，此时忽略最高等级输入；指定列表留空不匹配任何记录。类别可选“全部／是／否”，多个条件同时满足。原 `safety` 保留以兼容旧工作流，与新 `nsfw` 筛选同时生效；条件矛盾时没有匹配结果。固定 seed 仍按匹配记录的 ID 升序取 `seed % 数量`，输出顺序不变。
 
+### 标签选择与新增
+
+`tb-prompt-writer`、`tb-random-prompt` 节点显示已选标签摘要，点击“选择标签”打开统一弹窗；提示词和 Skill／模板的新增、编辑也使用同一选择器。可按名称搜索、点击多选、查看使用次数、移除或清空已选；标签目录自动读取所有分页。搜索不改变选择，“应用”才回填，“取消”或 Escape 保留原值。多标签继续全部匹配，空选表示不限制随机筛选。主图库原有的点选标签筛选区保留。
+
+writer 及详情编辑可用“＋”输入一个新标签，名称去除首尾空白并统一小写；名称已存在时选择已有标签，否则标记为“待保存”。新标签只随内容成功保存或 writer 执行写入时入库，选择或取消本身不写数据库。random 只提供已有标签选择，旧工作流中不存在的标签保留并标记，可手动移除。提示词和 Skill／模板分别读取各自标签目录。
+
+底层 `tags` 仍为逗号分隔字符串，参数顺序、输出和旧工作流保持兼容，新增界面控件不参与序列化。工作流加载及撤销后刷新摘要；tags 输入接有连线时显示“由连接输入提供”并禁用选择器。目录加载失败时保留当前值、提示重试并禁用新增；未初始化的标签库显示空目录，浏览不会创建数据库或表。
+
+选择器逻辑测试：`node --test tests/tag_picker.test.mjs`。临时库交互测试页：`python3 tests/tag_test_fixture.py --port 18773`，包含 writer／random 控件、两类图库、507 个合成标签、加载失败和连线状态模拟，测试写入仅发生在临时库。
+
+### tb-skill-reader (ToolBoxSkillReader)
+
+按 `id` 读取 Skill 或提示词模板，依次输出 `id`、`name`、`entry_type`、`content`、`metadata`。简述、标签、创建与更新时间及 SHA-1 位于 metadata。正文按纯文本或 Markdown 原样保存和输出，不执行 Skill、不替换模板变量。metadata 还包含 `storage_mode`（`text` / `files`）、`primary_path`、文件清单（相对路径、大小、类型及 SHA-256）、文件包校验值及 ZIP 下载地址，文件二进制不写入节点的 metadata。
+
+点击“浏览 Skill / 模板库”打开分页卡片弹窗，支持搜索名称、简述和正文，按类型筛选，以及点击多个标签进行全部匹配。新增和编辑使用独立详情弹窗，保留名称、类型（`skill` / `prompt_template`）、简述及标签，并通过“内容来源（二选一）”选择正文或文件包。名称必填；正文模式要求正文非空，文件包模式要求至少一个文件。新增默认类型为 Skill、内容来源为正文，其余为空。保存前不能使用内容；保存成功或选中已有记录后，“使用此内容”将实际 ID 回填节点。未保存修改会在关闭、重新加载或使用时提示确认；多节点分别保存各自弹窗状态。
+
+沿用 `data/prompts.sqlite3`，使用独立的 `skill_entries`、`skill_tags`、`skill_entry_tags`、`skill_files` 表，标签与提示词库分开管理。文件作为 BLOB 保存在 SQLite，保留相对目录结构；不解压到服务器目录、不执行上传的脚本。未初始化时浏览返回空列表，首次有效保存才幂等创建新表；旧版 Skill 表在首次有效保存时补齐文件字段，不修改提示词表及 `library_meta`。正文去除首尾空白后计算 SHA-1，仅作校验，原文保留空白、缩进和换行。Skill 和模板不检测重复，每次新增都创建新 ID；指定 ID 编辑只更新该记录，版本校验涵盖正文、标签及全部文件，防止覆盖并发修改。
+
+正文模式只显示正文编辑器；文件包模式只显示文件管理区，支持上传多个文件、上传文件夹（浏览器需支持目录选择）或导入 ZIP。两种模式切换时暂存各自输入，保存时只保留所选模式，替换另一种模式的内容。文件包中可查看路径、移除文件、直接编辑 UTF-8 文本文件（包括主文件）及下载单个文件；二进制文件原样保存。导入时优先选择 `SKILL.md`，其次选择 Markdown／TXT，作为节点正文输出；也可选择“不输出正文（仅文件包）”，此时 content 输出空字符串。文件包模式没有独立正文输入，输出正文直接来自所选文件；可以只保存二进制文件。
+
+上传同名相对路径会替换待保存文件；ZIP 拒绝越界路径、符号链接、加密条目及超限数据。保存后可下载完整 ZIP。目录以文件路径保存，不单独保存空目录或可执行权限。旧版同时带独立正文与附件的记录，在详情里会将原正文保留为 `content.md`（重名时加下划线），提示用户并在保存时统一为文件包，浏览本身不改动数据库。
+
+容量限制：单文件 5 MiB，每条最多 200 个文件，每条正文或文件包最多 20 MiB，整个 Skill／模板库最多 200 MiB。正文模式按 UTF-8 正文字节计数，文件包模式按文件原始字节累计，所选输出文件不重复计费；不包括提示词库数据、SQLite 页开销、WAL 或节点输出缓存。库弹窗显示已用容量；保存事务中检查总容量，编辑按替换后的大小计算，并发保存不会绕过上限。超限返回 HTTP 413，当前输入保留。
+
+同源接口：`GET/POST /toolbox/skills`、`GET /toolbox/skills/tags`、`GET/PATCH /toolbox/skills/{id}`。列表参数为 `q`、`entry_type`（`全部` / `skill` / `prompt_template`）、`tags`（逗号分隔、全部匹配）、`page`、`page_size`（默认 50，最多 100）。标签接口支持 `q`、`page`、`page_size`（最多 500）。POST 提交 `name`、`entry_type`、`description`、`content`、`tags`（字符串）；PATCH 还需详情返回的 `version`。可选 `storage_mode` 为 `text` 或 `files`（旧客户端省略时按有无文件推断），`files` 为 `{path,data}` 数组（data 为 Base64），`primary_path` 为输出正文的文件路径或空字符串。正文模式不可提交文件；文件包模式 content 提交空字符串，由服务端从所选文件获取输出正文，没有选择文件时输出空字符串。旧客户端编辑不传文件字段时保留文件；旧混合正文自动保留为文件，避免丢失。新建始终返回 HTTP 201 和 `action=created`，按 ID 编辑返回 HTTP 200 和 `action=updated`，编辑版本冲突返回 HTTP 409。数据库及 ZIP 处理在后台线程执行。
+
+`POST /toolbox/skills/upload` 接收 multipart：先提交 JSON 字符串 `paths`（相对路径数组），再按顺序提交多个 `file`，返回待保存的文件、建议关联路径及正文，不写入数据库。`GET /toolbox/skills/storage` 返回已用容量和各项上限；`GET /toolbox/skills/{id}/files?path=...` 下载单个文件，`GET /toolbox/skills/{id}/download` 下载 ZIP。
+
+临时库验证：`python3 -m unittest discover -s tests -p 'test_skill*.py'`（接口测试需要 `aiohttp`），`node --test tests/skill_package.test.mjs`。可用 `python3 tests/skill_test_fixture.py --port 18771` 打开空库测试页，加 `--seed` 生成分页用合成记录；测试库退出即删除。
+
 ### 数据库升级与测试
 
 默认数据库位于插件目录的 `data/prompts.sqlite3`；容器中应对挂载后的实际数据库执行迁移。已有全部字段的数据库无需再次迁移，程序不会自动修改旧库结构。更旧的库可先在停止写入时执行：

@@ -93,9 +93,17 @@ def list_tags(query):
         raise ValueError("Tag search too long")
     page = positive_int(query.get("page", 1), "page", 10_000_000)
     size = positive_int(query.get("page_size", 100), "page_size", 500)
+    empty = {"items": [], "counts": {}, "total": 0, "has_more": False, "page": page, "page_size": size}
+    if not prompts.DEFAULT_PROMPT_DB.exists():
+        return empty
     with prompts.connect_db() as conn:
-        prompts.ensure_schema(conn)
         conn.execute("BEGIN")
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not tables & {"prompts", "tags", "prompt_tags"}:
+            return empty
+        prompts.ensure_schema(conn)
+        if not {"tags", "prompt_tags"} <= tables:
+            raise ValueError("Invalid prompt tag schema: tags or prompt_tags is missing")
         total = conn.execute("SELECT COUNT(*) FROM tags WHERE instr(lower(name),?)>0", (text,)).fetchone()[0]
         rows = conn.execute(
             "SELECT t.name,COUNT(pt.prompt_id) AS usage_count FROM tags t "

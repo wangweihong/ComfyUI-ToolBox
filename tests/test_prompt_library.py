@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -21,6 +22,32 @@ class PromptLibraryTest(unittest.TestCase):
     def tearDown(self):
         self.database.stop()
         self.directory.cleanup()
+
+    def test_tag_catalog_is_read_only_for_missing_or_uninitialized_database(self):
+        self.assertEqual(library.list_tags({})['items'],[])
+        self.assertFalse(self.path.exists())
+        with closing(sqlite3.connect(self.path)) as conn, conn:
+            conn.execute('CREATE TABLE library_meta(key TEXT PRIMARY KEY,value TEXT)')
+            conn.execute("INSERT INTO library_meta VALUES('revision','keep')")
+        before=self.path.read_bytes()
+        self.assertEqual(library.list_tags({})['total'],0)
+        self.assertEqual(self.path.read_bytes(),before)
+        with closing(sqlite3.connect(self.path)) as conn, conn:
+            conn.execute('CREATE TABLE tags(id INTEGER PRIMARY KEY,name TEXT)')
+        with self.assertRaises(ValueError):
+            library.list_tags({})
+
+    def test_draft_tags_only_enter_catalog_after_successful_writer_save(self):
+        first=self.write('First synthetic record',tags='alpha')[0]
+        self.assertEqual(library.list_tags({'q':'draft-new'})['total'],0)
+        with self.assertRaises(ValueError):
+            self.write(' ',tags='draft-new')
+        self.assertEqual(library.list_tags({'q':'draft-new'})['total'],0)
+        second=self.write('Second synthetic record',tags=' ALPHA, Draft-New ')[0]
+        self.assertEqual(library.list_tags({'q':'draft-new'})['items'],['draft-new'])
+        self.assertEqual(self.random(seed=42,tags='alpha,draft-new')[0],second)
+        self.assertEqual(self.random(seed=42,tags='alpha,draft-new'),self.random(seed=42,tags='alpha,draft-new'))
+        self.assertEqual(library.detail(first)['tags'],['alpha'])
 
     def write(self, text="synthetic test", prompt_id=0, **changes):
         values = dict(language="zh", media_type="image", prompt_type="natural", nsfw=False,

@@ -34,6 +34,19 @@ async function pageFor(t, viewport = { width: 1440, height: 1000 }) {
     return page;
 }
 
+async function chooseTags(page,host,csv) {
+    await host.locator('.tbt-field').getByRole('button',{name:'选择标签',exact:true}).click();
+    const picker=page.locator('.tbt-dialog');
+    await page.waitForFunction(()=>!document.querySelector('.tbt-dialog .tbt-create button')?.disabled);
+    const clear=picker.getByRole('button',{name:'清空已选',exact:true});
+    if(await clear.isEnabled())await clear.click();
+    for(const name of csv.split(',').map(name=>name.trim()).filter(Boolean)){
+        await picker.getByLabel('新标签名称',{exact:true}).fill(name);
+        await picker.locator('.tbt-create button').click();
+    }
+    await picker.getByRole('button',{name:'应用',exact:true}).click();
+}
+
 test("pagination, upper level, tags, category conjunction and literal rendering", async t => {
     const page = await pageFor(t);
     assert.equal(await page.locator(".tbp-card").count(), 50);
@@ -63,7 +76,7 @@ test("detail saves all fields and uses persisted ID", async t => {
     await page.locator('.tbp-editor [name="sensitivity_level"]').selectOption("4");
     await page.locator('.tbp-editor [name="gore"]').check();
     await page.locator('.tbp-editor [name="minor"]').check();
-    await page.locator('.tbp-editor [name="tags"]').fill("updated, landscape");
+    await chooseTags(page,page,"updated, landscape");
     await page.getByRole("button", { name: "保存修改", exact: true }).click();
     await page.getByRole("status").filter({ hasText: /^已保存$/ }).waitFor();
     const saved = await (await page.request.get(`${base}/toolbox/prompts/${cardId}`)).json();
@@ -284,7 +297,7 @@ test("add modal creates then upserts identical prompt and shows the existing-rec
     const detail = page.locator(".tbp-detail-dialog");
     assert.equal(await detail.getByRole("button", {name:"使用此提示词",exact:true}).isEnabled(), false);
     await detail.locator('[name="prompt"]').fill("Synthetic create and duplicate notice");
-    await detail.locator('[name="tags"]').fill("created-test");
+    await chooseTags(page,detail,"created-test");
     await detail.locator('[name="edit_ratio"]').selectOption("9:16");
     await detail.locator('[name="edit_resolution"]').selectOption("864x1536");
     await detail.getByRole("button", {name:"保存提示词",exact:true}).click();
@@ -294,7 +307,7 @@ test("add modal creates then upserts identical prompt and shows the existing-rec
     await detail.getByRole("button", {name:"返回列表",exact:true}).click();
     await page.getByRole("button", {name:"新增提示词",exact:true}).click();
     await detail.locator('[name="prompt"]').fill("  Synthetic create and duplicate notice  ");
-    await detail.locator('[name="tags"]').fill("updated-test");
+    await chooseTags(page,detail,"updated-test");
     await detail.getByRole("button", {name:"保存提示词",exact:true}).click();
     await detail.getByRole("status").filter({hasText:new RegExp(`相同正文已存在，已更新记录 #${id}`)}).waitFor();
     assert.equal((await (await page.request.get(`${base}/toolbox/prompts?page_size=1`)).json()).total, total);

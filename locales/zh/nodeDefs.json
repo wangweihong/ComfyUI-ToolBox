@@ -1005,6 +1005,9 @@
       },
       "nsfw": {
         "name": "NSFW"
+      },
+      "tags": {
+        "tooltip": "点击选择标签；多个标签全部匹配。原字符串输入和工作流仍兼容。 新标签在节点执行写入时入库。"
       }
     }
   },
@@ -1036,6 +1039,9 @@
       "sensitivity_levels": {
         "name": "指定级别",
         "tooltip": "exact 模式使用，逗号分隔，例如 L1,L3；留空不匹配任何级别。"
+      },
+      "tags": {
+        "tooltip": "点击选择标签；多个标签全部匹配。原字符串输入和工作流仍兼容。"
       }
     }
   },
@@ -1045,6 +1051,15 @@
     "inputs": {
       "id": {
         "name": "提示词 ID"
+      }
+    }
+  },
+  "ToolBoxSkillReader": {
+    "display_name": "tb-skill-reader",
+    "description": "按 ID 读取 Skill 或提示词模板；使用弹窗新增、搜索和编辑，正文原样输出。",
+    "inputs": {
+      "id": {
+        "name": "内容 ID"
       }
     }
   }
