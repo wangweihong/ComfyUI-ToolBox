@@ -31,3 +31,35 @@ def add_missing_annotations(conn):
             )
             added.append(name)
     return added
+
+
+def create_schema(conn):
+    had_prompts = bool(conn.execute("PRAGMA table_info(prompts)").fetchall())
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS prompts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            shasum TEXT NOT NULL,
+            prompt TEXT NOT NULL,
+            language TEXT NOT NULL,
+            media_type TEXT NOT NULL,
+            prompt_type TEXT NOT NULL,
+            nsfw INTEGER NOT NULL,
+            content_format TEXT NOT NULL,
+            dynamic INTEGER NOT NULL,
+            suggested_width INTEGER NOT NULL DEFAULT 1024,
+            suggested_height INTEGER NOT NULL DEFAULT 768,
+            created_at TEXT NOT NULL
+        )
+    """)
+    if not had_prompts:
+        add_missing_annotations(conn)
+    conn.execute("CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS prompt_tags (
+            prompt_id INTEGER NOT NULL,
+            tag_id INTEGER NOT NULL,
+            PRIMARY KEY(prompt_id, tag_id),
+            FOREIGN KEY(prompt_id) REFERENCES prompts(id) ON DELETE CASCADE,
+            FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+        )
+    """)

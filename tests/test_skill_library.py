@@ -20,7 +20,7 @@ class SkillLibraryTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.path = Path(self.directory.name) / "prompts.sqlite3"
-        self.database = patch.object(prompt_nodes, "DEFAULT_PROMPT_DB", self.path)
+        self.database = patch.object(prompt_nodes.database, "DEFAULT_DB", self.path)
         self.database.start()
 
     def tearDown(self):

@@ -1,6 +1,7 @@
 """Database operations for the prompt browser; no ComfyUI dependency."""
 import json
 
+from . import database
 from . import prompt_nodes as prompts
 from .prompt_schema import CATEGORY_FIELDS, LEVEL_DESCRIPTIONS
 from .prompt_examples_schema import table_exists
@@ -113,7 +114,7 @@ def list_tags(query):
     page = positive_int(query.get("page", 1), "page", 10_000_000)
     size = positive_int(query.get("page_size", 100), "page_size", 500)
     empty = {"items": [], "counts": {}, "total": 0, "has_more": False, "page": page, "page_size": size}
-    if not prompts.DEFAULT_PROMPT_DB.exists():
+    if not database.DEFAULT_DB.exists():
         return empty
     with prompts.connect_db() as conn:
         conn.execute("BEGIN")

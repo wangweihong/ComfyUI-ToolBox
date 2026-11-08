@@ -8,15 +8,23 @@ from support import ROOT
 
 def test_comfy_registration_node_path_and_saved_id(lib,monkeypatch):
     folder=types.ModuleType('folder_paths')
-    folder.get_user_directory=lambda:str(lib.data_dir.parent)
+    folder.get_user_directory=lambda:str(lib.cache.parent)
     folder.get_input_directory=folder.get_output_directory=folder.get_temp_directory=lambda:lib.roots()[0]['path']
     server=types.ModuleType('server')
     instance=types.SimpleNamespace(routes=web.RouteTableDef(),app=web.Application(),send_sync=lambda *args:None)
     server.PromptServer=types.SimpleNamespace(instance=instance)
     monkeypatch.setitem(sys.modules,'folder_paths',folder);monkeypatch.setitem(sys.modules,'server',server)
-    name='actual_media_library_plugin'
+    name='nodes.actual_media_library_plugin'
     spec=importlib.util.spec_from_file_location(name,ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
     module=importlib.util.module_from_spec(spec);monkeypatch.setitem(sys.modules,name,module);spec.loader.exec_module(module)
+    monkeypatch.setattr(module.database, 'DEFAULT_DB', lib.db_path)
+    actual = module.get_library()
+    try:
+        assert actual.db_path == lib.db_path
+        assert actual.cache == lib.cache.parent / 'tb_media_library' / 'cache'
+        assert module.get_library() is actual
+    finally:
+        actual.close()
     monkeypatch.setattr(module,'get_library',lambda:lib)
     cls=module.NODE_CLASS_MAPPINGS['ToolBoxMediaLibrary']
     assert cls.RETURN_TYPES==('STRING',)

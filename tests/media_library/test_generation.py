@@ -64,7 +64,7 @@ def test_cache_upgrade_reads_saved_json_without_reopening_media(lib):
     row=lib.row(fid);old=json.loads(row['metadata'])
     for key in ('generation_nodes','parser_version','has_workflow','generation_truncated'):old.pop(key,None)
     old['summary']={}
-    with lib.transaction() as db:db.execute('UPDATE files SET metadata=?,search_text=? WHERE id=?',(json.dumps(old),str(path),fid))
+    with lib.transaction() as db:db.execute('UPDATE media_files SET metadata=?,search_text=? WHERE id=?',(json.dumps(old),str(path),fid))
     with patch.object(metadata,'inspect',side_effect=AssertionError('must reuse cached metadata')):
         detail=lib.detail(fid)
     assert fields(detail)['text']=='你好，海岸'

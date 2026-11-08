@@ -22,7 +22,7 @@ def main():
     from comfy_api.latest import InputImpl,Types
     with tempfile.TemporaryDirectory(prefix='toolbox-native-media-test-') as directory:
         root=Path(directory);output=root/'output';output.mkdir();folder_paths.set_output_directory(str(output))
-        prompts.DEFAULT_PROMPT_DB=root/'prompts.sqlite3';examples.OUTPUT_ROOT=output
+        prompts.database.DEFAULT_DB=root/'prompts.sqlite3';examples.OUTPUT_ROOT=output
         row=prompts.ToolBoxPromptWriter().write_prompt(0,'Synthetic CPU save integration','zh','image','natural',False,'plaintext',False,32,32,'synthetic')
         with prompts.connect_db() as conn:example_schema.initialize(conn)
         revision=prompts.prompt_data_revision()

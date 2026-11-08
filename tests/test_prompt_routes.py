@@ -18,7 +18,7 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
         from prompt_test_fixture import create_app
         self.directory = tempfile.TemporaryDirectory()
         self.path = Path(self.directory.name) / "prompts.sqlite3"
-        self.database = patch.object(prompts, "DEFAULT_PROMPT_DB", self.path)
+        self.database = patch.object(prompts.database, "DEFAULT_DB", self.path)
         self.database.start()
         prompts.ToolBoxPromptWriter().write_prompt(0, "synthetic", "zh", "image", "natural", False,
                                                    "plaintext", False, 1024, 768, "night")
@@ -57,12 +57,12 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
         response = await self.client.patch("/toolbox/prompts/1", data=io.BytesIO(b"x" * 2_100_001),
                                            headers={"Content-Type": "application/json"})
         self.assertEqual(response.status, 413)
-        with patch.object(prompts, "DEFAULT_PROMPT_DB", self.path.parent / "missing.sqlite3"):
+        with patch.object(prompts.database, "DEFAULT_DB", self.path.parent / "missing.sqlite3"):
             response=await self.client.get('/toolbox/prompts/tags')
             self.assertEqual(response.status,200)
             self.assertEqual((await response.json())['items'],[])
             self.assertEqual((await self.client.get("/toolbox/prompts")).status, 400)
-            self.assertFalse(prompts.DEFAULT_PROMPT_DB.exists())
+            self.assertFalse(prompts.database.DEFAULT_DB.exists())
 
     async def test_exact_level_api_and_tag_catalog_metadata(self):
         prompts.ToolBoxPromptWriter().write_prompt(0, "synthetic higher level", "zh", "image", "natural", False,

@@ -12,12 +12,12 @@ class PromptWriterTest(unittest.TestCase):
     def setUp(self):
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.database_path = Path(self.temporary_directory.name) / "prompts.sqlite3"
-        self.original_database_path = prompt_nodes.DEFAULT_PROMPT_DB
-        prompt_nodes.DEFAULT_PROMPT_DB = self.database_path
+        self.original_database_path = prompt_nodes.database.DEFAULT_DB
+        prompt_nodes.database.DEFAULT_DB = self.database_path
         self.writer = prompt_nodes.ToolBoxPromptWriter()
 
     def tearDown(self):
-        prompt_nodes.DEFAULT_PROMPT_DB = self.original_database_path
+        prompt_nodes.database.DEFAULT_DB = self.original_database_path
         self.temporary_directory.cleanup()
 
     def write(self, prompt_id, prompt, **overrides):

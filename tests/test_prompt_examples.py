@@ -18,7 +18,7 @@ class PromptExamplesTest(unittest.TestCase):
     def setUp(self):
         self.directory=tempfile.TemporaryDirectory();self.root=Path(self.directory.name)
         self.db=self.root/'prompts.sqlite3';self.output=self.root/'output';self.output.mkdir()
-        self.database=patch.object(prompts,'DEFAULT_PROMPT_DB',self.db);self.database.start()
+        self.database=patch.object(prompts.database,'DEFAULT_DB',self.db);self.database.start()
         self.output_patch=patch.object(library,'OUTPUT_ROOT',self.output);self.output_patch.start()
         self.writer=prompts.ToolBoxPromptWriter()
         self.id=self.write('Synthetic prompt')[0];self.metadata=json.loads(prompts.ToolBoxPromptReader().read_prompt(self.id)[-1])

@@ -7,11 +7,9 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .prompt_schema import ANNOTATION_DEFAULTS, CATEGORY_FIELDS, LEVEL_DESCRIPTIONS, add_missing_annotations
+from . import database
+from .prompt_schema import ANNOTATION_DEFAULTS, CATEGORY_FIELDS, LEVEL_DESCRIPTIONS, add_missing_annotations, create_schema
 
-
-ROOT_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_PROMPT_DB = ROOT_DIR / "data" / "prompts.sqlite3"
 
 LANGUAGE_FILTERS = ["全部", "zh", "en"]
 LANGUAGES = ["zh", "en"]
@@ -169,53 +167,17 @@ def require_enum(name, value, allowed):
         raise ValueError(f"{name} must be one of: {', '.join(allowed)}")
 
 
-def create_schema(conn):
-    had_prompts = bool(conn.execute("PRAGMA table_info(prompts)").fetchall())
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS prompts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shasum TEXT NOT NULL,
-            prompt TEXT NOT NULL,
-            language TEXT NOT NULL,
-            media_type TEXT NOT NULL,
-            prompt_type TEXT NOT NULL,
-            nsfw INTEGER NOT NULL,
-            content_format TEXT NOT NULL,
-            dynamic INTEGER NOT NULL,
-            suggested_width INTEGER NOT NULL DEFAULT 1024,
-            suggested_height INTEGER NOT NULL DEFAULT 768,
-            created_at TEXT NOT NULL
-        )
-    """)
-    if not had_prompts:
-        add_missing_annotations(conn)
-    conn.execute("CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)")
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS prompt_tags (
-            prompt_id INTEGER NOT NULL,
-            tag_id INTEGER NOT NULL,
-            PRIMARY KEY(prompt_id, tag_id),
-            FOREIGN KEY(prompt_id) REFERENCES prompts(id) ON DELETE CASCADE,
-            FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
-        )
-    """)
-
-
 @contextmanager
 def connect_db(create=False):
-    if not DEFAULT_PROMPT_DB.exists() and not create:
-        raise ValueError(f"Prompt database not found: {DEFAULT_PROMPT_DB}. Run: python3 scripts/import_prompts.py")
+    if not database.DEFAULT_DB.exists() and not create:
+        raise ValueError(f"Prompt database not found: {database.DEFAULT_DB}. Run: python3 scripts/import_prompts.py")
 
-    if create:
-        DEFAULT_PROMPT_DB.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(DEFAULT_PROMPT_DB)
-    else:
-        conn = sqlite3.connect(DEFAULT_PROMPT_DB.resolve().as_uri() + "?mode=rw", uri=True)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    conn = database.open_connection(create=create)
     try:
         if create:
-            create_schema(conn)
+            with conn:
+                conn.execute('BEGIN IMMEDIATE')
+                database.initialize(conn)
         with conn:
             yield conn
     finally:
@@ -231,7 +193,7 @@ def required_prompt_columns():
 
 
 def migration_command():
-    return f"python3 scripts/migrate_prompt_annotations.py --db {DEFAULT_PROMPT_DB}"
+    return f"python3 scripts/migrate_prompt_annotations.py --db {database.DEFAULT_DB}"
 
 
 def ensure_schema(conn):
@@ -241,11 +203,11 @@ def ensure_schema(conn):
     if missing_columns:
         commands = []
         if set(missing_columns) - ANNOTATION_DEFAULTS.keys():
-            commands.append(f"python3 scripts/migrate_prompt_shasum.py --db {DEFAULT_PROMPT_DB}")
+            commands.append(f"python3 scripts/migrate_prompt_shasum.py --db {database.DEFAULT_DB}")
         if set(missing_columns) & ANNOTATION_DEFAULTS.keys():
             commands.append(migration_command())
         raise ValueError(
-            f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
+            f"Invalid prompt database schema: {database.DEFAULT_DB}. "
             f"Missing columns: {', '.join(missing_columns)}. "
             f"Run: {'; then '.join(commands)}"
         )
@@ -268,9 +230,9 @@ def has_unique_shasum_index(conn):
 def ensure_writer_schema(conn):
     if has_unique_shasum_index(conn):
         raise ValueError(
-            f"Invalid prompt database schema: {DEFAULT_PROMPT_DB}. "
+            f"Invalid prompt database schema: {database.DEFAULT_DB}. "
             "The shasum column must allow duplicates. "
-            f"Run: python3 scripts/migrate_prompt_shasum.py --db {DEFAULT_PROMPT_DB}"
+            f"Run: python3 scripts/migrate_prompt_shasum.py --db {database.DEFAULT_DB}"
         )
     ensure_schema(conn)
 
@@ -419,7 +381,7 @@ def record_version(conn, row):
 
 
 def database_revision(**_kwargs):
-    paths = [DEFAULT_PROMPT_DB, Path(str(DEFAULT_PROMPT_DB) + "-wal")]
+    paths = [database.DEFAULT_DB, Path(str(database.DEFAULT_DB) + "-wal")]
     revision = []
     for path in paths:
         try:
@@ -438,8 +400,8 @@ def prompt_data_revision(**_kwargs):
             if revision_ready(conn):
                 row = conn.execute("SELECT epoch,revision FROM toolbox_prompt_revision WHERE singleton=1").fetchone()
                 if row:
-                    info = DEFAULT_PROMPT_DB.stat()
-                    return (str(DEFAULT_PROMPT_DB.resolve()), info.st_dev, info.st_ino, row[0], row[1], conn.execute("PRAGMA schema_version").fetchone()[0])
+                    info = database.DEFAULT_DB.stat()
+                    return (str(database.DEFAULT_DB.resolve()), info.st_dev, info.st_ino, row[0], row[1])
     except (ValueError, OSError, sqlite3.Error):
         pass
     return database_revision()

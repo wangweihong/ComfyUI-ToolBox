@@ -39,7 +39,7 @@ async def page(_request):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=18774);parser.add_argument('--many',action='store_true');args=parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='toolbox-examples-fixture-') as directory:
-        root=Path(directory);prompts.DEFAULT_PROMPT_DB=root/'prompts.sqlite3';examples.OUTPUT_ROOT=root/'output';examples.OUTPUT_ROOT.mkdir()
+        root=Path(directory);prompts.database.DEFAULT_DB=root/'prompts.sqlite3';examples.OUTPUT_ROOT=root/'output';examples.OUTPUT_ROOT.mkdir()
         writer=prompts.ToolBoxPromptWriter()
         writer.write_prompt(0,'Synthetic prompt for original examples','zh','image','natural',False,'plaintext',False,64,64,'synthetic')
         image=examples.OUTPUT_ROOT/'images/model/example.png';image.parent.mkdir(parents=True);image.write_bytes(PNG)

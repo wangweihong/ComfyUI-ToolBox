@@ -16,7 +16,7 @@ class PromptLibraryTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.path = Path(self.directory.name) / "prompts.sqlite3"
-        self.database = patch.object(prompts, "DEFAULT_PROMPT_DB", self.path)
+        self.database = patch.object(prompts.database, "DEFAULT_DB", self.path)
         self.database.start()
 
     def tearDown(self):
@@ -199,7 +199,7 @@ class PromptLibraryTest(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 library.create_prompt({**payload, **changes})
         self.assertEqual(library.list_prompts({})["total"], 1)
-        with patch.object(prompts, "DEFAULT_PROMPT_DB", self.path.with_name("fresh.sqlite3")):
+        with patch.object(prompts.database, "DEFAULT_DB", self.path.with_name("fresh.sqlite3")):
             result = library.create_prompt(payload)
             self.assertEqual(result["id"], 1)
             self.assertEqual(result["action"], "created")

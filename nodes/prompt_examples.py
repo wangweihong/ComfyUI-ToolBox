@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlencode
 
+from . import database
 from . import prompt_nodes as prompts
 from .prompt_library import positive_int, PromptNotFound
 from .prompt_examples_schema import initialize, table_exists
@@ -175,7 +176,7 @@ def list_examples(query, prompt_id=None):
     if status not in (*STATUSES, "all"):
         raise ValueError("Invalid status")
     result = {"items": [], "total": 0, "page": page, "page_size": size}
-    if not prompts.DEFAULT_PROMPT_DB.exists():
+    if not database.DEFAULT_DB.exists():
         return result
     with prompts.connect_db() as conn:
         conn.execute("BEGIN")
@@ -207,7 +208,7 @@ def selected_ids(payload):
 def check(payload, *, cleanup=False):
     ids = selected_ids(payload)
     items, deleted, affected = [], [], []
-    if not prompts.DEFAULT_PROMPT_DB.exists():
+    if not database.DEFAULT_DB.exists():
         return {"items": [], "deleted": []}
     with prompts.connect_db() as conn:
         conn.execute("BEGIN IMMEDIATE")

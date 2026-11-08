@@ -65,7 +65,7 @@ def main():
     parser.add_argument("--seed", action="store_true")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="toolbox-skills-test-") as directory:
-        prompt_nodes.DEFAULT_PROMPT_DB = Path(directory) / "prompts.sqlite3"
+        prompt_nodes.database.DEFAULT_DB = Path(directory) / "prompts.sqlite3"
         if args.seed:
             for number in range(55):
                 skill_library.create_entry(dict(name=f"Synthetic {number:03d}", entry_type="skill" if number%2 else "prompt_template",

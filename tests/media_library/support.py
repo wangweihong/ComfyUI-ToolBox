@@ -5,7 +5,8 @@ import types
 
 PROJECT = Path(__file__).resolve().parents[2]
 ROOT = PROJECT / "nodes/media_library"
-NAME = 'media_library_under_test'
+sys.path.insert(0, str(PROJECT))
+NAME = 'nodes.media_library'
 if NAME not in sys.modules:
     package = types.ModuleType(NAME)
     package.__path__ = [str(ROOT)]

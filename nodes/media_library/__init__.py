@@ -3,6 +3,7 @@ from pathlib import Path
 import threading
 import folder_paths
 from server import PromptServer
+from .. import database
 from .library import Library
 from .routes import register_routes
 
@@ -14,7 +15,7 @@ def get_library():
     global _library
     with _init_lock:
         if _library is None:
-            _library = Library(Path(folder_paths.get_user_directory()) / 'tb_media_library', {
+            _library = Library(database.DEFAULT_DB, Path(folder_paths.get_user_directory()) / 'tb_media_library' / 'cache', {
                 'input': folder_paths.get_input_directory(),
                 'output': folder_paths.get_output_directory(),
                 'temp': folder_paths.get_temp_directory(),

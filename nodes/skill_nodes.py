@@ -1,7 +1,6 @@
 import json
 
 from . import skill_library, skill_files
-from .prompt_nodes import database_revision
 
 
 class ToolBoxSkillReader:
@@ -13,7 +12,7 @@ class ToolBoxSkillReader:
     RETURN_NAMES = ("id", "name", "entry_type", "content", "metadata")
     FUNCTION = "read_skill"
     CATEGORY = "eazy-toolbox/skill"
-    IS_CHANGED = staticmethod(database_revision)
+    IS_CHANGED = staticmethod(skill_library.data_revision)
 
     def read_skill(self, id):
         data = skill_library.detail(id)

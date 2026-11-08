@@ -83,7 +83,7 @@ def main():
     parser.add_argument("--port", type=int, default=0)
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="toolbox-prompts-browser-") as directory:
-        prompts.DEFAULT_PROMPT_DB = Path(directory) / "prompts.sqlite3"
+        prompts.database.DEFAULT_DB = Path(directory) / "prompts.sqlite3"
         seed_records()
         app = create_app()
         app.router.add_get("/", fixture_page)

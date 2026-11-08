@@ -12,6 +12,7 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
+from .. import database
 from . import metadata
 
 
@@ -20,31 +21,37 @@ class LibraryError(ValueError):
 
 
 class Library:
-    def __init__(self, data_dir: Path, defaults: dict[str, str] | None = None):
-        self.data_dir = Path(data_dir).resolve()
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.cache = self.data_dir / 'cache'
-        self.cache.mkdir(exist_ok=True)
+    def __init__(self, db_path: Path, cache_dir: Path, defaults: dict[str, str] | None = None):
+        self.db_path = Path(db_path).resolve()
+        self.cache = Path(cache_dir).resolve()
+        self.cache.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
         self.operations_lock = threading.RLock()
         self.scan_lock = threading.Lock()
         self.status = {'running': False, 'scanned': 0, 'errors': [], 'finished_at': None}
         self.plans = {}
         self.revision = 0
-        self.db = sqlite3.connect(self.data_dir / 'catalog.sqlite3', check_same_thread=False)
-        self.db.row_factory = sqlite3.Row
-        self.db.executescript('''
-          PRAGMA journal_mode=WAL;
-          PRAGMA synchronous=NORMAL;
-          CREATE TABLE IF NOT EXISTS roots(id TEXT PRIMARY KEY, path TEXT UNIQUE, name TEXT, builtin INTEGER DEFAULT 0);
-          CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY, path TEXT, root_id TEXT, name TEXT, kind TEXT,
-            size INTEGER, mtime_ns INTEGER, signature TEXT, metadata TEXT DEFAULT '{}', search_text TEXT, missing INTEGER DEFAULT 0);
-          CREATE UNIQUE INDEX IF NOT EXISTS files_active_path ON files(path) WHERE missing=0;
-          CREATE INDEX IF NOT EXISTS files_root ON files(root_id,missing);
-          CREATE INDEX IF NOT EXISTS files_sort ON files(mtime_ns);
-          CREATE TABLE IF NOT EXISTS recents(file_id TEXT PRIMARY KEY, used_at INTEGER);
-        ''')
+        self.db = database.open_connection(self.db_path, create=True, check_same_thread=False)
+        try:
+            self.initialize(defaults)
+        except BaseException:
+            self.db.close()
+            raise
+
+    def initialize(self, defaults):
         with self.transaction() as db:
+            database.initialize(db)
+            for statement in '''
+          CREATE TABLE IF NOT EXISTS media_roots(id TEXT PRIMARY KEY, path TEXT UNIQUE, name TEXT, builtin INTEGER DEFAULT 0);
+          CREATE TABLE IF NOT EXISTS media_files(id TEXT PRIMARY KEY, path TEXT, root_id TEXT, name TEXT, kind TEXT,
+            size INTEGER, mtime_ns INTEGER, signature TEXT, metadata TEXT DEFAULT '{}', search_text TEXT, missing INTEGER DEFAULT 0);
+          CREATE UNIQUE INDEX IF NOT EXISTS media_files_active_path ON media_files(path) WHERE missing=0;
+          CREATE INDEX IF NOT EXISTS media_files_root ON media_files(root_id,missing);
+          CREATE INDEX IF NOT EXISTS media_files_sort ON media_files(mtime_ns);
+          CREATE TABLE IF NOT EXISTS media_recents(file_id TEXT PRIMARY KEY, used_at INTEGER);
+            '''.split(';'):
+                if statement.strip():
+                    db.execute(statement)
             seen_defaults = set()
             for name, path in (defaults or {}).items():
                 resolved = str(Path(path).resolve())
@@ -52,40 +59,51 @@ class Library:
                 seen_defaults.add(resolved)
                 # Refresh built-in roots when ComfyUI was started with different directory arguments.
                 rid = 'builtin-' + name
-                collision = db.execute('SELECT id FROM roots WHERE path=? AND id!=?', (resolved, rid)).fetchone()
+                collision = db.execute('SELECT id FROM media_roots WHERE path=? AND id!=?', (resolved, rid)).fetchone()
                 if collision:
-                    db.execute('UPDATE files SET root_id=? WHERE root_id=?', (rid, collision['id']))
-                    db.execute('DELETE FROM roots WHERE id=?', (collision['id'],))
-                db.execute('INSERT INTO roots VALUES(?,?,?,1) ON CONFLICT(id) DO UPDATE SET path=excluded.path,name=excluded.name,builtin=1', (rid, resolved, name))
+                    db.execute('UPDATE media_files SET root_id=? WHERE root_id=?', (rid, collision['id']))
+                    db.execute('DELETE FROM media_roots WHERE id=?', (collision['id'],))
+                db.execute('INSERT INTO media_roots VALUES(?,?,?,1) ON CONFLICT(id) DO UPDATE SET path=excluded.path,name=excluded.name,builtin=1', (rid, resolved, name))
 
     @contextmanager
     def transaction(self):
         with self.lock:
-            with self.db: yield self.db
+            if self.db.in_transaction:
+                yield self.db
+            else:
+                with self.db:
+                    self.db.execute('BEGIN IMMEDIATE')
+                    yield self.db
 
     def roots(self):
-        with self.lock: return [dict(r) for r in self.db.execute('SELECT * FROM roots ORDER BY builtin DESC,name')]
+        with self.lock: return [dict(r) for r in self.db.execute('SELECT * FROM media_roots ORDER BY builtin DESC,name')]
 
     def add_root(self, path: str, name: str = ''):
         p = Path(path).expanduser()
         if not p.is_absolute() or not p.is_dir(): raise LibraryError('请输入服务器上存在的绝对目录路径')
         p = p.resolve()
-        if p == self.data_dir or self.data_dir.is_relative_to(p):
-            raise LibraryError('素材目录不能包含插件数据库或预览缓存')
+        if self.is_internal_path(p):
+            raise LibraryError('素材目录不能是插件数据库或预览缓存')
         try:
             with self.transaction() as db:
-                db.execute('INSERT INTO roots VALUES(?,?,?,0)', (uuid.uuid4().hex, str(p), name.strip() or p.name))
+                db.execute('INSERT INTO media_roots VALUES(?,?,?,0)', (uuid.uuid4().hex, str(p), name.strip() or p.name))
         except sqlite3.IntegrityError: raise LibraryError('该目录已经添加')
         self.revision += 1
         return self.roots()
 
     def remove_root(self, root_id):
         with self.operations_lock, self.transaction() as db:
-            row = db.execute('SELECT * FROM roots WHERE id=?', (root_id,)).fetchone()
+            row = db.execute('SELECT * FROM media_roots WHERE id=?', (root_id,)).fetchone()
             if not row or row['builtin']: raise LibraryError('默认目录不能移除')
-            db.execute('DELETE FROM roots WHERE id=?', (root_id,))
-            db.execute('UPDATE files SET missing=1 WHERE root_id=?', (root_id,))
+            db.execute('DELETE FROM media_roots WHERE id=?', (root_id,))
+            db.execute('UPDATE media_files SET missing=1 WHERE root_id=?', (root_id,))
             self.revision += 1
+
+    def is_internal_path(self, path):
+        p = Path(path).resolve()
+        return (p == self.cache or p.is_relative_to(self.cache) or
+                p.parent == self.db_path.parent and
+                p.name in {self.db_path.name + suffix for suffix in ('', '-wal', '-shm', '-journal')})
 
     def check_path(self, path, *, must_exist=True):
         p = Path(os.path.abspath(os.path.expanduser(str(path))))
@@ -98,13 +116,13 @@ class Library:
             if cursor.is_symlink(): raise LibraryError('不读取或操作符号链接，请将目标目录单独加入素材库')
             cursor = cursor.parent
         if not p.resolve().is_relative_to(base.resolve()): raise LibraryError('路径超出素材目录')
-        if p == self.data_dir or p.is_relative_to(self.data_dir): raise LibraryError('不能访问插件数据目录')
+        if self.is_internal_path(p): raise LibraryError('不能访问插件数据库或预览缓存')
         if must_exist and not p.exists(): raise LibraryError('原文件已失效，请刷新素材库并重新选择')
         return p, root
 
     def row(self, file_id):
         with self.lock:
-            row = self.db.execute('SELECT * FROM files WHERE id=?', (file_id,)).fetchone()
+            row = self.db.execute('SELECT * FROM media_files WHERE id=?', (file_id,)).fetchone()
         if not row: raise LibraryError('找不到该素材，请刷新素材库')
         return dict(row)
 
@@ -117,7 +135,7 @@ class Library:
             p, _ = self.check_path(path)
         except LibraryError:
             if file_id and not Path(path).is_file():
-                with self.transaction() as db: db.execute('UPDATE files SET missing=1 WHERE id=?', (file_id,))
+                with self.transaction() as db: db.execute('UPDATE media_files SET missing=1 WHERE id=?', (file_id,))
             raise
         if not p.is_file(): raise LibraryError('请选择一个文件')
         return p
@@ -134,18 +152,18 @@ class Library:
             if not p.is_file(): raise LibraryError('不是普通文件')
             stat = p.stat()
             sig = metadata.signature(p)
-            with self.lock: existing = self.db.execute('SELECT * FROM files WHERE path=? AND missing=0', (str(p),)).fetchone()
+            with self.lock: existing = self.db.execute('SELECT * FROM media_files WHERE path=? AND missing=0', (str(p),)).fetchone()
             if existing and existing['signature'] == sig and not force:
                 cached = json.loads(existing['metadata'])
                 if cached.get('parser_version') != metadata.PARSER_VERSION:
                     # Upgrade summaries from the preserved JSON; do not re-probe media files.
                     cached = metadata.refresh_generation(cached)
                     with self.transaction() as db:
-                        db.execute('UPDATE files SET metadata=?,search_text=? WHERE id=?', (json.dumps(cached, ensure_ascii=False), self.search_text(p,cached), existing['id']))
+                        db.execute('UPDATE media_files SET metadata=?,search_text=? WHERE id=?', (json.dumps(cached, ensure_ascii=False), self.search_text(p,cached), existing['id']))
                     self.revision += 1
                 if existing['root_id'] != root['id']:
                     with self.transaction() as db:
-                        db.execute('UPDATE files SET root_id=? WHERE id=?', (root['id'], existing['id']))
+                        db.execute('UPDATE media_files SET root_id=? WHERE id=?', (root['id'], existing['id']))
                 return existing['id']
         # Probing large or damaged media must not block other detail requests or management.
         info = metadata.inspect(p)
@@ -155,9 +173,9 @@ class Library:
             if metadata.signature(p) != sig: raise LibraryError('文件正在写入，稍后刷新即可')
             with self.transaction() as db:
                 # Another request may have indexed this path during inspection.
-                existing = db.execute('SELECT id FROM files WHERE path=? AND missing=0', (str(p),)).fetchone()
+                existing = db.execute('SELECT id FROM media_files WHERE path=? AND missing=0', (str(p),)).fetchone()
                 file_id = existing['id'] if existing else uuid.uuid4().hex
-                db.execute('''INSERT INTO files VALUES(?,?,?,?,?,?,?,?,?,?,0) ON CONFLICT(id) DO UPDATE SET
+                db.execute('''INSERT INTO media_files VALUES(?,?,?,?,?,?,?,?,?,?,0) ON CONFLICT(id) DO UPDATE SET
                     path=excluded.path,root_id=excluded.root_id,name=excluded.name,kind=excluded.kind,size=excluded.size,mtime_ns=excluded.mtime_ns,
                     signature=excluded.signature,metadata=excluded.metadata,search_text=excluded.search_text,missing=0''',
                     (file_id, str(p), root['id'], p.name, info['kind'], stat.st_size, stat.st_mtime_ns, sig, json.dumps(info, ensure_ascii=False), searchable))
@@ -213,7 +231,7 @@ class Library:
                 args.extend([len(prefix) + 1, '.*' + os.sep + '*', len(prefix) + 1, '*' + os.sep + '.*' + os.sep + '*'])
         order = {'name': 'f.name COLLATE NOCASE', 'size': 'f.size', 'time': 'f.mtime_ns'}.get(sort, 'f.mtime_ns')
         order += ' ASC' if direction == 'asc' else ' DESC'
-        table = 'files f JOIN recents r ON r.file_id=f.id' if recent else 'files f'
+        table = 'media_files f JOIN media_recents r ON r.file_id=f.id' if recent else 'media_files f'
         if recent: order = 'r.used_at DESC'
         condition = ' AND '.join(where)
         with self.lock:
@@ -227,21 +245,21 @@ class Library:
     def folders(self, path):
         p, _ = self.check_path(path)
         if not p.is_dir(): raise LibraryError('不是目录')
-        return [{'name': child.name, 'path': str(child)} for child in sorted(p.iterdir(), key=lambda x: x.name.casefold()) if not child.name.startswith('.') and child.is_dir() and not child.is_symlink() and not child.is_relative_to(self.data_dir)]
+        return [{'name': child.name, 'path': str(child)} for child in sorted(p.iterdir(), key=lambda x: x.name.casefold()) if not child.name.startswith('.') and child.is_dir() and not child.is_symlink() and not self.is_internal_path(child)]
 
     def select(self, file_id='', path=''):
         item = self.detail(file_id, path)
         with self.transaction() as db:
-            db.execute('INSERT INTO recents VALUES(?,?) ON CONFLICT(file_id) DO UPDATE SET used_at=excluded.used_at', (item['id'], time.time_ns()))
-            db.execute('DELETE FROM recents WHERE file_id NOT IN (SELECT file_id FROM recents ORDER BY used_at DESC LIMIT 20)')
+            db.execute('INSERT INTO media_recents VALUES(?,?) ON CONFLICT(file_id) DO UPDATE SET used_at=excluded.used_at', (item['id'], time.time_ns()))
+            db.execute('DELETE FROM media_recents WHERE file_id NOT IN (SELECT file_id FROM media_recents ORDER BY used_at DESC LIMIT 20)')
         self.revision += 1
         return item
 
     def prune_recents(self):
         with self.transaction() as db:
-            for row in db.execute('SELECT f.id,f.path,f.missing FROM files f JOIN recents r ON r.file_id=f.id').fetchall():
+            for row in db.execute('SELECT f.id,f.path,f.missing FROM media_files f JOIN media_recents r ON r.file_id=f.id').fetchall():
                 try: self.resolve(row['id'])
-                except LibraryError: db.execute('DELETE FROM recents WHERE file_id=?', (row['id'],))
+                except LibraryError: db.execute('DELETE FROM media_recents WHERE file_id=?', (row['id'],))
         self.revision += 1
 
     def scan(self, folder='', recursive=False):
@@ -256,10 +274,10 @@ class Library:
                     self.status['errors'].append(str(base) + '：目录不存在或未挂载')
                     continue
                 for directory, dirs, names in os.walk(base, followlinks=False, onerror=lambda e: errors.append(str(e))):
-                    dirs[:] = [d for d in dirs if not d.startswith('.') and not (Path(directory) / d).is_symlink() and not (Path(directory) / d).is_relative_to(self.data_dir)] if recursive else []
+                    dirs[:] = [d for d in dirs if not d.startswith('.') and not (Path(directory) / d).is_symlink() and not self.is_internal_path(Path(directory) / d)] if recursive else []
                     for name in names:
                         p = Path(directory) / name
-                        if p.is_symlink() or not p.is_file(): continue
+                        if p.is_symlink() or not p.is_file() or self.is_internal_path(p): continue
                         try:
                             file_id = self.upsert(p)
                             seen.add(file_id)
@@ -270,12 +288,19 @@ class Library:
                         if len(errors) > 30: errors = errors[:30]
                 if not errors: successful_scopes.append(base)
                 self.status['errors'].extend(errors[:30])
-            with self.transaction() as db:
-                for row in db.execute('SELECT id,root_id,path FROM files WHERE missing=0').fetchall():
+            # Filesystem checks must not hold the shared database's write lock.
+            with self.operations_lock:
+                with self.lock:
+                    rows = self.db.execute('SELECT id,path FROM media_files WHERE missing=0').fetchall()
+                missing = []
+                for row in rows:
                     path = Path(row['path'])
                     covered = any(path.is_relative_to(base) if recursive else path.parent == base for base in successful_scopes)
                     if covered and row['id'] not in seen and not path.is_file():
-                        db.execute('UPDATE files SET missing=1 WHERE id=?', (row['id'],))
+                        missing.append((row['id'], row['path']))
+                if missing:
+                    with self.transaction() as db:
+                        db.executemany('UPDATE media_files SET missing=1 WHERE id=? AND path=?', missing)
         finally:
             self.status.update(running=False, finished_at=time.time())
             self.revision += 1
@@ -407,15 +432,15 @@ class Library:
                         else: source.unlink()
                         completed.append(action)
                         with self.transaction() as db:
-                            old = db.execute('SELECT id FROM files WHERE path=? AND missing=0', (str(source),)).fetchone()
+                            old = db.execute('SELECT id FROM media_files WHERE path=? AND missing=0', (str(source),)).fetchone()
                             if old:
                                 if action['target']:
                                     target = Path(action['target'])
                                     _, root = self.check_path(target)
-                                    db.execute('UPDATE files SET missing=1 WHERE path=? AND id!=?', (str(target), old['id']))
+                                    db.execute('UPDATE media_files SET missing=1 WHERE path=? AND id!=?', (str(target), old['id']))
                                     # Search text must not keep the old filename/path.
-                                    db.execute('UPDATE files SET path=?,name=?,root_id=?,signature=NULL,search_text=? WHERE id=?', (str(target), target.name, root['id'], str(target).casefold(), old['id']))
-                                else: db.execute('UPDATE files SET missing=1 WHERE id=?', (old['id'],))
+                                    db.execute('UPDATE media_files SET path=?,name=?,root_id=?,signature=NULL,search_text=? WHERE id=?', (str(target), target.name, root['id'], str(target).casefold(), old['id']))
+                                else: db.execute('UPDATE media_files SET missing=1 WHERE id=?', (old['id'],))
                     if plan['op'] != 'delete': self.upsert(Path(entry['actions'][0]['target']))
                     for cached in self.cache.glob(entry['id'] + '-*'):
                         cached.unlink(missing_ok=True)

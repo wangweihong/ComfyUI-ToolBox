@@ -61,12 +61,12 @@
 
 ## 数据与接口
 
-数据位于 ComfyUI 实际 `user` 目录下的 `tb_media_library/`：
+素材库与提示词、生成示例、Skill 和模板共用插件目录下的 `data/prompts.sqlite3`，预览缓存单独存放：
 
-- `catalog.sqlite3`：目录配置、素材 ID、文件索引、提取元数据、最近使用。运行中备份时应包含 WAL/SHM 或使用 SQLite backup；停止 ComfyUI 后可直接复制整个目录。
-- `cache/`：可重建的封面和兼容预览；按七天/2 GiB 清理，正在生成的最新预览暂时保留。
+- `data/prompts.sqlite3`：素材数据使用 `media_roots`、`media_files`、`media_recents` 表，存储目录配置、素材 ID、文件索引、提取元数据和最近使用，不存储素材原文件。运行中请使用 SQLite backup 备份共享数据库；停止 ComfyUI 后可复制数据库及仍存在的 WAL/SHM 文件。
+- `<ComfyUI 实际 user 目录>/tb_media_library/cache/`：可重建的封面和兼容预览；按七天/2 GiB 清理，正在生成的最新预览暂时保留。
 
-重装或升级插件代码不覆盖这些数据。索引仅服务配置目录；数据库与缓存本身不作为素材显示。
+重装或升级插件代码不覆盖这些数据。索引仅服务配置目录；共享数据库及其 WAL/SHM/journal 文件、预览缓存不作为素材显示，也不能通过素材文件管理接口操作。旧 `catalog.sqlite3` 不会被读取或自动迁移。
 
 接口统一位于 `/toolbox/media-library/`。详见 [接口说明](api.md)。完整源码与第三方读取器分开存放；第三方原始许可和固定提交记录位于 `vendor/`，参见 [NOTICE](NOTICE.md)。
 

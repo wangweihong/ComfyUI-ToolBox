@@ -45,7 +45,7 @@ def test_recent_twenty_persist_and_deduplicate(lib):
     assert lib.files(recent=True)['total'] == 20
     lib.select(ids[10])
     assert lib.files(recent=True)['items'][0]['id'] == ids[10]
-    again = Library(lib.data_dir)
+    again = Library(lib.db_path, lib.cache)
     assert again.files(recent=True)['total'] == 20
     again.close()
 
@@ -154,7 +154,7 @@ def test_root_config_persist_and_removal_preserves_file(lib, tmp_path):
     lib.remove_root(rid)
     assert p.exists()
     with pytest.raises(LibraryError): lib.resolve(fid)
-    with pytest.raises(LibraryError): lib.add_root(str(tmp_path))
+    with pytest.raises(LibraryError): lib.add_root(str(lib.cache))
 
 
 def test_external_delete_marks_missing_and_prunes(lib):
@@ -265,7 +265,7 @@ def test_audio_info_and_rotation_ratio(lib):
 
 def test_same_default_directories_are_deduplicated(tmp_path):
     root=tmp_path/'shared';root.mkdir()
-    lib=Library(tmp_path/'data',{'input':str(root),'output':str(root),'temp':str(root)})
+    lib=Library(tmp_path/'data'/'prompts.sqlite3',tmp_path/'cache',{'input':str(root),'output':str(root),'temp':str(root)})
     assert len(lib.roots())==1
     lib.close()
 

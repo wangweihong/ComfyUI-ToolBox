@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+from . import database
 from . import prompt_nodes
 from .prompt_library import positive_int
 from . import skill_files
@@ -46,26 +47,22 @@ def initialize(conn):
         path TEXT NOT NULL, data BLOB NOT NULL, PRIMARY KEY(entry_id,path)
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_skill_entries_bundle ON skill_entries(entry_type,shasum,bundle_shasum,id)")
+    database.initialize_revision(conn, "skill", ("skill_entries", "skill_tags", "skill_entry_tags", "skill_files"))
 
 
 @contextmanager
 def connect(*, write=False, create=False):
-    path = prompt_nodes.DEFAULT_PROMPT_DB
+    path = database.DEFAULT_DB
     if not path.is_file() and not create:
         if write:
             raise SkillNotFound("Skill/模板记录不存在，请先新增。")
         yield None
         return
-    if create:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(path)
-    else:
-        conn = sqlite3.connect(path.resolve().as_uri() + "?mode=rw", uri=True)
-    conn.row_factory = sqlite3.Row
+    conn = database.open_connection(create=create)
     try:
-        conn.execute("PRAGMA foreign_keys=ON")
-        conn.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+        conn.execute("BEGIN IMMEDIATE" if write or create else "BEGIN")
         if create:
+            database.initialize(conn)
             initialize(conn)
         yield conn
         conn.commit()
@@ -80,6 +77,18 @@ def initialized(conn):
     return conn is not None and conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='skill_entries'"
     ).fetchone() is not None
+
+
+def data_revision(**_kwargs):
+    try:
+        with connect() as conn:
+            if not initialized(conn):
+                return None
+            row = conn.execute('SELECT epoch,revision FROM toolbox_skill_revision WHERE singleton=1').fetchone()
+            info = database.DEFAULT_DB.stat()
+            return (str(database.DEFAULT_DB.resolve()), info.st_dev, info.st_ino, row[0], row[1])
+    except (ValueError, OSError, sqlite3.Error):
+        return float('nan')
 
 
 def storage_usage(conn, exclude_id=None):

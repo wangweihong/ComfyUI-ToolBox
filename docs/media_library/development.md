@@ -19,6 +19,6 @@ MEDIA_LIBRARY_TEST_PYTHON=.venv/bin/python npm run test:e2e
 
 浏览器测试独立启动 8919 端口临时素材服务器，退出后清理素材；截图位于忽略的 `test-results`。通过 `.venv/bin/python tests/media_library/serve_fixture.py --port 8919` 可手动打开该隔离环境。
 
-运行时数据位于实际 ComfyUI 用户目录的 `tb_media_library`，不使用旧插件的目录配置、索引或最近记录。图库 API 为 `/toolbox/media-library`，文件上传继续调用 ComfyUI 的 `/upload/image`。嵌入消息及文件变更事件统一使用 `tb-media-library-` 前缀。
+运行时数据库为插件目录下的 `data/prompts.sqlite3`，由 `nodes/database.py` 统一路径、WAL、5 秒锁等待、外键和 FULL 同步配置。素材表使用 `media_*` 前缀，缓存仍位于实际 ComfyUI 用户目录的 `tb_media_library/cache`。不使用旧插件或旧 `catalog.sqlite3` 的目录配置、索引或最近记录，不进行自动迁移。提示词和 Skill 使用各自的表变更版本，素材扫描不会触发其节点缓存失效。图库 API 为 `/toolbox/media-library`，文件上传继续调用 ComfyUI 的 `/upload/image`。嵌入消息及文件变更事件统一使用 `tb-media-library-` 前缀。
 
 当前测试容器的拆分部署使用 `python3 scripts/deploy_media_library_split.py`；脚本先检查队列为空，在用户目录备份插件代码，再部署、重启和检查节点/API。启动检查失败自动恢复代码。备份不包含或移动用户素材和数据库。

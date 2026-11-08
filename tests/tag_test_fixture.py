@@ -67,7 +67,7 @@ async def page(_request):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=18773);args=parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='toolbox-tags-test-') as directory:
-        prompt_nodes.DEFAULT_PROMPT_DB=Path(directory)/'prompts.sqlite3'
+        prompt_nodes.database.DEFAULT_DB=Path(directory)/'prompts.sqlite3'
         prompt_nodes.ToolBoxPromptWriter().write_prompt(0,'Synthetic prompt for tag tests','zh','image','natural',False,'plaintext',False,1024,768,'alpha,beta')
         # A catalog longer than one API page, without reading the real prompt DB.
         with prompt_nodes.connect_db() as conn:

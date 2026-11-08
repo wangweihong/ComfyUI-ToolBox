@@ -40,7 +40,7 @@ English: MOSS prompt enhancement now lives in ToolBox, retaining the legacy work
 
 新增 `ToolBox/Media` 下的 `tb-media-library`（节点类型 `ToolBoxMediaLibrary`）。顶部“素材库”直接打开图库，选中文件并点击“使用此文件”后，在当前画布中心添加路径节点；节点内“浏览素材库”只更新该节点。输出 `path: STRING` 为服务器原文件路径，选择已有文件不会复制素材。
 
-支持图像、视频、音频、文本及其他文件的预览、元数据、目录浏览、上传、图片粘贴及文件管理。独立使用 `/toolbox/media-library` 接口和 `user/tb_media_library` 数据目录，从当前 input/output/temp 按需索引，不读取独立版素材库的数据。
+支持图像、视频、音频、文本及其他文件的预览、元数据、目录浏览、上传、图片粘贴及文件管理。使用 `/toolbox/media-library` 接口，与提示词、Skill 和模板共用插件目录下的 `data/prompts.sqlite3`，素材表使用 `media_*` 前缀；预览缓存仍位于实际用户目录的 `tb_media_library/cache/`。从当前 input/output/temp 按需索引，不读取独立版素材库的数据。
 
 [完整使用说明](docs/media_library/README.md) · [开发与测试](docs/media_library/development.md)。
 
@@ -180,7 +180,7 @@ writer 及详情编辑可用“＋”输入一个新标签，名称去除首尾�
 
 顶部工具栏的“Skill / 模板库”可直接打开同一弹窗，无需先添加节点。点击“使用此内容”会在当前可视画布中央添加 `tb-skill-reader` 并填入已保存记录 ID，支持当前子图及撤销／重做，不执行生成；取消或关闭弹窗不会添加节点，节点上的原入口仍只回填该节点的 ID。顶部入口使用原生 `actionBarButtons` API，需要支持该接口的 ComfyUI 前端。
 
-沿用 `data/prompts.sqlite3`，使用独立的 `skill_entries`、`skill_tags`、`skill_entry_tags`、`skill_files` 表，标签与提示词库分开管理。文件作为 BLOB 保存在 SQLite，保留相对目录结构；不解压到服务器目录、不执行上传的脚本。未初始化时浏览返回空列表，首次有效保存才幂等创建新表；旧版 Skill 表在首次有效保存时补齐文件字段，不修改提示词表及 `library_meta`。正文去除首尾空白后计算 SHA-1，仅作校验，原文保留空白、缩进和换行。Skill 和模板不检测重复，每次新增都创建新 ID；指定 ID 编辑只更新该记录，版本校验涵盖正文、标签及全部文件，防止覆盖并发修改。
+沿用 `data/prompts.sqlite3`，使用独立的 `skill_entries`、`skill_tags`、`skill_entry_tags`、`skill_files` 表，标签与提示词库分开管理。文件作为 BLOB 保存在 SQLite，保留相对目录结构；不解压到服务器目录、不执行上传的脚本。未初始化时浏览返回空列表，首次有效保存才幂等创建 Skill 表；共用数据库同时初始化提示词基础表和专用版本记录，Skill 操作不修改提示词数据及 `library_meta`。正文去除首尾空白后计算 SHA-1，仅作校验，原文保留空白、缩进和换行。Skill 和模板不检测重复，每次新增都创建新 ID；指定 ID 编辑只更新该记录，版本校验涵盖正文、标签及全部文件，防止覆盖并发修改。
 
 正文模式只显示正文编辑器；文件包模式只显示文件管理区，支持上传多个文件、上传文件夹（浏览器需支持目录选择）或导入 ZIP。两种模式切换时暂存各自输入，保存时只保留所选模式，替换另一种模式的内容。文件包中可查看路径、移除文件、直接编辑 UTF-8 文本文件（包括主文件）及下载单个文件；二进制文件原样保存。导入时优先选择 `SKILL.md`，其次选择 Markdown／TXT，作为节点正文输出；也可选择“不输出正文（仅文件包）”，此时 content 输出空字符串。文件包模式没有独立正文输入，输出正文直接来自所选文件；可以只保存二进制文件。
 

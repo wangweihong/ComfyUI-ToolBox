@@ -12,7 +12,7 @@ from support import Library, register_routes, ROOT, PROJECT
 parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8919);args=parser.parse_args()
 temp=tempfile.TemporaryDirectory(prefix='tb-media-library-qa-');base=Path(temp.name)
 root=base/'素材';root.mkdir();(root/'归档').mkdir()
-lib=Library(base/'data',{'input':str(root)})
+lib=Library(base/'data'/'prompts.sqlite3',base/'cache',{'input':str(root)})
 extra=PngImagePlugin.PngInfo();extra.add_text('parameters','a quiet coastline, cinematic light\nNegative prompt: blurry\nSteps: 20, Sampler: Euler, CFG scale: 6, Seed: 20261105, Model: coastline-v1')
 # Generated geometry makes visual fixtures deterministic and avoids any external material.
 for n,(name,color) in enumerate([('海岸参考.png','#446b76'),('光影研究.png','#a28268'),('角色构图.png','#657384'),('森林色彩.png','#526d5a')]):

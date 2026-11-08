@@ -6,6 +6,7 @@ import hashlib
 import json
 import mimetypes
 import shutil
+import sqlite3
 import subprocess
 import threading
 from pathlib import Path
@@ -59,6 +60,8 @@ def register_routes(routes, get_library, on_change=lambda: None):
                     return response
                 except (LibraryError, ValueError, TypeError, KeyError) as exc:
                     return web.json_response({'error': str(exc)}, status=400)
+                except sqlite3.Error as exc:
+                    return web.json_response({'error': f'素材数据库不可用，请稍后重试：{exc}'}, status=503)
                 except (PermissionError, OSError) as exc:
                     return web.json_response({'error': str(exc)}, status=403)
             routes.route(method, PREFIX + path)(guarded)
