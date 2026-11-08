@@ -1,3 +1,5 @@
+import {attachMarkdownEditor} from "./skill_markdown.mjs";
+
 function element(tag, text, className = "") {
     const node = document.createElement(tag); node.className = className;
     if (text !== undefined) node.textContent = text;
@@ -96,7 +98,9 @@ export function attachPackageEditor({parent, fields, initial, request, onDirty})
         else {
             const editor=element("textarea",undefined,"tbp-skill-file-content"); editor.setAttribute("aria-label",`文件内容 ${file.path}`);
             editor.value=text; editor.spellcheck=false;
-            editor.oninput=()=>{file.data=encodeText(retainLineEndings(editor.value,text));changed();};viewer.append(editor);
+            editor.oninput=()=>{file.data=encodeText(retainLineEndings(editor.value,text));changed();};
+            const field=element("label",undefined,"tbp-field"); field.append(editor); viewer.append(field);
+            if (/\.(md|markdown|mdown)$/i.test(file.path)) attachMarkdownEditor(editor,{label:"文件正文",preview:true});
         }
         const download=action("下载此文件",()=>{
             const data=file.data;

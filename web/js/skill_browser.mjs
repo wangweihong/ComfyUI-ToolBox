@@ -1,4 +1,5 @@
 import {attachPackageEditor} from "./skill_package_editor.mjs";
+import {attachMarkdownEditor} from "./skill_markdown.mjs";
 import {createTagField} from "./tag_picker.mjs";
 const TYPES = { skill:"Skill", prompt_template:"提示词模板" };
 
@@ -207,31 +208,39 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         const title = el("header", "tbp-header");
         title.append(el("h3", "", creating ? "新增 Skill / 模板" : `${TYPES[selected.entry_type]} #${selected.id}`), button("返回列表", closeDetail));
         const body = el("div", "tbp-detail-body");
-        body.append(el("p", "tbp-meta", creating ? "每次新增都创建新记录；正文与文件原样保存，不执行脚本或替换变量。"
-            : `SHA-1：${selected.shasum}\n创建：${selected.created_at}\n更新：${selected.updated_at}`));
-        const editor = el("form", "tbp-editor");
+        const editor = el("form", "tbp-editor tbp-skill-editor");
+        const workspace = el("div", "tbp-skill-workspace");
+        const sidebar = el("aside", "tbp-skill-sidebar"); sidebar.setAttribute("aria-label", "内容属性");
+        editor.append(workspace, sidebar);
         let storageMode=selected.files?.length ? "files" : "text";
         const grid = el("div", "tbp-editor-grid");
+        sidebar.append(grid);
         const fields = {
             name:field(grid, "名称", "name", selected.name),
             entry_type:field(grid, "类型", "entry_type", selected.entry_type, TYPES),
         };
         fields.name.required = true; fields.name.maxLength = 200;
-        fields.description = field(editor, "简述（可选）", "description", selected.description, null, true);
+        fields.description = field(sidebar, "简述（可选）", "description", selected.description, null, true);
         fields.description.className = "tbp-skill-summary"; fields.description.maxLength = 20000;
-        editor.prepend(grid);
-        fields.content = field(editor, "正文（纯文本 / Markdown）", "content", selected.content, null, true);
+        fields.description.rows = 2;
+        fields.content = field(workspace, "正文（纯文本 / Markdown）", "content", selected.content, null, true);
         fields.content.className = "tbp-skill-content"; fields.content.required = true; fields.content.spellcheck = false;
-        tagEditor=createTagField({parent:editor,value:selected.tags.join(", "),request,allowCreate:true});
+        const contentEditor = attachMarkdownEditor(fields.content, {preview: !creating});
+        tagEditor=createTagField({parent:sidebar,value:selected.tags.join(", "),request,allowCreate:true});
         fields.tags=tagEditor.input;
+        const info = el("details", "tbp-skill-record");
+        info.append(el("summary", "", "记录信息"), el("p", "tbp-meta", creating
+            ? "保存后生成记录 ID、校验值及时间信息。"
+            : `ID：${selected.id}\nSHA-1：${selected.shasum}\n创建：${selected.created_at}\n更新：${selected.updated_at}`));
+        sidebar.append(info);
         const status = el("p", "tbp-status"); status.setAttribute("role", "status"); status.dataset.editorStatus="true";
-        packageEditor = attachPackageEditor({parent:editor, fields, initial:selected, request:fetchJSON,
+        packageEditor = attachPackageEditor({parent:workspace, fields, initial:selected, request:fetchJSON,
             onDirty:()=>{dirty=true;status.textContent="有未保存的修改";}});
         const modeField=el("fieldset","tbp-content-modes");modeField.append(el("legend","","内容来源（二选一）"));
         const modeChoices=el("div","tbp-segmented");modeChoices.setAttribute("aria-label","内容来源");
         const modeHint=el("p","tbp-status");
         function showMode() {
-            fields.content.parentElement.hidden=storageMode!=="text";
+            contentEditor.element.hidden=storageMode!=="text";
             fields.content.disabled=storageMode!=="text";fields.content.required=storageMode==="text";
             packageEditor.panel.hidden=storageMode!=="files";
             for(const choice of modeChoices.children) choice.setAttribute("aria-pressed",String(choice.dataset.storageMode===storageMode));
@@ -241,7 +250,7 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
             const choice=button(label,()=>{if(storageMode===value)return;storageMode=value;showMode();dirty=true;status.textContent="有未保存的修改；保存时只保留所选模式，另一种模式的内容将被替换。";});
             choice.dataset.storageMode=value;modeChoices.append(choice);
         }
-        modeField.append(modeChoices,modeHint);grid.after(modeField);showMode();
+        modeField.append(modeChoices,modeHint);workspace.prepend(modeField);showMode();
         const actions = el("div", "tbp-actions");
         const save = button(creating ? "保存内容" : "保存修改", () => editor.requestSubmit(), "tbp-primary");
         const use = button("使用此内容", () => {
@@ -254,7 +263,8 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         }, "tbp-primary");
         use.disabled = creating; if (creating) use.title = "请先保存内容";
         actions.append(save); if (!creating) actions.append(button("重新加载详情", () => loadDetail(selected.id))); actions.append(use);
-        editor.append(status, actions);
+        const footer = el("footer", "tbp-skill-footer"); footer.append(status, actions);
+        editor.append(footer);
         editor.oninput = editor.onchange = () => { dirty = true; status.textContent = "有未保存的修改"; };
         editor.onsubmit = async event => {
             event.preventDefault(); if (saving || !editor.reportValidity()) return;
