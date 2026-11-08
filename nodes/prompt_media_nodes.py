@@ -64,8 +64,9 @@ def image_saver():
 class ToolBoxPromptSaveImage:
     @classmethod
     def INPUT_TYPES(cls):
-        return {"required": {"images": ("IMAGE",), "prompt_metadata": ("STRING", {"forceInput": True}),
+        return {"required": {"images": ("IMAGE",),
                 "filename_prefix": ("STRING", {"default": "images/unspecified/prompt_examples/ComfyUI"})},
+                "optional": {"prompt_metadata": ("STRING", {"forceInput": True})},
                 "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"}}
 
     RETURN_TYPES = ("IMAGE", "STRING")
@@ -74,11 +75,16 @@ class ToolBoxPromptSaveImage:
     OUTPUT_NODE = True
     CATEGORY = "eazy-toolbox/prompt"
 
-    def save(self, images, prompt_metadata, filename_prefix, prompt=None, extra_pnginfo=None):
-        examples.validate_source(prompt_metadata)
+    def save(self, images, prompt_metadata=None, filename_prefix="images/unspecified/prompt_examples/ComfyUI", prompt=None, extra_pnginfo=None):
+        if prompt_metadata is not None:
+            examples.validate_source(prompt_metadata)
         safe_prefix(filename_prefix)
         result = image_saver().save_images(images, filename_prefix, prompt, extra_pnginfo)
-        report = finish(prompt_metadata, ui_paths(result["ui"]))
+        paths = ui_paths(result["ui"])
+        if prompt_metadata is not None:
+            report = finish(prompt_metadata, paths)
+        else:
+            report = {"paths": paths, "registration": "skipped", "message": f"已保存 {len(paths)} 个文件，未连接 metadata，未建立关联"}
         return {"ui": {**result["ui"], "toolbox_prompt_media": [report]}, "result": (images, json.dumps(report, ensure_ascii=False))}
 
 

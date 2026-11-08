@@ -149,6 +149,30 @@ class PromptExamplesTest(unittest.TestCase):
         with prompts.connect_db() as conn:self.assertTrue(schema.revision_ready(conn));self.assertEqual(conn.execute('SELECT COUNT(*) FROM prompt_examples').fetchone()[0],1)
         self.assertEqual(library.list_examples({},self.id)['total'],0)
 
+    def test_image_save_without_metadata_skips_association(self):
+        inputs=media.ToolBoxPromptSaveImage.INPUT_TYPES()
+        self.assertNotIn('prompt_metadata',inputs['required'])
+        self.assertEqual(inputs['optional']['prompt_metadata'],('STRING',{'forceInput':True}))
+        tensor=object();prompt={'synthetic':True};extra={'workflow':{'nodes':[]}}
+        native_ui={'images':[{'filename':'sample.png','subfolder':'images/model','type':'output'}]}
+        with patch.object(media,'image_saver') as delegate,patch.object(library,'validate_source') as validate,patch.object(media,'finish') as finish:
+            delegate.return_value.save_images.return_value={'ui':native_ui}
+            for metadata in ({},{'prompt_metadata':None}):
+                with self.subTest(metadata=metadata):
+                    result=media.ToolBoxPromptSaveImage().save(tensor,filename_prefix='images/model/test',prompt=prompt,extra_pnginfo=extra,**metadata)
+                    delegate.return_value.save_images.assert_called_with(tensor,'images/model/test',prompt,extra)
+                    self.assertIs(result['result'][0],tensor)
+                    self.assertEqual(result['ui']['images'],native_ui['images'])
+                    report=json.loads(result['result'][1])
+                    self.assertEqual(report['paths'],['images/model/sample.png'])
+                    self.assertEqual(report['registration'],'skipped')
+                    self.assertNotIn('prompt_id',report)
+                    self.assertEqual(result['ui']['toolbox_prompt_media'],[report])
+            validate.assert_not_called();finish.assert_not_called()
+            with self.assertRaises(ValueError):media.ToolBoxPromptSaveImage().save(tensor,filename_prefix='../outside')
+            self.assertEqual(delegate.return_value.save_images.call_count,2)
+        with prompts.connect_db() as conn:self.assertFalse(schema.table_exists(conn,'prompt_examples'))
+
     def test_image_delegate_registration_failure_retry_and_vhs_final_only(self):
         image=self.file();video=self.file('final.mp4',b'video')
         class Saver:
