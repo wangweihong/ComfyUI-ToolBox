@@ -244,7 +244,14 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         modeField.append(modeChoices,modeHint);grid.after(modeField);showMode();
         const actions = el("div", "tbp-actions");
         const save = button(creating ? "保存内容" : "保存修改", () => editor.requestSubmit(), "tbp-primary");
-        const use = button("使用此内容", () => { if (discard()) { onSelect(selected.id, selected); close(true); } }, "tbp-primary");
+        const use = button("使用此内容", () => {
+            if (!discard()) return;
+            try {
+                onSelect(selected.id, selected); close(true);
+            } catch (error) {
+                status.textContent = `无法使用此内容：${error.message || error}`;
+            }
+        }, "tbp-primary");
         use.disabled = creating; if (creating) use.title = "请先保存内容";
         actions.append(save); if (!creating) actions.append(button("重新加载详情", () => loadDetail(selected.id))); actions.append(use);
         editor.append(status, actions);
