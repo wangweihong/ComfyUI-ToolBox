@@ -1,6 +1,7 @@
 """Persistent catalog, recent selection and constrained file operations."""
 from __future__ import annotations
 
+import ctypes
 import errno
 import hashlib
 import json
@@ -234,18 +235,101 @@ class Library:
         table = 'media_files f JOIN media_recents r ON r.file_id=f.id' if recent else 'media_files f'
         if recent: order = 'r.used_at DESC'
         condition = ' AND '.join(where)
+        focus = None
         with self.lock:
             total = self.db.execute(f'SELECT count(*) FROM {table} WHERE {condition}', args).fetchone()[0]
             if focus_id:
-                position = self.db.execute(f'SELECT position FROM (SELECT f.id, ROW_NUMBER() OVER (ORDER BY {order},f.id)-1 AS position FROM {table} WHERE {condition}) WHERE id=?', [*args, focus_id]).fetchone()
-                if position is not None: offset = (position['position'] // limit) * limit
+                position = self.db.execute(f'''SELECT position,previous_id,next_id FROM (
+                    SELECT f.id, ROW_NUMBER() OVER (ORDER BY {order},f.id)-1 AS position,
+                    LAG(f.id) OVER (ORDER BY {order},f.id) AS previous_id,
+                    LEAD(f.id) OVER (ORDER BY {order},f.id) AS next_id
+                    FROM {table} WHERE {condition}) WHERE id=?''', [*args, focus_id]).fetchone()
+                if position is not None:
+                    offset = (position['position'] // limit) * limit
+                    focus = dict(position)
             rows = self.db.execute(f'SELECT f.* FROM {table} WHERE {condition} ORDER BY {order},f.id LIMIT ? OFFSET ?', [*args, limit, offset]).fetchall()
-        return {'items': [self.brief(row) for row in rows], 'total': total, 'offset': offset, 'limit': limit}
+        return {'items': [self.brief(row) for row in rows], 'total': total, 'offset': offset, 'limit': limit, 'focus': focus}
 
     def folders(self, path):
         p, _ = self.check_path(path)
         if not p.is_dir(): raise LibraryError('不是目录')
         return [{'name': child.name, 'path': str(child)} for child in sorted(p.iterdir(), key=lambda x: x.name.casefold()) if not child.name.startswith('.') and child.is_dir() and not child.is_symlink() and not self.is_internal_path(child)]
+
+    @staticmethod
+    def rename_directory_no_replace(source, target):
+        """Claim the new directory name atomically without replacing even an empty target."""
+        if os.name == 'nt':
+            os.rename(source, target)  # Windows rename refuses existing destinations.
+            return
+        libc = ctypes.CDLL(None, use_errno=True)
+        if hasattr(libc, 'renameat2'):
+            rename = libc.renameat2
+            rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            rename.restype = ctypes.c_int
+            result = rename(-100, os.fsencode(source), -100, os.fsencode(target), 1)  # RENAME_NOREPLACE
+        elif hasattr(libc, 'renamex_np'):
+            rename = libc.renamex_np
+            rename.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+            rename.restype = ctypes.c_int
+            result = rename(os.fsencode(source), os.fsencode(target), 4)  # RENAME_EXCL on macOS.
+        else:
+            raise LibraryError('当前系统不支持不覆盖目标的目录重命名')
+        if result:
+            code = ctypes.get_errno()
+            raise OSError(code, os.strerror(code), str(target))
+
+    def rename_folder(self, path, name):
+        if not isinstance(name, str): raise LibraryError('请输入目录名称')
+        self.valid_name(name)
+        with self.operations_lock:
+            source, _ = self.check_path(path)
+            if not source.is_dir(): raise LibraryError('请选择目录')
+            roots = self.roots()
+            if any(root['builtin'] and Path(root['path']).is_relative_to(source) for root in roots):
+                raise LibraryError('不能重命名 ComfyUI 默认目录或包含默认目录的位置')
+            if self.db_path.is_relative_to(source) or self.cache.is_relative_to(source):
+                raise LibraryError('不能重命名包含插件数据库或预览缓存的目录')
+            target = source.with_name(name)
+            if target == source: raise LibraryError('新旧目录名称相同')
+            if target.exists() or target.is_symlink(): raise LibraryError('目标目录或文件已经存在')
+            if any(Path(root['path']) == target for root in roots): raise LibraryError('目标路径已经配置为素材目录')
+            if self.is_internal_path(target): raise LibraryError('不能使用插件数据库或预览缓存路径')
+            # A custom root may be renamed within its parent; other directories stay in scope.
+            if not any(Path(root['path']) == source for root in roots):
+                self.check_path(target, must_exist=False)
+            moved = False
+            try:
+                with self.transaction() as db:
+                    prefix = str(source) + os.sep
+                    rows = [dict(row) for row in db.execute(
+                        'SELECT * FROM media_files WHERE path=? OR substr(path,1,?)=?',
+                        (str(source), len(prefix), prefix),
+                    )]
+                    for root in roots:
+                        old = Path(root['path'])
+                        if old.is_relative_to(source):
+                            root['path'] = str(target / old.relative_to(source))
+                            if old == source: root['name'] = name
+                            db.execute('UPDATE media_roots SET path=?,name=? WHERE id=?', (root['path'], root['name'], root['id']))
+                    for row in rows:
+                        new_path = target / Path(row['path']).relative_to(source)
+                        root = max((root for root in roots if new_path.is_relative_to(Path(root['path']))), key=lambda root: len(root['path']))
+                        # Discard stale active entries for a target that no longer exists on disk.
+                        if not row['missing']:
+                            db.execute('UPDATE media_files SET missing=1 WHERE path=? AND id!=?', (str(new_path), row['id']))
+                        db.execute('UPDATE media_files SET path=?,root_id=?,signature=NULL,search_text=? WHERE id=?',
+                                   (str(new_path), root['id'], self.search_text(new_path, json.loads(row['metadata'])), row['id']))
+                    self.rename_directory_no_replace(source, target)
+                    moved = True
+            except BaseException:
+                if moved:
+                    try: self.rename_directory_no_replace(target, source)
+                    except OSError as exc:
+                        raise LibraryError(f'目录已改名为 {target}，数据库保存失败且无法恢复原目录：{exc}') from exc
+                raise
+            self.plans.clear()
+            self.revision += 1
+            return {'path': str(target), 'previous_path': str(source), 'roots': self.roots(), 'updated_files': len(rows)}
 
     def select(self, file_id='', path=''):
         item = self.detail(file_id, path)

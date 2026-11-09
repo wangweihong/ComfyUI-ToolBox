@@ -35,10 +35,10 @@ test('text, PLY, ZIP and search work without interpreting archives',async({page}
   await page.locator('#search').fill('缓慢向前');
   await expect(page.locator('.card')).toHaveCount(1);
   await page.locator('.card').click();await expect(page.locator('.preview pre')).toContainText('柔和的逆光');
-  await page.locator('.detail-top button').click();
+  await page.locator('#detail-close').click();
   await page.locator('#search').fill('点云.ply');await expect(page.locator('.card-name')).toHaveText('点云.ply');await page.locator('.card').click();
   await expect(page.locator('.property').filter({hasText:'顶点数'})).toContainText('1024');
-  await page.locator('.detail-top button').click();
+  await page.locator('#detail-close').click();
   await page.locator('#search').fill('素材备份.zip');await expect(page.locator('.card-name')).toHaveText('素材备份.zip');await page.locator('.card').click();
   await expect(page.locator('.preview .file-glyph')).toHaveText('ZIP');
   await expect(page.locator('video,audio,.preview pre')).toHaveCount(0);
@@ -78,7 +78,7 @@ test('node bridge scopes selection, persists ID, restores after rename and clear
 test('narrow layout keeps directory navigation and closeable modal detail',async({page})=>{
   await page.setViewportSize({width:760,height:900});await page.goto('/toolbox/media-library/gallery');await page.locator('#roots .root-name').first().click();
   await page.locator('.card').first().click();await expect(page.locator('.detail.has-item')).toBeVisible();
-  await page.locator('.detail-top button').click();await expect(page.locator('.detail')).toBeHidden();
+  await page.locator('#detail-close').click();await expect(page.locator('.detail')).toBeHidden();
 });
 
 
@@ -143,6 +143,7 @@ test('directory cards stay compact beside media and show folder icons at narrow 
 test('custom generator JSON is readable and dimensions sit directly above ratio',async({page})=>{
   await page.goto('/toolbox/media-library/gallery');await page.locator('#roots .root-name').first().click();
   await page.locator('.directory-card').filter({hasText:'归档'}).click();await page.locator('.card').filter({hasText:'子目录图片.png'}).click();
+  await expect(page.locator('.detail-name')).toHaveText('子目录图片.png');
   await expect(page.getByText('未发现可识别的生成信息')).toHaveCount(0);
   const labels=await page.locator('.property dt').allTextContents();
   expect(labels).not.toContain('宽度（像素）');expect(labels).not.toContain('高度（像素）');

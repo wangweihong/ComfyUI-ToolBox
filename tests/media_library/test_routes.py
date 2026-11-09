@@ -1,6 +1,8 @@
 import asyncio
 import json
 import subprocess
+import sqlite3
+from unittest.mock import patch
 from pathlib import Path
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
@@ -88,3 +90,36 @@ async def test_default_browse_is_unscoped_empty_and_recursion_is_opt_in(client,l
     assert [r['name'] for r in (await response.json())['items']]==['top.txt']
     response=await client.get('/toolbox/media-library/files?root_id='+lib.roots()[0]['id']+'&recursive=1')
     assert (await response.json())['total']==2
+
+
+async def test_directory_rename_updates_detail_path_and_checks_origin(client,lib):
+    root=Path(lib.roots()[0]['path']);source=root/'before';source.mkdir()
+    file=source/'file.txt';file.write_text('original');file_id=lib.upsert(file)
+    response=await client.post('/toolbox/media-library/folders/rename',json={'path':str(source),'name':'after'},headers={'Origin':'https://other.example'})
+    assert response.status==400 and source.exists()
+    response=await client.post('/toolbox/media-library/folders/rename',json={'path':str(source),'name':'after'})
+    assert response.status==200
+    assert (await response.json())['path']==str(root/'after')
+    response=await client.get('/toolbox/media-library/detail',params={'id':file_id})
+    assert (await response.json())['path']==str(root/'after'/'file.txt')
+    response=await client.get('/toolbox/media-library/folders',params={'path':str(root)})
+    assert (await response.json())['folders']==[{'name':'after','path':str(root/'after')}]
+
+
+async def test_file_list_exposes_neighbors_in_the_same_query(client,lib):
+    root=Path(lib.roots()[0]['path']);ids=[]
+    for name in ['first.txt','second.txt','third.zip']:
+        path=root/name;path.write_text('text');ids.append(lib.upsert(path))
+    response=await client.get('/toolbox/media-library/files',params={'root_id':lib.roots()[0]['id'],'sort':'name','direction':'asc','kind':'text','focus_id':ids[0],'limit':'1'})
+    result=await response.json()
+    assert result['focus']=={'position':0,'previous_id':None,'next_id':ids[1]}
+    assert result['total']==2 and len(result['items'])==1
+
+
+async def test_rename_validation_and_database_errors_are_reported(client,lib):
+    root=Path(lib.roots()[0]['path']);source=root/'before';source.mkdir()
+    response=await client.post('/toolbox/media-library/folders/rename',json={'path':str(source),'name':'../escape'})
+    assert response.status==400 and source.exists()
+    with patch.object(lib,'rename_folder',side_effect=sqlite3.OperationalError('database is locked')):
+        response=await client.post('/toolbox/media-library/folders/rename',json={'path':str(source),'name':'after'})
+    assert response.status==503 and 'database is locked' in (await response.json())['error']

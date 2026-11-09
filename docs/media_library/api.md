@@ -10,6 +10,7 @@
 | `DELETE /roots/{id}` | 移除自定义目录，保留原文件；JSON 请求体 `{}` |
 | `GET /files` | 分页文件列表；参数 root_id、folder、q、kind、sort、direction、offset、limit、focus_id |
 | `GET /folders?path=…` | 当前层可浏览的非隐藏子目录 |
+| `POST /folders/rename` | `{path,name}` 重命名目录，返回 path、previous_path、roots 和 updated_files；更新已索引子素材和嵌套自定义目录的路径 |
 | `GET /detail?id=…` | 文件信息、媒体属性、摘要、生成节点参数与原始元数据；也接受 path |
 | `GET /file?id=…` | 原文件流，支持 HTTP Range；非媒体文件作为附件 |
 | `GET /thumb?id=…` | 按需生成图片或视频封面 |
@@ -25,6 +26,10 @@
 `/files` 默认只显示当前层；显式使用 `recursive=1` 才平铺子目录，`recent=1` 查询最近使用。未指定目录且不是最近使用时返回空文件列表。
 
 `focus_id` 存在于当前查询结果时，服务端计算并返回该文件所在页，响应 `offset` 为实际分页位置；不需要客户端依次加载前面的分页。
+
+`/files` 同时返回 `focus: {position,previous_id,next_id}`，位置从 0 开始，前后 ID 遵循同一目录、筛选、排序与最近使用范围，支持跨页。首项的 previous_id、末项的 next_id 为 null；未提供或找不到 focus_id 时 focus 为 null。详情切换使用 `limit=1` 获取相邻 ID，无需加载全部文件。
+
+目录重命名拒绝覆盖已有目标、越界路径和符号链接；ComfyUI 默认 input/output/temp 目录及包含默认目录、共享数据库或预览缓存的位置不能改名。自定义根目录可在其父目录内改名。数据库更新失败时回滚目录名称；素材 ID 与最近使用关联保持不变，之前的文件操作快照失效。
 
 上传直接调用 ComfyUI 自带的 `POST /upload/image`，不属于 `/toolbox/media-library/` 路由。请求为 multipart 表单：`image` 为文件、`type=input`、`subfolder` 为 input 下的相对目录，不设置 overwrite。遵循响应中的实际 `name` / `subfolder` / `type` 解析路径，再通过 `/detail?path=…` 加入索引。上传本身不产生最近使用记录，也不自动选择素材。
 

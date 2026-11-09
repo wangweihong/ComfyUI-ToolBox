@@ -5,6 +5,7 @@ type GenerationNode={node_id:string;node_type:string;title:string;fields:{name:s
 type Detail = Item & {generation_nodes:GenerationNode[];has_workflow:boolean;generation_truncated:boolean;raw:Record<string,unknown>; summary:Record<string,unknown>; text:string; truncated:boolean; metadata_state:string};
 type Folder = {name:string;path:string;root_id?:string};
 type Root = {id:string; path:string; name:string; builtin:number};
+type Neighbors = {position:number;previous_id:string|null;next_id:string|null};
 type Action = {source:string; target:string|null};
 type Plan = {token:string; op:string; entries:{id:string; error?:string; actions:Action[]}[]};
 const $ = <T extends HTMLElement = HTMLElement>(id:string) => document.getElementById(id) as T;
@@ -30,6 +31,7 @@ let listEpoch=0, detailEpoch=0, toastTimer=0, statusTimer=0, previewTimer=0;
 let plan:Plan|null=null, operationIds:string[]=[], operation='',moveDestination='';
 let operationEpoch=0,moveEpoch=0;
 let stopPreview=()=>{};
+let detailBusy=false,neighbors:Neighbors|null=null,neighborTotal=0,neighborEpoch=0,renamingPath='',folderRenameEpoch=0;
 function toast(text:string) { $('toast').textContent=text; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=window.setTimeout(()=>$('toast').hidden=true,5000); }
 async function copy(text:string) {
   try { await navigator.clipboard.writeText(text); }
@@ -67,7 +69,7 @@ function renderRoots() {
     const children=el('div','root-children'); children.hidden=true;
     const toggle=action('›',async()=>{children.hidden=!children.hidden;toggle.textContent=children.hidden?'›':'⌄';if(!children.hidden) await fillFolders(children,root.path,root.id);});
     const name=folderButton(root.name,()=>chooseFolder(root.id,'')); name.title=root.path;
-    row.append(toggle,name);holder.append(row,children);$('roots').append(holder);
+    row.append(toggle,name);appendFolderRename(row,root.path);holder.append(row,children);$('roots').append(holder);
   }
 }
 async function fillFolders(container:HTMLElement,path:string,rootId:string) {
@@ -77,7 +79,7 @@ async function fillFolders(container:HTMLElement,path:string,rootId:string) {
     const holder=el('div'),row=el('div','root-row'),nested=el('div','root-children');row.dataset.path=folder.path;nested.hidden=true;
     const toggle=action('›',async()=>{nested.hidden=!nested.hidden;toggle.textContent=nested.hidden?'›':'⌄';if(!nested.hidden)await fillFolders(nested,folder.path,rootId);});
     const name=folderButton(folder.name,()=>chooseFolder(rootId,folder.path));name.title=folder.path;
-    row.append(toggle,name);holder.append(row,nested);container.append(holder);
+    row.append(toggle,name);appendFolderRename(row,folder.path);holder.append(row,nested);container.append(holder);
   }
   if(!data.folders.length)container.append(el('div','muted','没有子目录'));
 }
@@ -162,6 +164,7 @@ function updateHeading() {
   $('prune').hidden=!state.recent;
   $('multi-select').hidden=homeView;
   $('parent').hidden=!state.root||state.recent;
+  $('rename-folder').hidden=!state.root||state.recent||!canRenameFolder(currentPath());
   $<HTMLInputElement>('recursive').disabled=!state.root||state.recent;
   $<HTMLInputElement>('search').disabled=homeView;
   $<HTMLButtonElement>('scan').disabled=homeView||state.recent;
@@ -170,10 +173,13 @@ function updateHeading() {
   $('upload').title=`上传到 ${uploadPath}；粘贴图片则保存到 input/pasted`;
   for(const row of document.querySelectorAll<HTMLElement>('.root-row'))row.classList.toggle('active',row.dataset.path===currentPath());
 }
+function filesQuery(offset=0,limit=80,focusId=''){
+  return new URLSearchParams({focus_id:focusId,q:state.q,kind:state.kind,root_id:state.root,folder:state.folder,recursive:state.recursive?'1':'0',sort:state.sort,direction:state.direction,recent:state.recent?'1':'0',offset:String(offset),limit:String(limit)});
+}
 async function loadFiles(append=false) {
   const epoch=++listEpoch;
   if(!state.root&&!state.recent){state.items=[];state.folders=[];state.total=0;renderedScope='home';renderGrid();updateHeading();updateSelection();$('from-start').hidden=true;$('more').hidden=true;$('paging').textContent='';return;}
-  const query=new URLSearchParams({focus_id:append?'':state.focusId,q:state.q,kind:state.kind,root_id:state.root,folder:state.folder,recursive:state.recursive?'1':'0',sort:state.sort,direction:state.direction,recent:state.recent?'1':'0',offset:String(append?state.offset+state.items.length:state.offset),limit:'80'});
+  const query=filesQuery(append?state.offset+state.items.length:state.offset,80,append?'':state.focusId);
   const showFolders=!state.recent&&!state.recursive;
   try {
     const [data,directories]=await Promise.all([
@@ -189,11 +195,13 @@ async function loadFiles(append=false) {
     if(changed||!$('grid').childElementCount)renderGrid();updateHeading();updateSelection();
     $('from-start').hidden=state.offset===0;
     $('more').hidden=state.offset+state.items.length>=data.total;$('paging').textContent=data.total?`已加载 ${state.items.length} / ${data.total}${state.offset?` · 从第 ${state.offset+1} 项开始`:''}`:'';
+    if(state.current&&!detailBusy)void loadNeighbors(state.current.id,detailEpoch);
   } catch(e) {if(epoch===listEpoch){$('grid').replaceChildren(el('div','empty-grid',(e as Error).message));toast((e as Error).message);}}
 }
 function directoryCard(folder:Folder,rootId:string){
-  const card=action('',()=>chooseFolder(rootId,folder.path),'directory-card');card.title=folder.path;card.dataset.path=folder.path;
-  const label=el('div','folder-label');label.append(el('strong','',folder.name),el('span','muted','点击进入目录'));card.append(folderIcon(),label);return card;
+  const card=el('div','directory-card');card.title=folder.path;card.dataset.path=folder.path;
+  const open=action('',()=>chooseFolder(rootId,folder.path),'directory-open');open.setAttribute('aria-label','进入目录 '+folder.name);
+  const label=el('div','folder-label');label.append(el('strong','',folder.name),el('span','muted','点击进入目录'));open.append(folderIcon(),label);card.append(open);appendFolderRename(card,folder.path);return card;
 }
 function renderGrid() {
   const grid=$('grid');grid.replaceChildren();
@@ -238,18 +246,43 @@ function openAssetMenu(item:Item,x:number,y:number){
   menu.hidden=false;const rect=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(x,window.innerWidth-rect.width-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-rect.height-8))+'px';remove.focus();
 }
 function releaseMedia() {stopPreview();stopPreview=()=>{};clearTimeout(previewTimer);for(const media of $('detail').querySelectorAll('video,audio')){const m=media as HTMLMediaElement;m.pause();m.removeAttribute('src');m.load();}}
+function updateDetailNavigation(){
+  for(const [id,target] of [['detail-previous',neighbors?.previous_id],['detail-next',neighbors?.next_id]]){
+    const button=$<HTMLButtonElement>(id!);if(button)button.disabled=detailBusy||!target;
+  }
+  const position=$('detail-position');if(position)position.textContent=neighbors?`${neighbors.position+1} / ${neighborTotal}`:'';
+}
+async function loadNeighbors(id:string,epoch:number){
+  const request=++neighborEpoch;
+  if(previewOnly||!state.root&&!state.recent)return;
+  try{
+    const data=await api<{focus:Neighbors|null;total:number}>('/files?'+filesQuery(0,1,id));
+    if(request!==neighborEpoch||epoch!==detailEpoch||state.current?.id!==id)return;
+    neighbors=data.focus;neighborTotal=data.total;updateDetailNavigation();
+  }catch(error){if(request===neighborEpoch&&epoch===detailEpoch){neighbors=null;updateDetailNavigation();toast((error as Error).message);}}
+}
+async function navigateDetail(direction:'previous_id'|'next_id'){
+  const id=neighbors?.[direction];if(detailBusy||!id)return;
+  await openDetail(id);
+}
 async function openDetail(id='',path='') {
-  const epoch=++detailEpoch;releaseMedia();
+  const epoch=++detailEpoch;releaseMedia();detailBusy=true;neighbors=null;updateDetailNavigation();
   try {
     const item=await api<Detail>('/detail?'+new URLSearchParams({id,path}));if(epoch!==detailEpoch)return;
     if(!previewOnly&&!$<HTMLDialogElement>('detail-dialog').open)$<HTMLDialogElement>('detail-dialog').showModal();
     state.current=item;state.focusId=item.id;renderDetail(item);for(const card of $('grid').children)card.classList.toggle('selected',(card as HTMLElement).dataset.id===item.id);
+    if(!previewOnly)await loadNeighbors(item.id,epoch);
   }catch(e){if(epoch!==detailEpoch)return;state.current=null;if(!previewOnly&&!$<HTMLDialogElement>('detail-dialog').open)$<HTMLDialogElement>('detail-dialog').showModal();$('detail').classList.add('has-item');$('detail').replaceChildren(el('div','detail-content error',(e as Error).message),action('关闭',closeDetail));if(!previewOnly)toast((e as Error).message);}
+  finally{if(epoch===detailEpoch){detailBusy=false;updateDetailNavigation();}}
 }
-function closeDetail(){++detailEpoch;releaseMedia();$<HTMLDialogElement>('json-dialog').close();$<HTMLDialogElement>('generation-dialog').close();$<HTMLDialogElement>('detail-dialog').close();state.current=null;$('detail').classList.remove('has-item');$('detail').replaceChildren(el('div','empty-detail','选择文件以查看详情'));}
+function closeDetail(){++detailEpoch;++neighborEpoch;detailBusy=false;neighbors=null;releaseMedia();$<HTMLDialogElement>('json-dialog').close();$<HTMLDialogElement>('generation-dialog').close();$<HTMLDialogElement>('detail-dialog').close();state.current=null;$('detail').classList.remove('has-item');$('detail').replaceChildren(el('div','empty-detail','选择文件以查看详情'));}
 function renderDetail(item:Detail) {
   const panel=$('detail');panel.classList.add('has-item');panel.replaceChildren();
-  const head=el('div','detail-top');head.append(el('h2','','素材详情'),action('×',closeDetail));
+  const head=el('div','detail-top'),navigation=el('nav','detail-navigation');navigation.setAttribute('aria-label','切换素材');
+  const previous=action('← 上一个',()=>navigateDetail('previous_id')),next=action('下一个 →',()=>navigateDetail('next_id')),position=el('span');
+  previous.id='detail-previous';next.id='detail-next';position.id='detail-position';position.setAttribute('aria-live','polite');
+  previous.title='上一个素材（←）';next.title='下一个素材（→）';previous.disabled=next.disabled=true;navigation.append(previous,position,next);
+  const close=action('×',closeDetail);close.id='detail-close';close.setAttribute('aria-label','关闭素材详情');head.append(el('h2','','素材详情'),navigation,close);
   const preview=el('div','preview'),compat=el('div','compat');compat.hidden=true;let media:HTMLMediaElement|null=null,stopped=false;
   stopPreview=()=>{stopped=true;};
   if(item.kind==='image') {const image=el('img');image.alt=item.name;image.src=url('/file?id='+item.id);image.onerror=()=>preview.replaceChildren(el('p','error','图片无法预览'));preview.append(image);}
@@ -387,7 +420,31 @@ function openAllInfo(item:Detail){
   $('json-collapse').onclick=()=>{for(const branch of $('json-tree').querySelectorAll<HTMLDetailsElement>('details'))branch.open=false;};
   $<HTMLDialogElement>('json-dialog').showModal();
 }
-function renderRootSettings(){const area=$('root-settings');area.replaceChildren();for(const root of state.roots){const row=el('div','root-setting'),label=el('div','',root.name);label.append(el('small','',root.path));row.append(label);if(root.builtin)row.append(el('span','muted','默认目录'));else row.append(action('移除',async()=>{await api('/roots/'+root.id,{},'DELETE');state.root='';state.folder='';await loadRoots();await loadFiles();}));area.append(row);}}
+function isWithin(path:string,parent:string){const value=path.replaceAll('\\','/'),base=parent.replaceAll('\\','/').replace(/\/+$/,'');return value===base||value.startsWith(base+'/');}
+function canRenameFolder(path:string){return !!path&&!state.roots.some(root=>root.builtin&&isWithin(root.path,path));}
+function appendFolderRename(container:HTMLElement,path:string){
+  if(!canRenameFolder(path))return;
+  const button=action('✎',()=>openFolderRename(path),'folder-rename');button.setAttribute('aria-label','重命名目录 '+fileName(path));button.title='重命名目录';container.append(button);
+}
+function openFolderRename(path:string){
+  ++folderRenameEpoch;renamingPath=path;$<HTMLInputElement>('folder-name').value=fileName(path);$('folder-rename-path').textContent=path;$('folder-rename-error').textContent='';$<HTMLButtonElement>('folder-rename-submit').disabled=false;
+  $<HTMLDialogElement>('folder-rename-dialog').showModal();$<HTMLInputElement>('folder-name').select();
+}
+async function renameFolder(event:SubmitEvent){
+  event.preventDefault();const epoch=folderRenameEpoch,source=renamingPath,button=$<HTMLButtonElement>('folder-rename-submit');button.disabled=true;$('folder-rename-error').textContent='';
+  try{
+    const data=await api<{path:string;previous_path:string;roots:Root[]}>('/folders/rename',{path:source,name:$<HTMLInputElement>('folder-name').value.trim()});
+    ++listEpoch;++locationEpoch;lastLocation='';
+    if(state.folder&&isWithin(state.folder,data.previous_path))state.folder=data.path+state.folder.slice(data.previous_path.length);
+    state.roots=data.roots;renderedScope='';renderRoots();renderRootSettings();
+    if(epoch===folderRenameEpoch)$<HTMLDialogElement>('folder-rename-dialog').close();
+    await loadFiles();const root=state.roots.find(root=>root.id===state.root);if(root)await revealFolder(root,currentPath());
+    if(state.current&&isWithin(state.current.path,data.previous_path))await openDetail(state.current.id);
+    window.parent.postMessage({type:'tb-media-library-changed'},location.origin);toast('目录已重命名，素材路径已更新');
+  }catch(error){if(epoch===folderRenameEpoch)$('folder-rename-error').textContent=(error as Error).message;else toast((error as Error).message);}
+  finally{if(epoch===folderRenameEpoch)button.disabled=false;}
+}
+function renderRootSettings(){const area=$('root-settings');area.replaceChildren();for(const root of state.roots){const row=el('div','root-setting'),label=el('div','',root.name);label.append(el('small','',root.path));row.append(label);if(root.builtin)row.append(el('span','muted','默认目录'));else {appendFolderRename(row,root.path);row.append(action('移除',async()=>{await api('/roots/'+root.id,{},'DELETE');state.root='';state.folder='';await loadRoots();await loadFiles();}));}area.append(row);}}
 function showSettings(){renderRootSettings();$<HTMLDialogElement>('settings-dialog').showModal();}
 function fileName(path:string){return path.split(/[\\/]/).filter(Boolean).pop()||path;}
 function parentPath(path:string){const parent=path.replace(/[\\/][^\\/]+[\\/]?$/,'');return /^[A-Za-z]:$/.test(parent)?parent+'\\':parent||'/';}
@@ -490,6 +547,11 @@ async function main(){
   });
   if(previewOnly){document.body.classList.add('preview-only');$<HTMLDialogElement>('detail-dialog').open=true;const id=params.get('id')||'',path=params.get('path')||'';if(id||path)await openDetail(id,path);else $('detail').replaceChildren(el('p','muted','点击浏览素材库选择文件'));return;}
   const viewer=$<HTMLDialogElement>('detail-dialog');viewer.addEventListener('cancel',event=>{event.preventDefault();closeDetail();});viewer.addEventListener('click',event=>{if(event.target===viewer)closeDetail();});
+  document.addEventListener('keydown',event=>{
+    if(!viewer.open||!state.current||event.defaultPrevented||event.ctrlKey||event.metaKey||event.altKey||event.shiftKey||!['ArrowLeft','ArrowRight'].includes(event.key))return;
+    if((event.target as Element)?.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"])')||Array.from(document.querySelectorAll<HTMLDialogElement>('dialog[open]')).some(dialog=>dialog!==viewer))return;
+    event.preventDefault();void navigateDetail(event.key==='ArrowLeft'?'previous_id':'next_id');
+  });
   for(const [key,label]of Object.entries({'':'全部',...names})){const button=action(label,async()=>{state.kind=key;state.offset=0;state.focusId='';for(const b of $('types').children)b.classList.toggle('active',(b as HTMLElement).dataset.kind===key);clearSelection();await loadFiles();});button.dataset.kind=key;button.classList.toggle('active',!key);$('types').append(button);}
   $('all').onclick=()=>void home();
   $('recent').onclick=()=>{state.root='';state.folder='';state.recent=true;state.focusId='';state.offset=0;resetRecursive();clearSearch();clearSelection();void loadFiles();};
@@ -498,6 +560,9 @@ async function main(){
   $('upload').onclick=()=>$<HTMLInputElement>('upload-files').click();
   $('upload-files').onchange=()=>void uploadFiles(Array.from($<HTMLInputElement>('upload-files').files||[]));
   $('settings').onclick=showSettings;$('add-root').onclick=showSettings;
+  $('rename-folder').onclick=()=>openFolderRename(currentPath());
+  $<HTMLFormElement>('folder-rename-form').onsubmit=event=>void renameFolder(event);
+  $('folder-rename-dialog').addEventListener('close',()=>{++folderRenameEpoch;});
   $('scan').onclick=async()=>{try{await api('/scan',{path:currentPath(),recursive:state.recursive});toast(state.recursive?'已开始刷新当前目录及子目录':'已开始刷新当前层目录');clearTimeout(statusTimer);void pollStatus();}catch(e){toast((e as Error).message);}};
   $('from-start').onclick=()=>{state.offset=0;state.focusId='';clearSelection();void loadFiles();};
   $('more').onclick=()=>void loadFiles(true);$('prune').onclick=async()=>{await api('/recents/prune',{});await loadFiles();};
