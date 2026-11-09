@@ -1,4 +1,4 @@
-import {openPromptBrowser} from './prompt_browser.mjs';
+import {openPromptBrowser} from './prompt_browser.mjs?v=20261109-example-delete';
 
 export function addPromptReaderToCanvas(app, promptId, {createNode = name => globalThis.LiteGraph?.createNode(name)} = {}) {
     const id = Number(promptId);

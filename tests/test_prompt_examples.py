@@ -48,6 +48,32 @@ class PromptExamplesTest(unittest.TestCase):
         self.assertEqual(prompt_library.list_prompts({})['items'][0]['example_count'],2)
         self.assertEqual(image.read_bytes(),b'synthetic')
 
+    def test_saved_paths_preserve_leading_directory_spaces(self):
+        relative=' images/qwen2.1/姿势线稿/pose_00001_.png'
+        legacy=self.file(relative,b'legacy');canonical=self.file(relative.lstrip(),b'canonical')
+        report=media.finish(self.metadata,[relative])
+        self.assertEqual(report['registration'],'registered');self.assertEqual(report['paths'],[relative])
+        row=library.list_examples({},self.id)['items'][0]
+        self.assertEqual(row['relative_path'],relative);self.assertIn('subfolder=+images',row['url'])
+        self.assertEqual(library.check({'ids':[row['id']]})['items'][0]['status'],'available')
+        library.remove(row['id'],{'delete_file':True})
+        self.assertFalse(legacy.exists());self.assertEqual(canonical.read_bytes(),b'canonical')
+
+    def test_image_prefix_is_trimmed_before_saving_and_validated_after_trimming(self):
+        image=self.file('images/qwen2.1/姿势线稿/pose_00001_.png')
+        native_ui={'images':[{'filename':image.name,'subfolder':'images/qwen2.1/姿势线稿','type':'output'}]}
+        tensor=object()
+        with patch.object(media,'image_saver') as delegate:
+            delegate.return_value.save_images.return_value={'ui':native_ui}
+            result=media.ToolBoxPromptSaveImage().save(tensor,json.dumps(self.metadata),' images/qwen2.1/姿势线稿/pose ')
+            delegate.return_value.save_images.assert_called_once_with(tensor,'images/qwen2.1/姿势线稿/pose',None,None)
+            report=json.loads(result['result'][1]);self.assertEqual(report['registration'],'registered')
+            self.assertEqual(report['paths'],['images/qwen2.1/姿势线稿/pose_00001_.png'])
+        for prefix in (' /tmp/outside',' ../outside',' ','\\outside'):
+            with self.subTest(prefix=prefix),patch.object(media,'image_saver') as delegate:
+                with self.assertRaises(ValueError):media.ToolBoxPromptSaveImage().save(tensor,filename_prefix=prefix)
+                delegate.assert_not_called()
+
     def test_parallel_branches_keep_their_own_source_and_execution_ids(self):
         from concurrent.futures import ThreadPoolExecutor
         other=self.write('Other synthetic branch');other_metadata=json.loads(other[-1])
@@ -116,6 +142,39 @@ class PromptExamplesTest(unittest.TestCase):
         for payload in ({'ids':[]},{'ids':[True]},{'ids':list(range(201))}):
             with self.assertRaises(ValueError):library.check(payload)
 
+    def test_remove_can_delete_image_video_and_missing_file(self):
+        for name in ('sample.png', 'sample.mp4', 'missing.png'):
+            with self.subTest(name=name):
+                path=self.file(name);row=library.register(self.payload([path]))['items'][0]
+                if name=='missing.png':path.unlink()
+                self.assertEqual(library.remove(row['id'],{'delete_file':True})['deleted'],[row['id']])
+                self.assertFalse(path.exists())
+                self.assertEqual(library.remove(row['id'],{'delete_file':True})['deleted'],[])
+        self.assertEqual(library.list_examples({},self.id)['total'],0)
+
+    def test_remove_requires_boolean_and_preserves_association_on_delete_failure(self):
+        path=self.file();row=library.register(self.payload([path]))['items'][0]
+        for payload in ({'delete_file':'true'},{'delete_file':1},{'delete_file':None},{'unknown':True},[]):
+            with self.subTest(payload=payload),self.assertRaises(ValueError):library.remove(row['id'],payload)
+        with patch.object(Path,'unlink',side_effect=PermissionError('denied')):
+            with self.assertRaisesRegex(ValueError,'关联已保留'):library.remove(row['id'],{'delete_file':True})
+        self.assertTrue(path.exists());self.assertEqual(library.list_examples({},self.id)['total'],1)
+        self.assertEqual(library.remove(row['id'],{'delete_file':False})['deleted'],[row['id']]);self.assertTrue(path.exists())
+
+    def test_remove_rejects_redirected_paths_and_unavailable_output(self):
+        path=self.file();row=library.register(self.payload([path]))['items'][0];path.unlink()
+        outside=self.root/'outside.png';outside.write_bytes(b'keep')
+        inside=self.file('other.png',b'keep')
+        for target in (outside,inside):
+            path.symlink_to(target)
+            with self.assertRaisesRegex(ValueError,'关联已保留'):library.remove(row['id'],{'delete_file':True})
+            self.assertEqual(target.read_bytes(),b'keep');path.unlink()
+        path.mkdir()
+        with self.assertRaisesRegex(ValueError,'关联已保留'):library.remove(row['id'],{'delete_file':True})
+        self.output.rename(self.root/'offline')
+        with self.assertRaisesRegex(ValueError,'关联已保留'):library.remove(row['id'],{'delete_file':True})
+        self.assertEqual(library.list_examples({},self.id)['total'],1)
+
     def test_revision_only_tracks_prompt_and_tags_and_ui_output_compatibility(self):
         migrate_prompt_examples.migrate_db(self.db);revision=prompts.prompt_data_revision();generic=prompts.database_revision()
         path=self.file();row=library.register(self.payload([path]))['items'][0]
@@ -157,7 +216,7 @@ class PromptExamplesTest(unittest.TestCase):
         native_ui={'images':[{'filename':'sample.png','subfolder':'images/model','type':'output'}]}
         with patch.object(media,'image_saver') as delegate,patch.object(library,'validate_source') as validate,patch.object(media,'finish') as finish:
             delegate.return_value.save_images.return_value={'ui':native_ui}
-            for metadata in ({},{'prompt_metadata':None}):
+            for metadata in ({},{'prompt_metadata':None},{'prompt_metadata':''},{'prompt_metadata':' \t\n'}):
                 with self.subTest(metadata=metadata):
                     result=media.ToolBoxPromptSaveImage().save(tensor,filename_prefix='images/model/test',prompt=prompt,extra_pnginfo=extra,**metadata)
                     delegate.return_value.save_images.assert_called_with(tensor,'images/model/test',prompt,extra)
@@ -170,7 +229,7 @@ class PromptExamplesTest(unittest.TestCase):
                     self.assertEqual(result['ui']['toolbox_prompt_media'],[report])
             validate.assert_not_called();finish.assert_not_called()
             with self.assertRaises(ValueError):media.ToolBoxPromptSaveImage().save(tensor,filename_prefix='../outside')
-            self.assertEqual(delegate.return_value.save_images.call_count,2)
+            self.assertEqual(delegate.return_value.save_images.call_count,4)
         with prompts.connect_db() as conn:self.assertFalse(schema.table_exists(conn,'prompt_examples'))
 
     def test_image_delegate_registration_failure_retry_and_vhs_final_only(self):
@@ -193,6 +252,7 @@ class PromptExamplesTest(unittest.TestCase):
         with self.assertRaises(ValueError):media.ToolBoxPromptRecordMedia().record(meta,files='[]',vhs_filenames=(True,[]))
         with patch.object(media,'image_saver') as delegate:
             with self.assertRaises(ValueError):media.ToolBoxPromptSaveImage().save(tensor,'{}','test')
+            with self.assertRaises(ValueError):media.ToolBoxPromptSaveImage().save(tensor,'普通提示词正文','test')
             with self.assertRaises(ValueError):media.ToolBoxPromptSaveImage().save(tensor,meta,'../outside')
             delegate.assert_not_called()
 
@@ -221,6 +281,18 @@ class PromptExampleRoutesTest(unittest.IsolatedAsyncioTestCase):
         path.unlink();self.assertEqual((await self.client.post('/toolbox/prompt-examples/check',json={'ids':[row['id']]})).status,200)
         response=await self.client.delete('/toolbox/prompt-examples/invalid',json={'ids':[row['id']]});self.assertEqual((await response.json())['deleted'],[row['id']])
         self.assertEqual((await self.client.delete(f'/toolbox/prompt-examples/{row["id"]}')).status,200)
+
+    async def test_remove_file_option_and_legacy_unlink(self):
+        for payload in (None,{'delete_file':False},{'delete_file':True}):
+            path=self.base.file();row=library.register(self.base.payload([path]))['items'][0]
+            options={} if payload is None else {'json':payload}
+            response=await self.client.delete(f'/toolbox/prompt-examples/{row["id"]}',**options)
+            self.assertEqual(response.status,200);self.assertEqual((await response.json())['deleted'],[row['id']])
+            self.assertEqual(path.exists(),payload!={'delete_file':True})
+        path=self.base.file();row=library.register(self.base.payload([path]))['items'][0]
+        response=await self.client.delete(f'/toolbox/prompt-examples/{row["id"]}',json={'delete_file':'true'})
+        self.assertEqual(response.status,400);self.assertTrue(path.exists())
+        self.assertEqual(library.list_examples({},self.base.id)['total'],1)
 
     async def test_errors_and_empty_reads_do_not_initialize(self):
         self.assertEqual((await (await self.client.get('/toolbox/prompt-examples')).json())['total'],0)

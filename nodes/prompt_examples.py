@@ -33,7 +33,7 @@ def output_root():
 def normalize_path(value):
     if not isinstance(value, str) or not value.strip() or len(value) > 4096:
         raise ValueError("请输入 output 内的文件路径")
-    value = value.strip()
+    # Saved paths are exact filesystem names; whitespace may be part of a directory.
     if "://" in value or "\\" in value or "\0" in value or any(ord(char) < 32 for char in value):
         raise ValueError("仅支持当前服务器的 output 路径，不支持 URL 或其他系统路径")
     root = output_root()
@@ -235,14 +235,28 @@ def cleanup(payload):
     return check(payload, cleanup=True)
 
 
-def remove(item_id):
+def remove(item_id, payload=None):
     item_id = positive_int(item_id, "id")
+    if payload is None:
+        payload = {}
+    if not isinstance(payload, dict) or set(payload) - {"delete_file"} or not isinstance(payload.get("delete_file", False), bool):
+        raise ValueError("delete_file 必须为布尔值")
     affected = []
     with prompts.connect_db() as conn:
         conn.execute("BEGIN IMMEDIATE")
         if table_exists(conn, "prompt_examples"):
-            row = conn.execute("SELECT prompt_id FROM prompt_examples WHERE id=?", (item_id,)).fetchone()
+            row = conn.execute("SELECT prompt_id,relative_path FROM prompt_examples WHERE id=?", (item_id,)).fetchone()
             if row:
-                affected.append(row[0]); conn.execute("DELETE FROM prompt_examples WHERE id=?", (item_id,))
+                if payload.get("delete_file", False):
+                    try:
+                        if not output_root().is_dir():
+                            raise ValueError("output 目录不可访问")
+                        target, relative, _kind = normalize_path(row["relative_path"])
+                        if relative != row["relative_path"]:
+                            raise ValueError("示例路径已指向其他文件，请重新登记后操作")
+                        target.unlink(missing_ok=True)
+                    except (OSError, ValueError) as exc:
+                        raise ValueError(f"无法删除示例素材，关联已保留：{exc}") from exc
+                affected.append(row["prompt_id"]); conn.execute("DELETE FROM prompt_examples WHERE id=?", (item_id,))
     notify(affected)
     return {"deleted": [item_id] if affected else []}

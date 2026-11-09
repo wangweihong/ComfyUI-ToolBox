@@ -152,6 +152,8 @@
 .tbp-example-confirm p { margin:0 0 14px;overflow-wrap:anywhere; }
 .tbp-example-confirm-path { padding:10px 12px;border:1px solid var(--tbp-line);border-radius:7px;background:var(--tbp-bg);font:13px/1.6 ui-monospace,monospace;white-space:pre-wrap;max-height:25vh;overflow:auto; }
 .tbp-example-confirm-note { font-size:13px;font-weight:600;color:var(--tbp-text); }
+.tbp-example-delete-file { display:flex;align-items:center;gap:8px;margin:0 0 14px;cursor:pointer; }
+.tbp-example-delete-file input { flex:0 0 auto;width:auto; }
 .tbp-example-confirm .tbp-actions { justify-content:flex-end;padding-top:10px; }
 .tb-prompts button.tbp-danger { color:white;background:#b92f3a;border-color:#b92f3a;font-weight:700; }
 .tb-prompts button.tbp-danger:hover { background:#a1242f;border-color:#a1242f; }

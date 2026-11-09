@@ -16,8 +16,8 @@ test('association confirmation is modal, cancel-focused, dismissible without cha
     const previousDocument=globalThis.document,opener=new Element('button');
     globalThis.document={createElement:tag=>new Element(tag),body:new Element('body'),activeElement:opener};
     t.after(()=>{globalThis.document=previousDocument;});
-    let confirmed=0,closed=0;
-    const open=()=>openExampleConfirmation({text:'移除示例 #9？',details:'images/test.png',onConfirm:()=>{confirmed++;},onClose:()=>{closed++;}});
+    let confirmed=0,closed=0,deleteFile;
+    const open=(options={})=>openExampleConfirmation({text:'移除示例 #9？',details:'images/test.png',onConfirm:value=>{confirmed++;deleteFile=value;},onClose:()=>{closed++;},...options});
     let view=open();
     assert.equal(view.dialog.modal,true);
     assert.equal(document.activeElement.textContent,'取消操作');
@@ -31,9 +31,28 @@ test('association confirmation is modal, cancel-focused, dismissible without cha
     const confirm=view.dialog.children.at(-1).children.at(-1);
     assert.equal(confirm.className,'tbp-danger');
     confirm.onclick();confirm.onclick();
-    assert.equal(confirmed,1);assert.equal(closed,3);assert.equal(view.dialog.open,false);
+    assert.equal(confirmed,1);assert.equal(closed,3);assert.equal(view.dialog.open,false);assert.equal(deleteFile,false);
     view=open();view.close();
     assert.equal(confirmed,1);assert.equal(closed,4);
+    view=open({allowDeleteFile:true});
+    let checkbox=view.dialog.children.find(child=>child.tag==='label').children[0];
+    assert.equal(checkbox.checked,false);
+    checkbox.checked=true;checkbox.onchange();
+    assert.match(view.dialog.children.find(child=>child.className==='tbp-example-confirm-note').textContent,/删除原始素材文件/);
+    assert.equal(view.dialog.children.at(-1).children.at(-1).textContent,'确认移除关联并删除素材');
+    view.dialog.children.at(-1).children.at(-1).onclick();
+    assert.equal(confirmed,2);assert.equal(deleteFile,true);
+    view=open({allowDeleteFile:true});
+    checkbox=view.dialog.children.find(child=>child.tag==='label').children[0];
+    assert.equal(checkbox.checked,false);
+    checkbox.checked=true;checkbox.onchange();checkbox.checked=false;checkbox.onchange();
+    assert.match(view.dialog.children.find(child=>child.className==='tbp-example-confirm-note').textContent,/素材文件会保留/);
+    view.dialog.children.at(-1).children.at(-1).onclick();
+    assert.equal(confirmed,3);assert.equal(deleteFile,false);
+    view=open({allowDeleteFile:true});
+    view.dialog.children.find(child=>child.tag==='label').children[0].checked=true;
+    document.activeElement.onclick();
+    assert.equal(confirmed,3);
 });
 
 test('manual checks split into bounded batches and report progress without a scheduled worker',async()=>{

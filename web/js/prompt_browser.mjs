@@ -1,6 +1,6 @@
 import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_sizes.mjs";
 import {createTagField} from "./tag_picker.mjs";
-import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs";
+import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261109-example-delete";
 
 const CATEGORY_LABELS = {
     nsfw: "NSFW", extreme: "重口味", horror: "恐怖", gore: "血腥", minor: "未成年",

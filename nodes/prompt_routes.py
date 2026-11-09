@@ -66,7 +66,8 @@ def register_routes():
         return await respond(examples.list_examples, dict(request.query), request.match_info.get("id"))
 
     async def example_write(request):
-        if request.method == "DELETE" and "id" in request.match_info:
+        removing = request.method == "DELETE" and "id" in request.match_info
+        if removing and not request.can_read_body:
             return await respond(examples.remove, request.match_info["id"])
         if request.content_type != "application/json":
             return web.json_response({"error":"请使用 application/json"}, status=415)
@@ -75,6 +76,8 @@ def register_routes():
             raw.extend(chunk)
             if len(raw)>1_100_000:
                 return web.json_response({"error":"示例请求过大"}, status=413)
+        if removing:
+            return await respond(lambda: examples.remove(request.match_info["id"], json.loads(raw)))
         operation = examples.register if request.path.endswith("/register") else examples.cleanup if request.method == "DELETE" else examples.check
         return await respond(lambda: operation(json.loads(raw)))
 

@@ -134,7 +134,7 @@ flowchart LR
     R -->|metadata| M
 ```
 
-reader 的 metadata 同样可连接保存／登记节点。metadata 已含 ID 与 SHA-1，不需要手填 ID 或推测保存文件名。`tb-prompt-save-image` 未连接 metadata 时正常保存图像并返回文件列表，不校验提示词来源、不建立关联；连接后才校验来源并登记。图像批次逐个登记；VHS 仅取最后的最终成品，不登记工作流 PNG、静音中间视频或未完成批次，不接受 temp 输出。VHS 文件夹序列模式请改用实际成品视频或图像保存节点。
+reader 的 metadata 同样可连接保存／登记节点。metadata 已含 ID 与 SHA-1，不需要手填 ID 或推测保存文件名。`tb-prompt-save-image` 未连接 metadata，或收到空字符串／纯空白值时，正常保存图像并返回文件列表，不校验提示词来源、不建立关联；收到非空 metadata 后才校验来源并登记。请连接 reader／random 的 metadata 输出，普通提示词正文不是有效的 metadata。图像批次逐个登记；VHS 仅取最后的最终成品，不登记工作流 PNG、静音中间视频或未完成批次，不接受 temp 输出。VHS 文件夹序列模式请改用实际成品视频或图像保存节点。
 
 filename_prefix 沿用标准相对路径语法。默认图像为 `images/unspecified/prompt_examples/ComfyUI`，视频为 `videos/unspecified/prompt_examples/ComfyUI`；请将 `unspecified` 改为实际主要生成模型标识，也可连接已有输出前缀。标准保存节点的工作流／提示词元数据继续保留。保存前校验来源与前缀，实际保存成功后才登记；若数据库登记失败，保留已保存文件，并在节点提示“保存成功，关联失败”。可点击“重新登记”，或将 files JSON 接入登记节点，不必重新生成或编码。
 

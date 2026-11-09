@@ -6,8 +6,11 @@ from . import prompt_examples as examples
 
 
 def safe_prefix(prefix):
+    if isinstance(prefix, str):
+        prefix = prefix.strip()
     if not isinstance(prefix, str) or not prefix.strip() or Path(prefix).is_absolute() or ".." in Path(prefix).parts or "\\" in prefix or "\0" in prefix:
         raise ValueError("filename_prefix 必须为 output 内的相对前缀")
+    return prefix
 
 
 def ui_paths(ui):
@@ -76,15 +79,16 @@ class ToolBoxPromptSaveImage:
     CATEGORY = "eazy-toolbox/prompt"
 
     def save(self, images, prompt_metadata=None, filename_prefix="images/unspecified/prompt_examples/ComfyUI", prompt=None, extra_pnginfo=None):
-        if prompt_metadata is not None:
+        has_metadata = prompt_metadata is not None and not (isinstance(prompt_metadata, str) and not prompt_metadata.strip())
+        if has_metadata:
             examples.validate_source(prompt_metadata)
-        safe_prefix(filename_prefix)
+        filename_prefix = safe_prefix(filename_prefix)
         result = image_saver().save_images(images, filename_prefix, prompt, extra_pnginfo)
         paths = ui_paths(result["ui"])
-        if prompt_metadata is not None:
+        if has_metadata:
             report = finish(prompt_metadata, paths)
         else:
-            report = {"paths": paths, "registration": "skipped", "message": f"已保存 {len(paths)} 个文件，未连接 metadata，未建立关联"}
+            report = {"paths": paths, "registration": "skipped", "message": f"已保存 {len(paths)} 个文件，未提供 metadata，未建立关联"}
         return {"ui": {**result["ui"], "toolbox_prompt_media": [report]}, "result": (images, json.dumps(report, ensure_ascii=False))}
 
 
@@ -163,7 +167,7 @@ else:
         @classmethod
         def execute(cls, video, prompt_metadata, filename_prefix, format, codec=None):
             examples.validate_source(prompt_metadata)
-            safe_prefix(filename_prefix)
+            filename_prefix = safe_prefix(filename_prefix)
             result = super().execute(video, filename_prefix, format, codec)
             native_ui = result.ui.as_dict() if hasattr(result.ui, "as_dict") else result.ui
             report = finish(prompt_metadata, ui_paths(native_ui))

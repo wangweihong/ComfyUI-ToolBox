@@ -12,7 +12,7 @@ export const EXAMPLES_EVENT='toolbox-prompt-examples-changed';
 function changed(ids){window.dispatchEvent(new CustomEvent(EXAMPLES_EVENT,{detail:{prompt_ids:ids}}));}
 
 let confirmationId=0;
-export function openExampleConfirmation({text,details='',title='确认移除示例关联',confirmLabel='确认移除关联',onConfirm,onClose=()=>{}}){
+export function openExampleConfirmation({text,details='',title='确认移除示例关联',confirmLabel='确认移除关联',allowDeleteFile=false,onConfirm,onClose=()=>{}}){
     const dialog=el('dialog',undefined,'tb-prompts tbp-example-confirm');
     const id=`tbp-example-confirm-${++confirmationId}`;
     const heading=el('h3',title);heading.id=`${id}-title`;
@@ -20,13 +20,23 @@ export function openExampleConfirmation({text,details='',title='确认移除示�
     dialog.setAttribute('aria-labelledby',heading.id);dialog.setAttribute('aria-describedby',description.id);
     dialog.append(heading,description);
     if(details)dialog.append(el('p',details,'tbp-example-confirm-path'));
-    dialog.append(el('p','仅移除数据库中的示例关联，素材文件会保留。','tbp-example-confirm-note'));
+    const note=el('p','仅移除数据库中的示例关联，素材文件会保留。','tbp-example-confirm-note');
+    const deleteFile=el('input');deleteFile.type='checkbox';deleteFile.checked=false;
+    const confirm=button(confirmLabel,()=>{if(closed)return;const removeFile=allowDeleteFile&&deleteFile.checked;close();onConfirm(removeFile);},'tbp-danger');
+    if(allowDeleteFile){
+        const choice=el('label',undefined,'tbp-example-delete-file');choice.append(deleteFile,el('span','同步移除示例素材'));dialog.append(choice);
+        deleteFile.onchange=()=>{
+            note.textContent=deleteFile.checked?'将同时删除原始素材文件，无法撤销；其他关联也将无法访问该文件。':'仅移除数据库中的示例关联，素材文件会保留。';
+            confirm.textContent=deleteFile.checked?'确认移除关联并删除素材':confirmLabel;
+        };
+    }
+    dialog.append(note);
     let closed=false;
     const opener=document.activeElement;
     const close=()=>{if(closed)return;closed=true;dialog.close();dialog.remove();if(opener?.isConnected)opener.focus({preventScroll:true});onClose();};
     const actions=el('div',undefined,'tbp-actions');
     const cancel=button('取消操作',close);cancel.autofocus=true;
-    actions.append(cancel,button(confirmLabel,()=>{if(closed)return;close();onConfirm();},'tbp-danger'));
+    actions.append(cancel,confirm);
     dialog.append(actions);
     dialog.addEventListener('cancel',event=>{event.preventDefault();close();});
     dialog.addEventListener('close',close);
@@ -105,16 +115,16 @@ export function createExamplesPanel({parent,record=null,initialShasum=null,reque
                     const open=el('a','打开原文件');open.href=item.url;open.target='_blank';open.rel='noopener';
                     const download=el('a','下载原文件');download.href=item.url;download.download=item.relative_path.split('/').pop();links.append(open,download);
                 }
-                links.append(button('检查此路径',()=>run([item.id],'check')),button('移除关联',()=>confirmAction(`移除示例 #${item.id} 的关联？素材文件将保留。`,()=>action(async()=>{
-                    await json(request,`/toolbox/prompt-examples/${item.id}`,{method:'DELETE',signal:lifetime.signal});selected.delete(item.id);await refreshChanged([item.prompt_id]);
-                }),{details:item.relative_path})));card.append(links);cards.append(card);
+                links.append(button('检查此路径',()=>run([item.id],'check')),button('移除关联',()=>confirmAction(`移除示例 #${item.id} 的关联？`,deleteFile=>action(async()=>{
+                    await json(request,`/toolbox/prompt-examples/${item.id}`,{method:'DELETE',...body({delete_file:deleteFile}),signal:lifetime.signal});selected.delete(item.id);await refreshChanged([item.prompt_id]);
+                }),{details:item.relative_path,allowDeleteFile:true})));card.append(links);cards.append(card);
             }
         }catch(error){if(!closed&&error.name!=='AbortError'&&loadController===controller)message.textContent=error.message;}
     }
     function confirmAction(text,callback,options={}){
         if(closed||busy)return;
         confirmation?.close();
-        confirmation=openExampleConfirmation({text,...options,onConfirm:()=>{if(!closed)callback();},onClose:()=>{confirmation=null;}});
+        confirmation=openExampleConfirmation({text,...options,onConfirm:deleteFile=>{if(!closed)callback(deleteFile);},onClose:()=>{confirmation=null;}});
     }
     async function collectAndRun(mode){
         if(busy)return;stopping=false;
