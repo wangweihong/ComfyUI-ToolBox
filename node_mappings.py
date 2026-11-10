@@ -22,6 +22,8 @@ from .nodes.flux2_klein import NODE_CLASS_MAPPINGS as flux2_klein_nodes_mapping
 from .nodes.flux2_klein import NODE_DISPLAY_NAME_MAPPINGS as flux2_klein_display_mapping
 from .nodes.flashvsr import NODE_CLASS_MAPPINGS as flashvsr_nodes_mapping
 from .nodes.flashvsr import NODE_DISPLAY_NAME_MAPPINGS as flashvsr_display_mapping
+from .nodes.expression_mask import NODE_CLASS_MAPPINGS as expression_mask_nodes_mapping
+from .nodes.expression_mask import NODE_DISPLAY_NAME_MAPPINGS as expression_mask_display_mapping
 
 
 from .nodes.media_library import NODE_CLASS_MAPPINGS as media_library_mapping, NODE_DISPLAY_NAME_MAPPINGS as media_library_display
@@ -48,6 +50,7 @@ NODE_CLASS_MAPPINGS = {
     **degrid_nodes_mapping,
     **flux2_klein_nodes_mapping,
     **flashvsr_nodes_mapping,
+    **expression_mask_nodes_mapping,
 }
 
 # 这里定义节点在 UI 菜单中显示的友好名称
@@ -61,6 +64,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **degrid_display_mapping,
     **flux2_klein_display_mapping,
     **flashvsr_display_mapping,
+    **expression_mask_display_mapping,
     # latent size
     "ToolBoxLatentSize": "tb-latent-size",
     # video compare
