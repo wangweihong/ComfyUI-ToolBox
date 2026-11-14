@@ -34,6 +34,7 @@ let renderedScope='',statusEpoch=0,locationEpoch=0,lastLocation='';
 let listEpoch=0, detailEpoch=0, toastTimer=0, statusTimer=0, previewTimer=0;
 let plan:Plan|null=null, operationIds:string[]=[], operation='',moveDestination='';
 let operationEpoch=0,moveEpoch=0;
+let folderActionEpoch=0,folderActionPath='',folderAction:'create'|'delete'='create',folderDeleteToken='';
 let stopPreview=()=>{};
 let detailBusy=false,neighbors:Neighbors|null=null,neighborTotal=0,neighborEpoch=0,renamingPath='',folderRenameEpoch=0;
 function toast(text:string) { $('toast').textContent=text; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=window.setTimeout(()=>$('toast').hidden=true,5000); }
@@ -73,7 +74,7 @@ function renderRoots() {
     const children=el('div','root-children'); children.hidden=true;
     const toggle=action('›',async()=>{children.hidden=!children.hidden;toggle.textContent=children.hidden?'›':'⌄';if(!children.hidden) await fillFolders(children,root.path,root.id);});
     const name=folderButton(root.name,()=>chooseFolder(root.id,'')); name.title=root.path;
-    row.append(toggle,name);appendFolderRename(row,root.path);holder.append(row,children);$('roots').append(holder);
+    row.append(toggle,name);appendFolderRename(row,root.path);bindFolderMenu(row,root.path);holder.append(row,children);$('roots').append(holder);
   }
 }
 async function fillFolders(container:HTMLElement,path:string,rootId:string) {
@@ -83,7 +84,7 @@ async function fillFolders(container:HTMLElement,path:string,rootId:string) {
     const holder=el('div'),row=el('div','root-row'),nested=el('div','root-children');row.dataset.path=folder.path;nested.hidden=true;
     const toggle=action('›',async()=>{nested.hidden=!nested.hidden;toggle.textContent=nested.hidden?'›':'⌄';if(!nested.hidden)await fillFolders(nested,folder.path,rootId);});
     const name=folderButton(folder.name,()=>chooseFolder(rootId,folder.path));name.title=folder.path;
-    row.append(toggle,name);appendFolderRename(row,folder.path);holder.append(row,nested);container.append(holder);
+    row.append(toggle,name);appendFolderRename(row,folder.path);bindFolderMenu(row,folder.path);holder.append(row,nested);container.append(holder);
   }
   if(!data.folders.length)container.append(el('div','muted','没有子目录'));
 }
@@ -91,7 +92,7 @@ function currentPath(){return state.folder||state.roots.find(r=>r.id===state.roo
 function renderRecentFolders(){
   const list=$('recent-folders');list.replaceChildren();$('recent-count').textContent=String(folderVisits.length);
   for(const visit of folderVisits.slice(0,6)){
-    const button=folderButton(visit.name,()=>chooseFolder(visit.root_id,visit.path));button.classList.add('recent-folder');button.title=visit.path+(visit.error?'\n'+visit.error:'');button.disabled=!visit.available;list.append(button);
+    const button=folderButton(visit.name,()=>chooseFolder(visit.root_id,visit.path));button.classList.add('recent-folder');button.title=visit.path+(visit.error?'\n'+visit.error:'');button.disabled=!visit.available;if(visit.available)bindFolderMenu(button,visit.path);list.append(button);
   }
 }
 async function loadFolderVisits(){folderVisits=(await api<{items:FolderVisit[]}>('/folder-visits')).items;renderRecentFolders();}
@@ -185,6 +186,7 @@ function updateHeading() {
   $('multi-select').hidden=homeView||state.recent;
   $('parent').hidden=!state.root||state.recent;
   $('rename-folder').hidden=!state.root||state.recent||!canRenameFolder(currentPath());
+  $('new-folder').hidden=!state.root||state.recent;
   $<HTMLInputElement>('recursive').disabled=!state.root||state.recent;
   $<HTMLInputElement>('search').disabled=homeView||state.recent;
   $<HTMLButtonElement>('scan').disabled=homeView||state.recent;
@@ -221,7 +223,7 @@ async function loadFiles(append=false) {
   } catch(e) {if(epoch===listEpoch){$('grid').replaceChildren(el('div','empty-grid',(e as Error).message));toast((e as Error).message);}return false;}
 }
 function directoryCard(folder:Folder,rootId:string){
-  const card=el('div','directory-card');card.title=folder.path;card.dataset.path=folder.path;
+  const card=el('div','directory-card');card.title=folder.path;card.dataset.path=folder.path;bindFolderMenu(card,folder.path);
   const open=action('',()=>chooseFolder(rootId,folder.path),'directory-open');open.setAttribute('aria-label','进入目录 '+folder.name);
   const label=el('div','folder-label');label.append(el('strong','',folder.name),el('span','muted','点击进入目录'));open.append(folderIcon(),label);card.append(open);appendFolderRename(card,folder.path);return card;
 }
@@ -265,11 +267,30 @@ function updateSelection(){
   for(const card of $('grid').querySelectorAll<HTMLElement>('.card')){const selected=state.selected.has(card.dataset.id||'');card.classList.toggle('is-checked',selected);const checkbox=card.querySelector<HTMLInputElement>('input[type="checkbox"]');if(checkbox)checkbox.checked=selected;}
 }
 function closeAssetMenu(){$('asset-context-menu').hidden=true;}
+function showContextMenu(x:number,y:number,label:string){
+  const menu=$('asset-context-menu');menu.setAttribute('aria-label',label);menu.hidden=false;
+  const rect=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(x,window.innerWidth-rect.width-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-rect.height-8))+'px';menu.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+}
+function menuAction(label:string,handler:()=>void|Promise<void>,danger=false){
+  const button=action(label,()=>{closeAssetMenu();return handler();},danger?'context-delete':'');button.setAttribute('role','menuitem');return button;
+}
 function openAssetMenu(item:Item,x:number,y:number){
   if(!state.selected.has(item.id)){clearSelection();state.selected.add(item.id);updateSelection();}
   const ids=[...state.selected],menu=$('asset-context-menu');menu.replaceChildren(el('div','context-selection',`已选择 ${ids.length} 项素材`));
-  const remove=action(ids.length>1?`删除所选 ${ids.length} 项`:'删除',()=>{closeAssetMenu();return openOperation('delete',ids);},'context-delete');remove.setAttribute('role','menuitem');menu.append(remove);
-  menu.hidden=false;const rect=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(x,window.innerWidth-rect.width-8))+'px';menu.style.top=Math.max(8,Math.min(y,window.innerHeight-rect.height-8))+'px';remove.focus();
+  for(const [op,label] of [['rename','重命名'],['move','移动'],['delete','删除']])menu.append(menuAction(ids.length>1?`${label}所选 ${ids.length} 项`:label,()=>openOperation(op,ids),op==='delete'));
+  showContextMenu(x,y,'素材操作');
+}
+function bindFolderMenu(node:HTMLElement,path:string){
+  const open=(x:number,y:number)=>{
+    if(node.classList.contains('unavailable'))return;
+    const menu=$('asset-context-menu');menu.replaceChildren(el('div','context-selection',fileName(path)));
+    menu.append(menuAction('新建目录',()=>openFolderAction('create',path)));
+    if(canRenameFolder(path))menu.append(menuAction('重命名目录',()=>openFolderRename(path)));
+    const remove=menuAction('删除空目录',()=>openFolderAction('delete',path),true);remove.disabled=state.roots.some(root=>isWithin(root.path,path));
+    if(remove.disabled)remove.title='已配置的素材根目录不能删除';menu.append(remove);showContextMenu(x,y,'目录操作');
+  };
+  node.oncontextmenu=event=>{event.preventDefault();event.stopPropagation();open(event.clientX,event.clientY);};
+  node.addEventListener('keydown',event=>{if(event.key==='ContextMenu'||event.shiftKey&&event.key==='F10'){event.preventDefault();event.stopPropagation();const rect=node.getBoundingClientRect();open(rect.left+20,rect.top+30);}});
 }
 function releaseMedia() {stopPreview();stopPreview=()=>{};clearTimeout(previewTimer);for(const media of $('detail').querySelectorAll('video,audio')){const m=media as HTMLMediaElement;m.pause();m.removeAttribute('src');m.load();}}
 function updateDetailNavigation(){
@@ -454,6 +475,40 @@ function openAllInfo(item:Detail){
   $('json-collapse').onclick=()=>{for(const branch of $('json-tree').querySelectorAll<HTMLDetailsElement>('details'))branch.open=false;};
   $<HTMLDialogElement>('json-dialog').showModal();
 }
+async function refreshFolderTree(){
+  renderRoots();await loadFolderVisits();await loadFiles();
+  const root=state.roots.find(root=>root.id===state.root);if(root)await revealFolder(root,currentPath());
+  window.parent.postMessage({type:'tb-media-library-changed'},location.origin);
+}
+async function openFolderAction(kind:'create'|'delete',path:string){
+  const epoch=++folderActionEpoch;folderAction=kind;folderActionPath=path;folderDeleteToken='';
+  $('folder-action-title').textContent=kind==='create'?'新建目录':'删除空目录';
+  $('folder-action-path').textContent=path;
+  $('folder-action-description').textContent=kind==='create'?'在此目录下新建子目录，已有同名文件或目录时不会覆盖。':'只允许删除空目录。包含文件、隐藏文件或子目录时，均无法删除。';
+  $('folder-create-fields').hidden=kind!=='create';$<HTMLInputElement>('new-folder-name').required=kind==='create';$<HTMLInputElement>('new-folder-name').value='';
+  $('folder-action-error').textContent='';const submit=$<HTMLButtonElement>('folder-action-submit');submit.textContent=kind==='create'?'创建目录':'确认删除空目录';submit.classList.toggle('danger',kind==='delete');submit.disabled=kind==='delete';
+  $<HTMLDialogElement>('folder-action-dialog').showModal();
+  if(kind==='create'){$<HTMLInputElement>('new-folder-name').focus();return;}
+  try{const result=await api<{token:string}>('/folders/delete/plan',{path});if(epoch===folderActionEpoch){folderDeleteToken=result.token;submit.disabled=false;}}
+  catch(error){if(epoch===folderActionEpoch)$('folder-action-error').textContent=(error as Error).message;}
+}
+async function applyFolderAction(event:SubmitEvent){
+  event.preventDefault();const epoch=folderActionEpoch,kind=folderAction,path=folderActionPath,token=folderDeleteToken;
+  if(kind==='delete'&&!token)return;
+  const submit=$<HTMLButtonElement>('folder-action-submit');submit.disabled=true;$('folder-action-error').textContent='';
+  try{
+    if(kind==='create')await api('/folders/create',{path,name:$<HTMLInputElement>('new-folder-name').value.trim()});
+    else{
+      await api('/folders/delete/apply',{token,confirmed:true});
+      if(isWithin(currentPath(),path)){const parent=parentPath(path);state.folder=parent===state.roots.find(root=>root.id===state.root)?.path?'':parent;state.focusId='';state.offset=0;clearSelection();}
+      if(state.current&&isWithin(state.current.path,path))closeDetail();
+    }
+    ++listEpoch;++locationEpoch;lastLocation='';renderedScope='';
+    if(epoch===folderActionEpoch)$<HTMLDialogElement>('folder-action-dialog').close();
+    await refreshFolderTree();toast(kind==='create'?'目录已创建':'空目录已删除');
+  }catch(error){if(epoch===folderActionEpoch){$('folder-action-error').textContent=(error as Error).message;if(kind==='delete')folderDeleteToken='';}else toast((error as Error).message);}
+  finally{if(epoch===folderActionEpoch)submit.disabled=kind==='delete'&&!folderDeleteToken;}
+}
 function isWithin(path:string,parent:string){const value=path.replaceAll('\\','/'),base=parent.replaceAll('\\','/').replace(/\/+$/,'');return value===base||value.startsWith(base+'/');}
 function canRenameFolder(path:string){return !!path&&!state.roots.some(root=>root.builtin&&isWithin(root.path,path));}
 function appendFolderRename(container:HTMLElement,path:string){
@@ -595,6 +650,9 @@ async function main(){
   $('upload-files').onchange=()=>void uploadFiles(Array.from($<HTMLInputElement>('upload-files').files||[]));
   $('settings').onclick=showSettings;$('add-root').onclick=showSettings;
   $('rename-folder').onclick=()=>openFolderRename(currentPath());
+  $('new-folder').onclick=()=>void openFolderAction('create',currentPath());
+  $<HTMLFormElement>('folder-action-form').onsubmit=event=>void applyFolderAction(event);
+  $('folder-action-dialog').addEventListener('close',()=>{++folderActionEpoch;folderDeleteToken='';});
   $<HTMLFormElement>('folder-rename-form').onsubmit=event=>void renameFolder(event);
   $('folder-rename-dialog').addEventListener('close',()=>{++folderRenameEpoch;});
   $('scan').onclick=async()=>{try{await api('/scan',{path:currentPath(),recursive:state.recursive});toast(state.recursive?'已开始刷新当前目录及子目录':'已开始刷新当前层目录');clearTimeout(statusTimer);void pollStatus();}catch(e){toast((e as Error).message);}};
@@ -606,6 +664,15 @@ async function main(){
   $('multi-select').onclick=()=>{state.selectionMode=!state.selectionMode;updateSelection();};
   document.addEventListener('pointerdown',e=>{if(!$('asset-context-menu').contains(e.target as Node))closeAssetMenu();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAssetMenu();});
+  $('asset-context-menu').addEventListener('keydown',event=>{
+    if(!['ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();
+    const buttons=Array.from($('asset-context-menu').querySelectorAll<HTMLButtonElement>('button:not(:disabled)')),index=buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length;buttons[next]?.focus();
+  });
+  $('grid').oncontextmenu=event=>{
+    if(!state.root||state.recent||(event.target as Element).closest('.card,.directory-card'))return;
+    event.preventDefault();const path=currentPath();$('asset-context-menu').replaceChildren(menuAction('新建目录',()=>openFolderAction('create',path)));showContextMenu(event.clientX,event.clientY,'目录操作');
+  };
   document.addEventListener('scroll',closeAssetMenu,true);window.addEventListener('resize',closeAssetMenu);
   $('select-page').onchange=()=>{state.selectionMode=true;if($<HTMLInputElement>('select-page').checked)state.items.forEach(i=>state.selected.add(i.id));else state.items.forEach(i=>state.selected.delete(i.id));updateSelection();};
   $('clear-selection').onclick=()=>{clearSelection();updateSelection();};

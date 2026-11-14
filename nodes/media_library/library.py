@@ -90,7 +90,7 @@ class Library:
         if self.is_internal_path(p):
             raise LibraryError('素材目录不能是插件数据库或预览缓存')
         try:
-            with self.transaction() as db:
+            with self.operations_lock, self.transaction() as db:
                 db.execute('INSERT INTO media_roots VALUES(?,?,?,0)', (uuid.uuid4().hex, str(p), name.strip() or p.name))
         except sqlite3.IntegrityError: raise LibraryError('该目录已经添加')
         self.revision += 1
@@ -293,6 +293,68 @@ class Library:
         p, _ = self.check_path(path)
         if not p.is_dir(): raise LibraryError('不是目录')
         return [{'name': child.name, 'path': str(child)} for child in sorted(p.iterdir(), key=lambda x: x.name.casefold()) if not child.name.startswith('.') and child.is_dir() and not child.is_symlink() and not self.is_internal_path(child)]
+
+    def create_folder(self, path, name):
+        if not isinstance(name, str): raise LibraryError('请输入目录名称')
+        self.valid_name(name)
+        with self.operations_lock:
+            parent, _ = self.check_path(path)
+            if not parent.is_dir(): raise LibraryError('请选择父目录')
+            target, root = self.check_path(parent / name, must_exist=False)
+            try: target.mkdir()
+            except FileExistsError: raise LibraryError('目标目录或文件已经存在')
+            self.revision += 1
+            return {'path': str(target), 'name': name, 'root_id': root['id']}
+
+    def deletable_folder(self, path):
+        source, _ = self.check_path(path)
+        if not source.is_dir(): raise LibraryError('请选择目录')
+        if any(Path(root['path']).is_relative_to(source) for root in self.roots()):
+            raise LibraryError('不能删除已配置的素材根目录或包含根目录的位置；自定义根目录请先从目录设置中移除')
+        if self.db_path.is_relative_to(source) or self.cache.is_relative_to(source):
+            raise LibraryError('不能删除包含插件数据库或预览缓存的目录')
+        return source
+
+    def empty_folder(self, path):
+        source = self.deletable_folder(path)
+        if next(source.iterdir(), None) is not None:
+            raise LibraryError('只能删除空目录；目录中仍有文件、隐藏文件或子目录')
+        return source
+
+    def plan_folder_delete(self, path):
+        with self.operations_lock:
+            source = self.empty_folder(path)
+            token = uuid.uuid4().hex
+            self.plans = {k: v for k, v in self.plans.items() if time.time() - v['created_at'] < 600}
+            self.plans[token] = {'op': 'delete-folder', 'path': str(source),
+                                 'fingerprint': self.fingerprint(source), 'created_at': time.time()}
+            return {'token': token, 'path': str(source)}
+
+    def delete_folder(self, token, confirmed=False):
+        if confirmed is not True: raise LibraryError('必须确认目录后才能删除')
+        with self.operations_lock:
+            plan = self.plans.pop(token, None)
+            if not plan or plan['op'] != 'delete-folder' or time.time() - plan['created_at'] >= 600:
+                raise LibraryError('操作确认已过期，请重新打开删除窗口')
+            source = self.empty_folder(plan['path'])
+            if self.fingerprint(source) != plan['fingerprint']:
+                raise LibraryError('目录已发生变化，请重新打开删除窗口')
+            try:
+                # rmdir atomically refuses nonempty directories, including new arrivals
+                # after the final check. Never unlink files or recurse here.
+                source.rmdir()
+            except OSError as exc:
+                if exc.errno in (errno.ENOTEMPTY, errno.EEXIST):
+                    raise LibraryError('只能删除空目录；目录内容已发生变化') from exc
+                raise
+            prefix = str(source) + os.sep
+            with self.transaction() as db:
+                db.execute('UPDATE media_files SET missing=1 WHERE substr(path,1,?)=?', (len(prefix), prefix))
+                db.execute('DELETE FROM media_recents WHERE file_id IN (SELECT id FROM media_files WHERE missing=1 AND substr(path,1,?)=?)', (len(prefix), prefix))
+                db.execute('DELETE FROM media_folder_visits WHERE path=? OR substr(path,1,?)=?', (str(source), len(prefix), prefix))
+            self.plans.clear()
+            self.revision += 1
+            return {'path': str(source)}
 
     @staticmethod
     def rename_directory_no_replace(source, target):
@@ -546,7 +608,7 @@ class Library:
         if confirmed is not True: raise LibraryError('必须确认预览清单后才能执行')
         with self.operations_lock:
             plan = self.plans.pop(token, None)
-            if not plan or time.time() - plan['created_at'] >= 600: raise LibraryError('操作确认已过期，请重新打开操作窗口')
+            if not plan or plan['op'] not in ('rename', 'move', 'delete') or time.time() - plan['created_at'] >= 600: raise LibraryError('操作确认已过期，请重新打开操作窗口')
             results = []
             for entry in plan['entries']:
                 if entry.get('error'):

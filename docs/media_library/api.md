@@ -10,6 +10,9 @@
 | `DELETE /roots/{id}` | 移除自定义目录，保留原文件；JSON 请求体 `{}` |
 | `GET /files` | 分页文件列表；参数 root_id、folder、q、kind、sort、direction、offset、limit、focus_id |
 | `GET /folders?path=…` | 当前层可浏览的非隐藏子目录 |
+| `POST /folders/create` | `{path,name}` 在指定父目录下创建子目录，不覆盖同名文件或目录 |
+| `POST /folders/delete/plan` | `{path}` 校验目录为空且可删除，返回 token、path；不执行删除 |
+| `POST /folders/delete/apply` | `{token,confirmed:true}` 复查并删除空目录，返回 path；清理其失效索引和访问历史 |
 | `POST /folders/rename` | `{path,name}` 重命名目录，返回 path、previous_path、roots 和 updated_files；更新已索引子素材和嵌套自定义目录的路径 |
 | `GET /folder-visits` | 最近访问的 20 个目录，含 path、root_id、visited_at、available 和失效原因 |
 | `POST /folder-visits` | `{path,root_id?}` 记录成功访问的目录，去重置顶 |
@@ -40,6 +43,8 @@
 `/files` 同时返回 `focus: {position,previous_id,next_id}`，位置从 0 开始，前后 ID 遵循同一目录、筛选、排序与最近使用范围，支持跨页。首项的 previous_id、末项的 next_id 为 null；未提供或找不到 focus_id 时 focus 为 null。详情切换使用 `limit=1` 获取相邻 ID，无需加载全部文件。
 
 目录重命名拒绝覆盖已有目标、越界路径和符号链接；ComfyUI 默认 input/output/temp 目录及包含默认目录、共享数据库或预览缓存的位置不能改名。自定义根目录可在其父目录内改名。数据库更新失败时回滚目录名称；素材 ID 与最近使用关联保持不变，之前的文件操作快照失效。
+
+目录创建和删除限于已配置的素材目录。删除只接受空目录，隐藏文件、符号链接和子目录也计为内容；已配置的根目录及包含根目录、共享数据库或预览缓存的位置禁止删除。删除令牌一次有效，10 分钟过期；确认时再次检查目录身份与内容，并仅使用系统空目录删除操作，不递归删除。自定义根目录的“移除”仍仅取消配置，保留磁盘目录。
 
 上传直接调用 ComfyUI 自带的 `POST /upload/image`，不属于 `/toolbox/media-library/` 路由。请求为 multipart 表单：`image` 为文件、`type=input`、`subfolder` 为 input 下的相对目录，不设置 overwrite。遵循响应中的实际 `name` / `subfolder` / `type` 解析路径，再通过 `/detail?path=…` 加入索引。上传本身不产生最近使用记录，也不自动选择素材。
 

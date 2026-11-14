@@ -106,6 +106,26 @@ async def test_directory_rename_updates_detail_path_and_checks_origin(client,lib
     assert (await response.json())['folders']==[{'name':'after','path':str(root/'after')}]
 
 
+async def test_create_and_delete_empty_directory_routes(client, lib):
+    root = lib.roots()[0]['path']
+    response = await client.post('/toolbox/media-library/folders/create', json={'path': root, 'name': 'new'}, headers={'Origin': 'https://evil.example'})
+    assert response.status == 400 and not (Path(root) / 'new').exists()
+    response = await client.post('/toolbox/media-library/folders/create', json={'path': root, 'name': 'new'})
+    assert response.status == 200
+    path = (await response.json())['path']
+    response = await client.post('/toolbox/media-library/folders/delete/plan', json={'path': path})
+    assert response.status == 200
+    token = (await response.json())['token']
+    response = await client.post('/toolbox/media-library/folders/delete/apply', json={'token': token})
+    assert response.status == 400 and Path(path).exists()
+    response = await client.post('/toolbox/media-library/folders/delete/apply', json={'token': token, 'confirmed': True}, headers={'Origin': 'https://evil.example'})
+    assert response.status == 400 and Path(path).exists()
+    response = await client.post('/toolbox/media-library/folders/delete/apply', json={'token': token, 'confirmed': True})
+    assert response.status == 200 and not Path(path).exists()
+    response = await client.post('/toolbox/media-library/folders/delete/plan', json={'path': root})
+    assert response.status == 400
+
+
 async def test_file_list_exposes_neighbors_in_the_same_query(client,lib):
     root=Path(lib.roots()[0]['path']);ids=[]
     for name in ['first.txt','second.txt','third.zip']:

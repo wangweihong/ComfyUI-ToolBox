@@ -184,6 +184,25 @@ def register_routes(routes, get_library, on_change=lambda: None, *, regeneration
     async def regeneration_status(request):
         return web.json_response(await regeneration.status(request.match_info['id']))
 
+    @endpoint('POST', '/folders/create')
+    async def create_folder(request):
+        data = await body(request)
+        result = await work(get_library().create_folder, data.get('path', ''), data.get('name', ''))
+        on_change()
+        return web.json_response(result)
+
+    @endpoint('POST', '/folders/delete/plan')
+    async def plan_folder_delete(request):
+        data = await body(request)
+        return web.json_response(await work(get_library().plan_folder_delete, data.get('path', '')))
+
+    @endpoint('POST', '/folders/delete/apply')
+    async def delete_folder(request):
+        data = await body(request)
+        result = await work(get_library().delete_folder, data.get('token', ''), data.get('confirmed', False))
+        on_change()
+        return web.json_response(result)
+
     @endpoint('POST', '/folders/rename')
     async def rename_folder(request):
         data = await body(request)
