@@ -1,4 +1,24 @@
 {
+  "ToolBoxLatentSizeAuto": {
+    "display_name": "tb-latent-size-auto",
+    "description": "Detect the image aspect ratio, find the nearest preset and calculate scaled dimensions. Preserves the exact source ratio by default.",
+    "inputs": {
+      "source_width": { "name": "source width" },
+      "source_height": { "name": "source height" },
+      "image": { "name": "reference image" },
+      "ratio": { "name": "aspect ratio" },
+      "size_mode": { "name": "size mode" },
+      "scale_by": { "name": "width / height multiplier" },
+      "long_edge": { "name": "target long edge (px)" },
+      "alignment": { "name": "pixel alignment" }
+    },
+    "outputs": {
+      "0": { "name": "width" },
+      "1": { "name": "height" },
+      "2": { "name": "nearest preset ratio" },
+      "3": { "name": "size information" }
+    }
+  },
   "ToolBoxVAEDeGrid": {
     "display_name": "tb-vae-degrid",
     "description": "Remove the 2px grid from Qwen Image / Qwen Image 2.1 / Wan 2.1 VAE decodes. Connect before resize, sharpening, upscaling or restoration. Auto calibrates per image and preserves clean images. removed_grid is a preview only.",

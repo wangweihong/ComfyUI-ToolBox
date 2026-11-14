@@ -63,6 +63,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **flashvsr_display_mapping,
     # latent size
     "ToolBoxLatentSize": "tb-latent-size",
+    "ToolBoxLatentSizeAuto": "tb-latent-size-auto",
     # video compare
     "ParallelVideoComparison": "tb-video-comparison",
     # text

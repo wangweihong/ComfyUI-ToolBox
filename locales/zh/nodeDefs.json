@@ -1,4 +1,33 @@
 {
+  "ToolBoxLatentSize": {
+    "display_name": "tb-latent-size",
+    "inputs": {
+      "ratio": { "name": "宽高比" },
+      "resolution": { "name": "分辨率" },
+      "custom_width": { "name": "自定义宽度" },
+      "custom_height": { "name": "自定义高度" }
+    }
+  },
+  "ToolBoxLatentSizeAuto": {
+    "display_name": "tb-latent-size-auto",
+    "description": "自动识别图片宽高比、匹配最近预设并计算缩放尺寸。默认严格保持原图比例。",
+    "inputs": {
+      "source_width": { "name": "原始宽度" },
+      "source_height": { "name": "原始高度" },
+      "image": { "name": "参考图像" },
+      "ratio": { "name": "宽高比" },
+      "size_mode": { "name": "尺寸调整方式" },
+      "scale_by": { "name": "宽高缩放倍数" },
+      "long_edge": { "name": "目标长边（像素）" },
+      "alignment": { "name": "像素对齐" }
+    },
+    "outputs": {
+      "0": { "name": "宽度" },
+      "1": { "name": "高度" },
+      "2": { "name": "最近预设比例" },
+      "3": { "name": "尺寸说明" }
+    }
+  },
   "ToolBoxVAEDeGrid": {
     "display_name": "tb-VAE去网格",
     "description": "去除 Qwen Image / Qwen Image 2.1 / Wan 2.1 VAE 解码的 2px 网格。接在 VAE Decode 后、缩放、锐化、放大或修复前。自动模式逐图校准，干净图保留原始像素。removed_grid 仅供诊断预览。",
