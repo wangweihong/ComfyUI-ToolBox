@@ -76,3 +76,19 @@ test('structured metadata preserves the exact digits of large integer seeds',asy
   const copied=await page.evaluate(()=>JSON.parse((window as any).copiedMetadata));expect(copied.raw.prompt.seed.inputs.seed).toBe('18446744073709551615');
   expect(copied.raw.prompt.seed.inputs.text).toBe('{"subject":"person"}');
 });
+
+test('closing after confirmation does not cancel a submission still on the wire',async({page,request})=>{
+  const info=await(await request.get('/fixture/info')).json(),image=info.items.find((item:any)=>item.name==='海岸参考.png');
+  const before=new Set((await(await request.get('/toolbox/media-library/regenerations?source_id='+image.id)).json()).items.map((job:any)=>job.id));
+  let resume=()=>{},seen=()=>{};const resumed=new Promise<void>(resolve=>{resume=resolve;}),held=new Promise<void>(resolve=>{seen=resolve;});
+  await page.route('**/toolbox/media-library/regenerations/submit',async route=>{seen();await resumed;await route.continue();});
+  await page.goto('/toolbox/media-library/gallery');await page.locator('#roots .root-name').first().click();await page.locator(`.card[data-id="${image.id}"]`).click();await page.locator('#regenerate-image').click();
+  const dialog=page.locator('#regeneration-dialog');await expect(dialog.getByRole('button',{name:'确认排队生成'})).toBeVisible();
+  await dialog.getByRole('button',{name:'确认排队生成'}).click();await held;await dialog.getByRole('button',{name:'关闭重新生成'}).click();resume();
+  await expect.poll(async()=>(await(await request.get('/toolbox/media-library/regenerations?source_id='+image.id)).json()).items.filter((job:any)=>!before.has(job.id)).length).toBe(1);
+  const job=(await(await request.get('/toolbox/media-library/regenerations?source_id='+image.id)).json()).items.find((job:any)=>!before.has(job.id));
+  let complete:any;await expect.poll(async()=>{complete=await(await request.get('/toolbox/media-library/regenerations/'+job.id)).json();return complete.status;}).toBe('complete');
+  expect(complete.outputs).toHaveLength(2);
+  const cleanup=await(await request.post('/toolbox/media-library/operations/plan',{data:{op:'delete',ids:complete.outputs.map((output:any)=>output.id)}})).json();
+  await request.post('/toolbox/media-library/operations/apply',{data:{token:cleanup.token,confirmed:true}});
+});

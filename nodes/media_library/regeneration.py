@@ -18,6 +18,23 @@ SEED_FIELDS = {'seed', 'noise_seed', 'random_seed'}
 MAX_SAFE_INTEGER = 2**53 - 1
 
 
+def validation_error(error, node_errors, graph):
+    lines = []
+    for node_id, problem in (node_errors or {}).items():
+        node = graph.get(node_id, {})
+        title = node.get('_meta', {}).get('title', problem.get('class_type', node_id))
+        for issue in problem.get('errors', []):
+            extra = issue.get('extra_info', {})
+            if issue.get('type') == 'value_not_in_list':
+                message = f"找不到或不可用的 {extra.get('input_name', '输入')}：{extra.get('received_value', '')}"
+            else: message = issue.get('details') or issue.get('message') or '输入校验失败'
+            lines.append(f'{title}：{message}')
+    if not lines:
+        message = (error.get('details') or error.get('message')) if isinstance(error, dict) else str(error or '')
+        lines.append(message or '执行图校验未通过')
+    return 'ComfyUI 预检未通过：\n' + '\n'.join(lines)
+
+
 def decoded_object(value):
     for _ in range(3):
         if not isinstance(value, str): break
@@ -98,7 +115,8 @@ def randomize_seeds(graph, definitions):
         value = minimum + secrets.randbelow(count) * step
         if value == old: value = minimum + ((value - minimum) // step + 1) % count * step
         node['inputs'][field] = value
-        changes.append({'node_id': node_id, 'title': node.get('_meta', {}).get('title', node['class_type']), 'field': field, 'before': old, 'after': value})
+        changes.append({'node_id': node_id, 'title': node.get('_meta', {}).get('title', node['class_type']), 'field': field,
+                        'before': str(old) if abs(old) > MAX_SAFE_INTEGER else old, 'after': value})
     return changes
 
 
@@ -139,7 +157,7 @@ class ComfyRuntime:
         import execution
         result = await execution.validate_prompt(prompt_id, copy.deepcopy(graph), [target])
         if not result[0]:
-            raise LibraryError('ComfyUI 预检未通过：' + json.dumps({'error': result[1], 'nodes': result[3]}, ensure_ascii=False))
+            raise LibraryError(validation_error(result[1], result[3], graph))
 
     async def submit(self, payload):
         import aiohttp
@@ -151,7 +169,7 @@ class ComfyRuntime:
             async with session.post(endpoint, json=payload, headers={'Comfy-Usage-Source': 'comfyui-frontend'}) as response:
                 result = await response.json()
                 if response.status >= 500: raise asyncio.TimeoutError('ComfyUI 返回服务器错误，提交状态待确认')
-                if response.status != 200: raise LibraryError('ComfyUI 拒绝入队：' + json.dumps(result, ensure_ascii=False))
+                if response.status != 200: raise LibraryError(validation_error(result.get('error'), result.get('node_errors'), payload['prompt']))
                 if result.get('prompt_id') != payload['prompt_id']: raise asyncio.TimeoutError('未能确认提交的任务 ID')
 
     def status(self, prompt_id, output_node):
@@ -227,11 +245,17 @@ class Regenerator:
                    'extra_data': {'extra_pnginfo': {'tb_media_regeneration': provenance}}}
         async with self.lock:
             self.prepared = {key: value for key, value in self.prepared.items() if time.monotonic() - value['created'] < 600}
-            if len(self.prepared) >= 32: raise LibraryError('待确认任务过多，请稍后重试')
+            if sum(not plan['submitted'] for plan in self.prepared.values()) >= 32: raise LibraryError('待确认任务过多，请稍后重试')
             token = str(uuid.uuid4())
             self.prepared[token] = {'created': time.monotonic(), 'id': job_id, 'source_id': asset_id, 'signature': signature,
                                     'path': item['path'], 'payload': payload, 'details': details, 'submitted': False}
         return {'token': token, 'expires_in': 600, **details}
+
+    async def release(self, token):
+        async with self.lock:
+            plan = self.prepared.get(token)
+            if plan is not None and not plan['submitted']: self.prepared.pop(token)
+        return {'ok': True}
 
     def _job(self, job_id):
         library = self.get_library()
@@ -252,6 +276,12 @@ class Regenerator:
             if outputs is None: db.execute('UPDATE media_regenerations SET status=?,error=?,updated_at=? WHERE id=?', (status, error, time.time_ns(), job_id))
             else: db.execute('UPDATE media_regenerations SET status=?,error=?,outputs=?,updated_at=? WHERE id=?', (status, error, json.dumps(outputs, ensure_ascii=False), time.time_ns(), job_id))
 
+    def _create_job(self, plan):
+        with self.get_library().transaction() as db:
+            now = time.time_ns()
+            db.execute('INSERT INTO media_regenerations(id,source_id,status,created_at,updated_at,details) VALUES(?,?,?,?,?,?)',
+                       (plan['id'], plan['source_id'], 'submitting', now, now, json.dumps(plan['details'], ensure_ascii=False)))
+
     async def submit(self, token):
         async with self.lock:
             plan = self.prepared.get(token)
@@ -262,10 +292,7 @@ class Regenerator:
             if str(source) != plan['path'] or await asyncio.to_thread(metadata.signature, source) != plan['signature']:
                 raise LibraryError('原素材或路径已变化，请重新预检')
             await self.runtime.validate(plan['id'], plan['payload']['prompt'], plan['details']['target'])
-            with library.transaction() as db:
-                now = time.time_ns()
-                db.execute('INSERT INTO media_regenerations(id,source_id,status,created_at,updated_at,details) VALUES(?,?,?,?,?,?)',
-                           (plan['id'], plan['source_id'], 'submitting', now, now, json.dumps(plan['details'], ensure_ascii=False)))
+            await asyncio.to_thread(self._create_job, plan)
             plan['submitted'] = True
             try:
                 await self.runtime.submit(copy.deepcopy(plan['payload']))
@@ -274,6 +301,8 @@ class Regenerator:
                 await asyncio.to_thread(self._update, plan['id'], 'failed', str(exc))
             except Exception as exc:
                 await asyncio.to_thread(self._update, plan['id'], 'unknown', f'提交状态待确认，不会自动重试：{exc}')
+            # Keep the submitted token's idempotency key without retaining its full graph.
+            plan.pop('payload', None)
             task = asyncio.create_task(self._watch(plan['id']))
             self.tasks.add(task); task.add_done_callback(self.tasks.discard)
             return await asyncio.to_thread(self._job, plan['id'])

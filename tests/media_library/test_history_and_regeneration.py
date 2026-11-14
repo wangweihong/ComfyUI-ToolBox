@@ -80,6 +80,19 @@ def test_seed_primitive_and_unknown_sources():
     with pytest.raises(LibraryError):regeneration.randomize_seeds(graph()|{'seed':{'class_type':'Seed (rgthree)','inputs':{'seed':True}}},FakeRuntime('/tmp').definitions(graph()))
 
 
+def test_seed_change_preview_preserves_large_original_integer_digits():
+    prompt=graph();prompt['seed']['inputs']['seed']=2**64-1
+    changes=regeneration.randomize_seeds(prompt,FakeRuntime('/tmp').definitions(prompt))
+    assert changes[0]['before']=='18446744073709551615'
+    assert isinstance(changes[0]['after'],int) and changes[0]['after']<=2**53-1
+
+
+def test_native_validation_reports_unavailable_models_without_dumping_config():
+    errors={'model':{'class_type':'UNETLoader','errors':[{'type':'value_not_in_list','extra_info':{'input_name':'unet_name','received_value':'missing.safetensors','input_config':['large private list']}}]}}
+    message=regeneration.validation_error({'message':'failed'},errors,{})
+    assert 'UNETLoader' in message and 'missing.safetensors' in message and 'large private list' not in message
+
+
 def test_cycles_dangling_links_and_no_seed_are_rejected():
     prompt=graph();prompt['image']['inputs']['color']=['missing',0]
     with pytest.raises(LibraryError):regeneration.branch_graph(prompt,'save')
@@ -156,3 +169,12 @@ async def test_status_rejects_outputs_outside_output_and_keeps_saved_files(lib,s
     manager,runtime=service;_,asset=image(lib,graph());plan=await manager.prepare(asset,'save');job=await manager.submit(plan['token'])
     runtime.states[job['id']]['images']=[{'filename':'secret.png','subfolder':'../outside','type':'output'},'malformed']
     result=await manager.status(job['id']);assert result['status']=='complete' and result['outputs']==[] and result['error']
+
+
+async def test_cancelled_preflight_is_released_but_submitted_token_stays_idempotent(lib,service):
+    manager,runtime=service;_,asset=image(lib,graph());plan=await manager.prepare(asset,'save')
+    await manager.release(plan['token']);assert plan['token'] not in manager.prepared
+    with pytest.raises(LibraryError,match='过期'):await manager.submit(plan['token'])
+    plan=await manager.prepare(asset,'save');first=await manager.submit(plan['token']);await manager.release(plan['token'])
+    assert 'payload' not in manager.prepared[plan['token']]
+    assert (await manager.submit(plan['token']))['id']==first['id'] and len(runtime.submissions)==1

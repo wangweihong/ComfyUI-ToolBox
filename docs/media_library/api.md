@@ -18,6 +18,7 @@
 | `GET /regenerations/options?id=…` | 重新生成可用性、图片保存分支与不可用原因 |
 | `POST /regenerations/prepare` | `{id,output_node}` 服务端恢复指定分支、换种子并预检，返回确认 token、保存前缀、种子变更、模型和批次 |
 | `POST /regenerations/submit` | `{token}` 再次校验后幂等提交同一任务，返回任务 id、status、details、outputs、error |
+| `POST /regenerations/release` | `{token}` 释放未提交的预检快照；已提交任务不取消，保留幂等记录 |
 | `GET /regenerations?source_id=…` | 此素材最近 10 次重新生成任务 |
 | `GET /regenerations/{id}` | 刷新指定任务状态，完成后索引其保存节点返回的全部图片 |
 | `GET /detail?id=…` | 文件信息、媒体属性、摘要、生成节点参数与原始元数据；也接受 path |

@@ -171,6 +171,11 @@ def register_routes(routes, get_library, on_change=lambda: None, *, regeneration
         data = await body(request)
         return web.json_response(await regeneration.submit(data.get('token', '')))
 
+    @endpoint('POST', '/regenerations/release')
+    async def regeneration_release(request):
+        data = await body(request)
+        return web.json_response(await regeneration.release(data.get('token', '')))
+
     @endpoint('GET', '/regenerations')
     async def regeneration_jobs(request):
         return web.json_response({'items': await work(regeneration.jobs, request.query.get('source_id', ''))})
