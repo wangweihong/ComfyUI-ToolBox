@@ -262,7 +262,8 @@ function toggleSelection(id:string){state.selectionMode=true;if(state.selected.h
 function updateSelection(){
   const n=state.selected.size;$('bulk').hidden=!state.selectionMode&&n===0;$('selection-count').textContent=`已选择 ${n} 项`;
   const mode=$<HTMLButtonElement>('multi-select');mode.textContent=state.selectionMode?'完成多选':'多选';mode.classList.toggle('active',state.selectionMode);mode.setAttribute('aria-pressed',String(state.selectionMode));
-  for(const op of ['rename','move','delete'])$<HTMLButtonElement>('bulk-'+op).disabled=n===0;
+  for(const op of ['rename','move','delete'])$<HTMLButtonElement>('bulk-'+op).disabled=op==='rename'?n!==1:n===0;
+  $('bulk-rename').title=n>1?'重命名仅支持单选':'';
   $<HTMLInputElement>('select-page').checked=state.items.length>0&&state.items.every(i=>state.selected.has(i.id));
   for(const card of $('grid').querySelectorAll<HTMLElement>('.card')){const selected=state.selected.has(card.dataset.id||'');card.classList.toggle('is-checked',selected);const checkbox=card.querySelector<HTMLInputElement>('input[type="checkbox"]');if(checkbox)checkbox.checked=selected;}
 }
@@ -277,7 +278,10 @@ function menuAction(label:string,handler:()=>void|Promise<void>,danger=false){
 function openAssetMenu(item:Item,x:number,y:number){
   if(!state.selected.has(item.id)){clearSelection();state.selected.add(item.id);updateSelection();}
   const ids=[...state.selected],menu=$('asset-context-menu');menu.replaceChildren(el('div','context-selection',`已选择 ${ids.length} 项素材`));
-  for(const [op,label] of [['rename','重命名'],['move','移动'],['delete','删除']])menu.append(menuAction(ids.length>1?`${label}所选 ${ids.length} 项`:label,()=>openOperation(op,ids),op==='delete'));
+  for(const [op,label] of [['rename','重命名'],['move','移动'],['delete','删除']]){
+    const button=menuAction(op!=='rename'&&ids.length>1?`${label}所选 ${ids.length} 项`:label,()=>openOperation(op,ids),op==='delete');
+    if(op==='rename'&&ids.length!==1){button.disabled=true;button.title='重命名仅支持单选';}menu.append(button);
+  }
   showContextMenu(x,y,'素材操作');
 }
 function bindFolderMenu(node:HTMLElement,path:string){
@@ -538,6 +542,7 @@ function showSettings(){renderRootSettings();$<HTMLDialogElement>('settings-dial
 function fileName(path:string){return path.split(/[\\/]/).filter(Boolean).pop()||path;}
 function parentPath(path:string){const parent=path.replace(/[\\/][^\\/]+[\\/]?$/,'');return /^[A-Za-z]:$/.test(parent)?parent+'\\':parent||'/';}
 async function openOperation(op:string,ids:string[]) {
+  if(op==='rename'&&ids.length!==1){toast('重命名仅支持单选');return;}
   const epoch=++operationEpoch;
   operation=op;operationIds=ids;plan=null;moveDestination='';++moveEpoch;
   $('operation-list').replaceChildren();$('operation-fields').replaceChildren();

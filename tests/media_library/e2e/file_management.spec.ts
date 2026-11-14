@@ -12,7 +12,7 @@ async function removeTestFolder(request:APIRequestContext,path:string){
   if(response.ok())await request.post('/toolbox/media-library/folders/delete/apply',{data:{token:(await response.json()).token,confirmed:true}});
 }
 
-test('context menu renames and moves selected assets then deletes the empty folder',async({page,request})=>{
+test('context menu only renames single assets, moves selections and deletes empty folders',async({page,request})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   const info=await(await request.get('/fixture/info')).json(),path=info.root+'/右键管理测试';
   try{
@@ -24,10 +24,13 @@ test('context menu renames and moves selected assets then deletes the empty fold
     const first=page.locator('.card').filter({hasText:'右键文件一.txt'}),second=page.locator('.card').filter({hasText:'右键文件二.txt'});
     await first.locator('input').check();await second.locator('input').check();await first.click({button:'right'});
     const menu=page.locator('#asset-context-menu');await expect(menu).toContainText('已选择 2 项素材');
-    await expect(menu.getByRole('menuitem')).toHaveText(['重命名所选 2 项','移动所选 2 项','删除所选 2 项']);
-    await menu.getByRole('menuitem',{name:'重命名所选 2 项'}).click();await page.locator('#rename-template').fill('已改名_{index:02d}');await page.locator('#plan-operation').click();await page.locator('#apply-operation').click();
+    await expect(menu.getByRole('menuitem')).toHaveText(['重命名','移动所选 2 项','删除所选 2 项']);
+    await expect(menu.getByRole('menuitem',{name:'重命名',exact:true})).toBeDisabled();await expect(page.locator('#bulk-rename')).toBeDisabled();
+    await page.keyboard.press('Escape');await second.locator('input').uncheck();await expect(page.locator('#bulk-rename')).toBeEnabled();await first.click({button:'right'});
+    await expect(menu.getByRole('menuitem',{name:'重命名',exact:true})).toBeEnabled();
+    await menu.getByRole('menuitem',{name:'重命名',exact:true}).click();await page.locator('#rename-template').fill('已改名_01');await page.locator('#plan-operation').click();await page.locator('#apply-operation').click();
     await expect(page.locator('#operation-dialog')).toBeHidden();
-    const renamed=page.locator('.card').filter({hasText:/已改名_0[12]\.txt/});await expect(renamed).toHaveCount(2);
+    const renamed=page.locator('.card').filter({hasText:/已改名_01\.txt|右键文件二\.txt/});await expect(renamed).toHaveCount(2);
     await renamed.nth(0).locator('input').check();await renamed.nth(1).locator('input').check();await renamed.first().click({button:'right'});
     await menu.getByRole('menuitem',{name:'移动所选 2 项'}).click();await page.locator('.move-directories').getByRole('button',{name:'右键管理测试',exact:true}).click();await page.locator('#apply-operation').click();
     await expect(page.locator('#operation-dialog')).toBeHidden();await expect(renamed).toHaveCount(0);
