@@ -1,7 +1,10 @@
 import {attachPackageEditor} from "./skill_package_editor.mjs";
 import {attachMarkdownEditor} from "./skill_markdown.mjs";
-import {createTagField} from "./tag_picker.mjs";
+import {createTagField} from "./tag_picker.mjs?v=20261114-skill-library-management";
+import {SKILLS_EVENT,openLibraryTagManager,confirmPromptDeletion} from './prompt_actions.mjs?v=20261114-skill-library-management';
 const TYPES = { skill:"Skill", prompt_template:"提示词模板" };
+const TAG_MANAGEMENT = {title:'管理 Skill / 模板标签',libraryLabel:'Skill／提示词模板库',entryLabel:'Skill／模板',
+    preservationText:'Skill／模板正文及文件包保留，提示词库不受影响',eventName:SKILLS_EVENT};
 
 function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -27,7 +30,7 @@ function field(parent, label, name, value, choices = null, multiline = false) {
 export function openSkillBrowser({ request, currentId, onSelect, onClose = () => {} }) {
     if (!document.querySelector("link[data-toolbox-prompts]")) {
         const css = el("link"); css.rel = "stylesheet";
-        css.href = new URL("../css/prompt_reader.css", import.meta.url).href;
+        css.href = new URL("../css/prompt_reader.css?v=20261114-skill-library-management", import.meta.url).href;
         css.dataset.toolboxPrompts = "true"; document.head.append(css);
     }
     const dialog = el("dialog", "tb-prompts tb-skill-library"); dialog.setAttribute("aria-label", "Skill 与提示词模板库");
@@ -35,7 +38,7 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
     const lifetime = new AbortController();
     let closed = false, dirty = false, saving = false, page = 1, pages = 1, kind = "全部";
     let selected = currentId > 0 ? {id:Number(currentId)} : null;
-    let listRequest, detailRequest, tagsRequest, searchTimer, packageEditor, tagEditor;
+    let listRequest, detailRequest, tagsRequest, searchTimer, packageEditor, tagEditor, tagManager, confirmation;
     const selectedTags = new Set(); let allTags = [], counts = {};
     const discard = () => !dirty || window.confirm("有未保存的修改，放弃修改？");
     const close = (force = false) => {
@@ -43,12 +46,14 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         closed = true; clearTimeout(searchTimer);
         packageEditor?.destroy();
         tagEditor?.destroy();
+        tagManager?.close();confirmation?.close();
         lifetime.abort(); listRequest?.abort(); detailRequest?.abort(); tagsRequest?.abort();
         detail.close(); detail.remove(); dialog.close(); dialog.remove(); onClose();
     };
-    const closeDetail = () => {
-        if (saving || !discard()) return;
+    const closeDetail = (force = false) => {
+        if (!force && (saving || !discard())) return;
         detailRequest?.abort(); detailRequest = null;
+        confirmation?.close();
         packageEditor?.destroy();
         tagEditor?.destroy();
         detail.close(); detail.replaceChildren(); dirty = false;
@@ -75,7 +80,9 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
     const toolbar = el("div", "tbp-tag-toolbar");
     const tagSearch = el("input"); tagSearch.type = "search"; tagSearch.placeholder = "搜索标签名称"; tagSearch.setAttribute("aria-label", "搜索标签");
     const clear = button("清空已选", () => { selectedTags.clear(); renderTags(); page = 1; loadList(); });
-    toolbar.append(tagSearch, clear);
+    toolbar.append(tagSearch, clear, button(TAG_MANAGEMENT.title,()=>{
+        if(!tagManager)tagManager=openLibraryTagManager({...TAG_MANAGEMENT,request,onClose:()=>{tagManager=null;}});
+    }));
     const chosen = el("div", "tbp-selected-tags"); chosen.setAttribute("aria-label", "已选标签");
     const tagStatus = el("p", "tbp-status"); tagStatus.setAttribute("role", "status");
     const cloud = el("div", "tbp-tag-cloud"); cloud.setAttribute("aria-label", "全部标签");
@@ -206,7 +213,7 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         tagEditor?.destroy();
         const creating = selected.id === 0; detail.replaceChildren();
         const title = el("header", "tbp-header");
-        title.append(el("h3", "", creating ? "新增 Skill / 模板" : `${TYPES[selected.entry_type]} #${selected.id}`), button("返回列表", closeDetail));
+        title.append(el("h3", "", creating ? "新增 Skill / 模板" : `${TYPES[selected.entry_type]} #${selected.id}`), button("返回列表", ()=>closeDetail()));
         const body = el("div", "tbp-detail-body");
         const editor = el("form", "tbp-editor tbp-skill-editor");
         const workspace = el("div", "tbp-skill-workspace");
@@ -226,7 +233,7 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         fields.content = field(workspace, "正文（纯文本 / Markdown）", "content", selected.content, null, true);
         fields.content.className = "tbp-skill-content"; fields.content.required = true; fields.content.spellcheck = false;
         const contentEditor = attachMarkdownEditor(fields.content, {preview: !creating});
-        tagEditor=createTagField({parent:sidebar,value:selected.tags.join(", "),request,allowCreate:true});
+        tagEditor=createTagField({parent:sidebar,value:selected.tags.join(", "),request,allowCreate:true,tagManagement:TAG_MANAGEMENT});
         fields.tags=tagEditor.input;
         const info = el("details", "tbp-skill-record");
         info.append(el("summary", "", "记录信息"), el("p", "tbp-meta", creating
@@ -254,7 +261,7 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
         const actions = el("div", "tbp-actions");
         const save = button(creating ? "保存内容" : "保存修改", () => editor.requestSubmit(), "tbp-primary");
         const use = button("使用此内容", () => {
-            if (!discard()) return;
+            if (saving || !discard()) return;
             try {
                 onSelect(selected.id, selected); close(true);
             } catch (error) {
@@ -262,7 +269,31 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
             }
         }, "tbp-primary");
         use.disabled = creating; if (creating) use.title = "请先保存内容";
-        actions.append(save); if (!creating) actions.append(button("重新加载详情", () => loadDetail(selected.id))); actions.append(use);
+        const remove = button('删除内容',()=>{
+            if(saving)return;
+            const record=selected;
+            confirmation=confirmPromptDeletion({title:`删除${TYPES[record.entry_type]}`,
+                text:`删除${TYPES[record.entry_type]} #${record.id}「${record.name}」？${dirty?'当前未保存的修改也将丢弃。':''}`,
+                details:`将永久删除正文、标签关联及库内 ${record.files?.length||0} 个文件，释放占用容量。原始导入文件及其他记录保留，提示词库不受影响。此操作无法撤销。`,
+                onClose:()=>{confirmation=null;},onConfirm:async()=>{
+                    if(closed||saving)return;
+                    saving=true;detailRequest?.abort();
+                    const controls=[...editor.querySelectorAll('input,select,textarea,button')].map(control=>({control,disabled:control.disabled}));
+                    controls.forEach(({control})=>{control.disabled=true;});
+                    status.textContent='正在删除…';
+                    try{
+                        await fetchJSON(`/${record.id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:record.version})});
+                        if(closed)return;
+                        closeDetail(true);selected=null;
+                        window.dispatchEvent(new CustomEvent(SKILLS_EVENT,{detail:{deleted_entry_ids:[record.id]}}));
+                    }catch(error){
+                        if(!closed)status.textContent=error.status===409?'记录已被修改。当前输入已保留，请重新加载详情后再删除。':error.message;
+                    }finally{saving=false;controls.forEach(({control,disabled})=>{control.disabled=disabled;});}
+                }});
+        },'tbp-danger');
+        actions.append(save);
+        if (!creating) actions.append(button("重新加载详情", () => loadDetail(selected.id)),remove);
+        actions.append(use);
         const footer = el("footer", "tbp-skill-footer"); footer.append(status, actions);
         editor.append(footer);
         editor.oninput = editor.onchange = () => { dirty = true; status.textContent = "有未保存的修改"; };
@@ -304,6 +335,16 @@ export function openSkillBrowser({ request, currentId, onSelect, onClose = () =>
     dialog.addEventListener("click", event => { if (event.target === dialog) close(); }, {signal:lifetime.signal});
     detail.addEventListener("cancel", event => { event.preventDefault(); closeDetail(); }, {signal:lifetime.signal});
     detail.addEventListener("click", event => { if (event.target === detail) closeDetail(); }, {signal:lifetime.signal});
+    window.addEventListener(SKILLS_EVENT,event=>{
+        const deleted=new Set((event.detail?.deleted_tags||[]).map(name=>name.trim().toLowerCase()));
+        for(const name of selectedTags)if(deleted.has(name.trim().toLowerCase()))selectedTags.delete(name);
+        renderTags();loadList();loadTags();
+        if(detail.open&&selected?.id>0){
+            const notice=detail.querySelector('[data-editor-status]');
+            if(notice)notice.textContent=event.detail?.deleted_entry_ids?.includes(selected.id)
+                ?'该内容已被删除，当前输入已保留。':'Skill／模板库已更新，当前输入已保留；保存或删除前请重新加载详情。';
+        }
+    },{signal:lifetime.signal});
     document.body.append(dialog,detail); dialog.showModal(); loadList(); loadTags();
     return {dialog, close:() => close(true)};
 }

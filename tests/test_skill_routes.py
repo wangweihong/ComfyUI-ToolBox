@@ -141,6 +141,28 @@ class SkillRoutesTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.post('/toolbox/skills',json={**values,'storage_mode':'text','content':'body'})).status,400)
         self.assertEqual((await self.client.post('/toolbox/skills',json={**values,'content':'body'})).status,400)
 
+    async def test_delete_routes_conflict_download_capacity_and_validation(self):
+        row=await (await self.client.post('/toolbox/skills',json=payload())).json()
+        for route in (f'/toolbox/skills/{row["id"]}','/toolbox/skills/tags'):
+            self.assertEqual((await self.client.delete(route,data='x')).status,415)
+            self.assertEqual((await self.client.delete(route,json={})).status,400)
+            self.assertEqual((await self.client.delete(route,data='{',headers={'Content-Type':'application/json'})).status,400)
+            self.assertEqual((await self.client.delete(route,data=b'x'*65537,headers={'Content-Type':'application/json'})).status,413)
+        response=await self.client.delete('/toolbox/skills/tags',json={'name':'alpha'})
+        self.assertEqual(response.status,200)
+        self.assertEqual(await response.json(),{'deleted':['alpha'],'affected_count':1})
+        self.assertEqual((await self.client.delete('/toolbox/skills/tags',json={'name':'unknown'})).status,404)
+        self.assertEqual((await self.client.delete(f'/toolbox/skills/{row["id"]}',json={'version':row['version']})).status,409)
+        current=await (await self.client.get(f'/toolbox/skills/{row["id"]}')).json()
+        response=await self.client.delete(f'/toolbox/skills/{row["id"]}',json={'version':current['version']})
+        self.assertEqual(response.status,200)
+        self.assertEqual(response.headers['Cache-Control'],'no-store')
+        self.assertEqual((await response.json())['storage']['used_bytes'],0)
+        self.assertEqual((await self.client.get(f'/toolbox/skills/{row["id"]}/download')).status,404)
+        self.assertEqual((await self.client.get(f'/toolbox/skills/{row["id"]}/files?path=SKILL.md')).status,404)
+        self.assertEqual((await self.client.delete('/toolbox/skills/999',json={'version':current['version']})).status,404)
+        self.assertEqual((await self.client.delete('/toolbox/skills/bad',json={'version':current['version']})).status,400)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-import {openSkillBrowser} from './skill_browser.mjs';
+import {openSkillBrowser} from './skill_browser.mjs?v=20261114-skill-library-management';
 
 export function addSkillReaderToCanvas(app, skillId, {createNode = name => globalThis.LiteGraph?.createNode(name)} = {}) {
     const id = Number(skillId);

@@ -1,4 +1,4 @@
-import {PROMPTS_EVENT, openPromptTagManager} from './prompt_actions.mjs?v=20261114-prompt-library-management';
+import {PROMPTS_EVENT, openLibraryTagManager} from './prompt_actions.mjs?v=20261114-skill-library-management';
 
 export function normalizeTag(value) { return String(value).trim().toLowerCase(); }
 export function parseTags(value) { return [...new Set(String(value || "").split(",").map(normalizeTag).filter(Boolean))]; }
@@ -36,8 +36,9 @@ export function ensureTagStyles() {
     css.dataset.toolboxPrompts="true";document.head.append(css);
 }
 
-export function openTagPicker({request,value="",allowCreate=false,managePrompts=false,title="选择标签",focusNew=false,onApply,onClose=()=>{}}) {
+export function openTagPicker({request,value="",allowCreate=false,managePrompts=false,tagManagement=null,title="选择标签",focusNew=false,onApply,onClose=()=>{}}) {
     ensureTagStyles();const selected=new Set(parseTags(value));
+    const management=tagManagement||(managePrompts?{}:null);
     let catalog=[],loaded=false,closed=false,controller,manager;
     const lifetime=new AbortController();
     const dialog=el("dialog",undefined,"tb-prompts tbt-dialog");dialog.setAttribute("aria-label",title);
@@ -51,7 +52,7 @@ export function openTagPicker({request,value="",allowCreate=false,managePrompts=
     const search=el("input");search.type="search";search.setAttribute("aria-label","搜索已有标签");search.placeholder="按名称搜索，点击标签多选";searchLabel.append(search);
     const state=el("p",undefined,"tbp-status");state.setAttribute("role","status");
     const reload=button("刷新标签",()=>load());
-    const manage=button("管理提示词标签",()=>{if(!manager)manager=openPromptTagManager({request,onClose:()=>{manager=null;}});});
+    const manage=button(management?.title||"管理提示词标签",()=>{if(!manager)manager=openLibraryTagManager({...management,request,onClose:()=>{manager=null;}});});
     const list=el("div",undefined,"tbp-tag-cloud tbt-options");list.setAttribute("aria-label","已有标签");
     const createArea=el("div",undefined,"tbt-create");
     const addName=el("input");addName.setAttribute("aria-label","新标签名称");addName.placeholder="输入一个新标签名称";
@@ -69,7 +70,7 @@ export function openTagPicker({request,value="",allowCreate=false,managePrompts=
     const footer=el("footer",undefined,"tbp-actions tbt-footer");
     footer.append(button("取消",close),button("应用",()=>{const result=[...selected].join(", ");close();onApply(result);},"tbp-primary"));
     body.append(selectedHeader,chosen,searchLabel,reload);
-    if(managePrompts)body.append(manage);
+    if(management)body.append(manage);
     body.append(state,list,createArea);dialog.append(header,body,footer);
     function render() {
         selectedLabel.textContent=`已选 ${selected.size} 个标签`;clear.disabled=!selected.size;chosen.replaceChildren();
@@ -103,7 +104,7 @@ export function openTagPicker({request,value="",allowCreate=false,managePrompts=
     addName.onkeydown=event=>{if(event.key==="Enter"){event.preventDefault();add.click();}};
     dialog.addEventListener("cancel",event=>{event.preventDefault();close();},{signal:lifetime.signal});
     dialog.addEventListener("click",event=>{if(event.target===dialog)close();},{signal:lifetime.signal});
-    if(managePrompts)window.addEventListener(PROMPTS_EVENT,event=>{
+    if(management)window.addEventListener(management.eventName||PROMPTS_EVENT,event=>{
         for(const name of event.detail?.deleted_tags||[])selected.delete(normalizeTag(name));
         load();
     },{signal:lifetime.signal});
@@ -111,7 +112,7 @@ export function openTagPicker({request,value="",allowCreate=false,managePrompts=
     return {dialog,close};
 }
 
-export function createTagField({parent,value="",request,allowCreate=true,managePrompts=false,label="标签",hint,onChange=()=>{}}) {
+export function createTagField({parent,value="",request,allowCreate=true,managePrompts=false,tagManagement=null,label="标签",hint,onChange=()=>{}}) {
     ensureTagStyles();let picker=null,destroyed=false;
     const container=el("div",undefined,"tbp-field tbt-field");container.append(el("span",label));
     const input=el("input");input.type="hidden";input.name="tags";input.value=value;
@@ -119,7 +120,7 @@ export function createTagField({parent,value="",request,allowCreate=true,manageP
     const controls=el("div",undefined,"tbt-field-actions");
     const launch=focusNew=>{
         if(picker||destroyed||choose.disabled)return;
-        picker=openTagPicker({request,value:input.value,allowCreate,managePrompts,title:allowCreate?"选择或新增标签":"选择筛选标签",focusNew,
+        picker=openTagPicker({request,value:input.value,allowCreate,managePrompts,tagManagement,title:allowCreate?"选择或新增标签":"选择筛选标签",focusNew,
             onApply:next=>{if(next===input.value)return;input.value=next;render();onChange(next);input.dispatchEvent(new Event("input",{bubbles:true}));},
             onClose:()=>{picker=null;if(choose.isConnected&&!choose.disabled)choose.focus();}});
     };

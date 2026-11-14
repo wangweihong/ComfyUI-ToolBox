@@ -1,6 +1,6 @@
 import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_sizes.mjs";
-import {createTagField} from "./tag_picker.mjs?v=20261114-prompt-library-management";
-import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs?v=20261114-prompt-library-management';
+import {createTagField} from "./tag_picker.mjs?v=20261114-skill-library-management";
+import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs?v=20261114-skill-library-management';
 import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261114-prompt-library-management";
 
 const CATEGORY_LABELS = {

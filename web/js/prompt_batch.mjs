@@ -1,5 +1,5 @@
-import {PROMPTS_EVENT} from './prompt_actions.mjs?v=20261114-prompt-library-management';
-import {ensureTagStyles} from './tag_picker.mjs?v=20261114-prompt-library-management';
+import {PROMPTS_EVENT} from './prompt_actions.mjs?v=20261114-skill-library-management';
+import {ensureTagStyles} from './tag_picker.mjs?v=20261114-skill-library-management';
 
 export function attachPromptBatchPreview(node) {
     if (node.__toolboxBatchPreview) return;

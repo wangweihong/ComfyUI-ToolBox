@@ -343,3 +343,49 @@ def create_entry(payload):
 
 def save_entry(entry_id, payload):
     return store(payload, entry_id)
+
+
+def delete_entry(entry_id, payload):
+    entry_id = positive_int(entry_id, "id")
+    if (not isinstance(payload, dict) or set(payload) != {"version"}
+            or not isinstance(payload["version"], str) or len(payload["version"]) != 64):
+        raise ValueError("删除需要当前记录的 version")
+    with connect(write=True) as conn:
+        current = record(conn, entry_id)
+        if current["version"] != payload["version"]:
+            raise SkillConflict("记录已被修改，请重新加载详情后再删除。")
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='skill_files'").fetchone():
+            conn.execute("DELETE FROM skill_files WHERE entry_id=?", (entry_id,))
+        conn.execute("DELETE FROM skill_entry_tags WHERE entry_id=?", (entry_id,))
+        conn.execute("DELETE FROM skill_entries WHERE id=?", (entry_id,))
+        usage = storage_usage(conn)
+    notify_changed({"deleted_entry_ids": [entry_id]})
+    return {"deleted": [entry_id], "storage": usage}
+
+
+def delete_tag(payload):
+    if (not isinstance(payload, dict) or set(payload) != {"name"}
+            or not isinstance(payload["name"], str) or not payload["name"].strip()
+            or len(payload["name"]) > 10000):
+        raise ValueError("删除需要标签名称 name")
+    name = payload["name"].strip()
+    with connect(write=True) as conn:
+        row = conn.execute("SELECT id,name FROM skill_tags WHERE name=? COLLATE NOCASE ORDER BY name=? DESC,id LIMIT 1",
+                           (name, name)).fetchone() if initialized(conn) else None
+        if row is None:
+            raise SkillNotFound(f"Skill/模板标签不存在：{name}")
+        count = conn.execute("SELECT COUNT(*) FROM skill_entry_tags WHERE tag_id=?", (row[0],)).fetchone()[0]
+        conn.execute("DELETE FROM skill_entry_tags WHERE tag_id=?", (row[0],))
+        conn.execute("DELETE FROM skill_tags WHERE id=?", (row[0],))
+    notify_changed({"deleted_tags": [row[1]]})
+    return {"deleted": [row[1]], "affected_count": count}
+
+
+def notify_changed(detail):
+    try:
+        from server import PromptServer
+        server = getattr(PromptServer, "instance", None)
+        if server is not None and hasattr(server, "send_sync"):
+            server.send_sync("toolbox.skills_changed", detail)
+    except (ImportError, RuntimeError):
+        pass

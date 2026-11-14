@@ -97,6 +97,19 @@ def register_routes():
             return web.json_response({"error":str(exc)}, status=400)
         return await respond(skill_files.import_uploads, uploads)
 
+    async def remove(request):
+        if request.content_type != "application/json":
+            return web.json_response({"error": "请使用 application/json"}, status=415)
+        raw = bytearray()
+        async for chunk in request.content.iter_chunked(16384):
+            raw.extend(chunk)
+            if len(raw) > 65536:
+                return web.json_response({"error": "删除请求过大"}, status=413)
+        def operation():
+            payload = json.loads(raw)
+            return library.delete_entry(request.match_info["id"], payload) if "id" in request.match_info else library.delete_tag(payload)
+        return await respond(operation)
+
     async def download(request):
         def operation():
             row = library.detail(request.match_info["id"])
@@ -124,12 +137,14 @@ def register_routes():
         return await respond(operation)
 
     instance.routes.get("/toolbox/skills/tags")(tags)
+    instance.routes.delete("/toolbox/skills/tags")(remove)
     instance.routes.get("/toolbox/skills/storage")(storage)
     instance.routes.post("/toolbox/skills/upload")(upload)
     instance.routes.get("/toolbox/skills")(listing)
     instance.routes.post("/toolbox/skills")(save)
     instance.routes.get("/toolbox/skills/{id}")(get)
     instance.routes.patch("/toolbox/skills/{id}")(save)
+    instance.routes.delete("/toolbox/skills/{id}")(remove)
     instance.routes.get("/toolbox/skills/{id}/download")(download)
     instance.routes.get("/toolbox/skills/{id}/files")(download)
 

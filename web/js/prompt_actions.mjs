@@ -1,4 +1,5 @@
 export const PROMPTS_EVENT = 'toolbox-prompts-changed';
+export const SKILLS_EVENT = 'toolbox-skills-changed';
 
 export function promptsChanged(detail) {
     window.dispatchEvent(new CustomEvent(PROMPTS_EVENT, {detail}));
@@ -52,8 +53,13 @@ export function confirmPromptDeletion({title, text, details, onConfirm, onClose 
 }
 
 export function openPromptTagManager({request, onClose = () => {}}) {
+    return openLibraryTagManager({request, onClose});
+}
+
+export function openLibraryTagManager({request, onClose = () => {}, title = '管理提示词标签',
+    libraryLabel = '提示词库', entryLabel = '提示词', preservationText = '提示词及原始素材文件保留', eventName = PROMPTS_EVENT}) {
     const dialog = el('dialog', undefined, 'tb-prompts tbt-dialog tbp-tag-manager');
-    dialog.setAttribute('aria-label', '管理提示词标签');
+    dialog.setAttribute('aria-label', title);
     const lifetime = new AbortController();
     let closed = false, busy = false, catalog = [], controller, confirmation;
     const close = () => {
@@ -62,7 +68,7 @@ export function openPromptTagManager({request, onClose = () => {}}) {
         dialog.close(); dialog.remove(); onClose();
     };
     const header = el('header', undefined, 'tbp-header');
-    header.append(el('strong', '管理提示词标签'), button('关闭', close));
+    header.append(el('strong', title), button('关闭', close));
     const body = el('div', undefined, 'tbt-body');
     const search = el('input'); search.type = 'search'; search.placeholder = '搜索标签名称';
     search.setAttribute('aria-label', '搜索管理标签');
@@ -75,12 +81,12 @@ export function openPromptTagManager({request, onClose = () => {}}) {
         list.replaceChildren();
         for (const item of catalog.filter(item => item.name.toLowerCase().includes(search.value.trim().toLowerCase()))) {
             const row = el('div', undefined, 'tbp-tag-manager-row'); row.dataset.tag = item.name;
-            row.append(el('span', item.name), el('span', `${item.count} 条提示词`, 'tbp-tag-count'));
+            row.append(el('span', item.name), el('span', `${item.count} 条${entryLabel}`, 'tbp-tag-count'));
             const remove = button('删除标签', () => {
                 if (busy) return;
                 confirmation = confirmPromptDeletion({title:'删除标签',
-                    text:`从整个提示词库删除“${item.name}”？当前关联 ${item.count} 条提示词。`,
-                    details:'将解除该标签的全部关联，提示词及原始素材文件保留。此操作无法撤销。',
+                    text:`从整个${libraryLabel}删除“${item.name}”？当前关联 ${item.count} 条${entryLabel}。`,
+                    details:`将解除该标签的全部关联，${preservationText}。此操作无法撤销。`,
                     onClose:() => { confirmation = null; }, onConfirm:() => removeTag(item.name)});
             }, 'tbp-danger');
             remove.disabled = busy; row.append(remove); list.append(row);
@@ -112,7 +118,7 @@ export function openPromptTagManager({request, onClose = () => {}}) {
         try {
             const data = await promptJSON(request, '/tags', {method:'DELETE',
                 headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
-            promptsChanged({deleted_tags:data.deleted});
+            window.dispatchEvent(new CustomEvent(eventName,{detail:{deleted_tags:data.deleted}}));
             if (closed) return;
             await load();
             status.textContent = `已删除标签“${name}”，解除 ${data.affected_count} 条关联。`;
@@ -122,7 +128,7 @@ export function openPromptTagManager({request, onClose = () => {}}) {
     }
     search.oninput = render;
     dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
-    window.addEventListener(PROMPTS_EVENT, () => { if (!busy) load(); }, {signal:lifetime.signal});
+    window.addEventListener(eventName, () => { if (!busy) load(); }, {signal:lifetime.signal});
     document.body.append(dialog); dialog.showModal(); load(); search.focus();
     return {dialog, close};
 }
