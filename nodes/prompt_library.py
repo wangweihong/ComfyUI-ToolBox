@@ -171,3 +171,55 @@ def browser_options():
         "prompt_type": prompts.PROMPT_TYPE_FILTERS, "content_format": prompts.CONTENT_FORMAT_FILTERS,
         "dynamic": prompts.DYNAMIC_FILTERS,
     }
+
+
+def delete_prompt(prompt_id, payload):
+    if (not isinstance(payload, dict) or set(payload) != {"version"}
+            or not isinstance(payload["version"], str) or len(payload["version"]) != 64):
+        raise ValueError("Delete requires the current record version")
+    with prompts.connect_db() as conn:
+        prompts.ensure_schema(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT * FROM prompts WHERE id=?", (prompt_id,)).fetchone()
+        if row is None:
+            raise PromptNotFound(f"prompt id does not exist: {prompt_id}")
+        if prompts.record_version(conn, row) != payload["version"]:
+            raise prompts.PromptConflict("记录已被修改，请重新加载后再删除。")
+        if table_exists(conn, "prompt_examples"):
+            conn.execute("DELETE FROM prompt_examples WHERE prompt_id=?", (prompt_id,))
+        # Explicit cleanup also supports legacy databases without cascade constraints.
+        conn.execute("DELETE FROM prompt_tags WHERE prompt_id=?", (prompt_id,))
+        conn.execute("DELETE FROM prompts WHERE id=?", (prompt_id,))
+    notify_changed({"deleted_prompt_ids": [prompt_id]})
+    return {"deleted": [prompt_id]}
+
+
+def delete_tag(payload):
+    if (not isinstance(payload, dict) or set(payload) != {"name"}
+            or not isinstance(payload["name"], str) or not payload["name"].strip()
+            or len(payload["name"]) > 10000):
+        raise ValueError("Delete requires a tag name")
+    name = payload["name"].strip()
+    with prompts.connect_db() as conn:
+        prompts.ensure_schema(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        # Prefer the exact catalog spelling; support normalized callers for old mixed-case tags.
+        row = conn.execute("SELECT id,name FROM tags WHERE name=? COLLATE NOCASE ORDER BY name=? DESC,id LIMIT 1",
+                           (name, name)).fetchone()
+        if row is None:
+            raise PromptNotFound(f"tag does not exist: {name}")
+        count = conn.execute("SELECT COUNT(*) FROM prompt_tags WHERE tag_id=?", (row[0],)).fetchone()[0]
+        conn.execute("DELETE FROM prompt_tags WHERE tag_id=?", (row[0],))
+        conn.execute("DELETE FROM tags WHERE id=?", (row[0],))
+    notify_changed({"deleted_tags": [row[1]]})
+    return {"deleted": [row[1]], "affected_count": count}
+
+
+def notify_changed(detail):
+    try:
+        from server import PromptServer
+        server = getattr(PromptServer, "instance", None)
+        if server is not None and hasattr(server, "send_sync"):
+            server.send_sync("toolbox.prompts_changed", detail)
+    except (ImportError, RuntimeError):
+        pass

@@ -73,6 +73,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ToolBoxRandomPrompt": "tb-random-prompt",
     "ToolBoxPromptWriter": "tb-prompt-writer",
     "ToolBoxPromptReader": "tb-prompt-reader",
+    "ToolBoxPromptsByTag": "tb-prompts-by-tag",
     "ToolBoxSkillReader": "tb-skill-reader",
     "ToolBoxPromptNSFWDetector": "tb-prompt-nsfw-detector",
 }

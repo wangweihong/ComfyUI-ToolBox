@@ -70,7 +70,7 @@ English: MOSS prompt enhancement now lives in ToolBox, retaining the legacy work
 首次使用前运行导入脚本：
 
 ```bash
-python3 scripts/import_prompts.py --language zh --media-type image --prompt-type natural --nsfw --content-format plaintext --static
+python3 scripts/import_prompts.py --language zh --media-type image --prompt-type natural --safe --content-format plaintext --static
 ```
 
 默认会读取插件根目录下的 `prompts/` 目录，并生成 `data/prompts.sqlite3`。导入脚本会提取记录 id 和提示词内容；如果提示词跨多行，会拼接成同一行写入数据库。可使用 `--input prompt.txt` 指定单个文件。`--tags` 是批量标签，会绑定到本次导入的每一条提示词；如确实需要批量标签，需同时传入 `--apply-tags-to-all`。
@@ -112,6 +112,24 @@ python3 scripts/import_prompts.py --language zh --media-type image --prompt-type
 “保存修改”将编辑结果写入同一数据库；若记录已被其他操作修改，会保留当前输入并提示重新加载，不覆盖新版本。“使用此提示词”将已保存记录的 ID 回填节点，执行时从数据库读取，不复制为独立文本。存在未保存修改时，切换记录、使用或关闭弹窗会提示放弃修改。reader 与 random 会在数据库文件或 WAL 变化后重新执行。
 
 random 同样新增 `sensitivity_level` 和 `nsfw/extreme/horror/gore/minor` 筛选。`sensitivity_mode=max`（默认，兼容旧工作流）使用 `sensitivity_level`：默认“全部”，选择 L2 匹配 L0–L2；`sensitivity_mode=exact` 使用新增的 `sensitivity_levels`（如 `L1,L3`），仅匹配指定级别，此时忽略最高等级输入；指定列表留空不匹配任何记录。类别可选“全部／是／否”，多个条件同时满足。原 `safety` 保留以兼容旧工作流，与新 `nsfw` 筛选同时生效；条件矛盾时没有匹配结果。固定 seed 仍按匹配记录的 ID 升序取 `seed % 数量`，输出顺序不变。
+
+图库首次打开、重置筛选，以及新建 random 节点的 `nsfw/extreme/horror/gore/minor` 都默认“否”（false）；writer 和新增提示词表单的标志仍默认 false。原有记录及工作流明确保存的筛选值不会被改写，需要查看或抽取带标志的记录时可手动改为“全部”或“是”。旧 writer 调用省略可选标志时仍保留已有标注。
+
+详情中的“删除提示词”仅删除当前记录，确认框显示 ID、正文摘要及影响。有未保存修改时会明确提示。删除同时移除该 ID 的标签关联和全部历史版本的示例关联，保留原始图片／视频文件及标签目录中的空标签；版本发生变化时返回冲突并保留当前输入，需重新加载后重试。接口为 `DELETE /toolbox/prompts/{id}`，JSON：`{"version":"当前详情返回的 version"}`。
+
+图库标签区和提示词专用标签选择器中的“管理提示词标签”可搜索全库标签、查看关联数量并确认删除。全库删除解除该标签的所有关联，提示词和素材文件保留；单条编辑中的移除标签仍只影响该条记录。接口为 `DELETE /toolbox/prompts/tags`，JSON：`{"name":"摄影"}`，返回实际解除的 `affected_count`。删除后已打开的提示词窗口刷新列表与标签目录，移除被删除的筛选标签，同时保留未保存的详情内容。Skill／模板标签独立管理，不提供此全库删除入口。
+
+### tb-prompts-by-tag (ToolBoxPromptsByTag)
+
+按标签批量读取提示词，沿用 random 的语言、媒体、格式、等级、尺寸等筛选项以及标签多选器，多个标签全部匹配，空标签表示不限。五个内容标志默认“否”，不提供 seed。筛选结果按 ID 升序排列，`start_index` 为从 0 开始的起始索引（不是提示词 ID），`limit` 为本次条数，范围 1–100、默认 100。
+
+例如选择“摄影”，`start_index=0, limit=100` 读取前 100 条，`start_index=100` 读取下一批；也可用 `limit=10` 分小批运行。一次队列只读取所指定的批次，不自动递增索引。运行期间若修改库内记录，后续批次的索引会随筛选结果变化，遍历时应保持数据和筛选条件稳定。
+
+`id / prompt / width / height / metadata` 五个输出均为长度一致的 ComfyUI 列表，连接普通生成节点后逐条执行；`total` 是筛选后的匹配总数（标量）。每条 metadata 含对应记录的 ID、SHA-1、尺寸及标签，可连接现有示例保存链路。相同正文的不同记录仍分别输出。节点执行后显示总数、本批条数、索引范围、ID 和完整正文，正文区域可滚动；缓存命中时恢复预览，修改参数或删除库内记录后标记“预览待更新”。
+
+无匹配或索引越界返回五个空列表和实际总数，预览说明原因，不回绕、不修改索引；数据库缺失或结构异常会报错。所有查询与预览均不写入提示词库。仅需要查看批次时可直接执行该节点，不必连接生成模型。
+
+可在 ComfyUI Python 环境运行 `tests/prompt_batch_comfy_integration.py --comfy-root /实际/ComfyUI路径`，用原生执行器验证列表逐条传递、total 广播、缓存预览恢复及修订失效。脚本只使用临时合成数据库和轻量下游节点，不加载生成模型。
 
 ### 提示词生成示例与保存链路
 

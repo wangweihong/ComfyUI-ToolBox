@@ -1,5 +1,6 @@
 import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_sizes.mjs";
 import {createTagField} from "./tag_picker.mjs";
+import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs';
 import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261109-example-delete";
 
 const CATEGORY_LABELS = {
@@ -68,7 +69,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     detail.setAttribute("aria-label", "提示词详情");
     const lifetime = new AbortController();
     let closed = false, dirty = false, saving = false, page = 1, pages = 1, selected = currentId > 0 ? { id: Number(currentId) } : null;
-    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor, examplePanel, exampleManager;
+    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor, examplePanel, exampleManager, tagManager, confirmation;
     let examplesOpen=initialExamples,activeExampleShasum=exampleShasum;
     let using = false;
     let levelMode = "all";
@@ -80,10 +81,11 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     heading.append(element("strong", "", "提示词库"), element("span", "tbp-subtitle", "浏览 · 筛选 · 编辑 · 使用"));
     const confirmDiscard = () => !dirty || window.confirm("有未保存的修改，放弃修改？");
     const close = (force = false) => {
-        if (closed || (!force && !confirmDiscard())) return;
+        if (closed || (!force && (saving || !confirmDiscard()))) return;
         closed = true;
         tagEditor?.destroy();
         examplePanel?.destroy();exampleManager?.close();
+        tagManager?.close();confirmation?.close();
         clearTimeout(searchTimer);
         lifetime.abort(); listingRequest?.abort(); detailRequest?.abort(); tagRequest?.abort();
         detail.close(); detail.remove(); dialog.close(); dialog.remove(); onClose();
@@ -91,6 +93,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     const closeDetail = (force = false) => {
         if (!force && (saving || !confirmDiscard())) return;
         detailRequest?.abort(); detailRequest = null;
+        confirmation?.close();
         tagEditor?.destroy();
         examplePanel?.destroy();
         detail.close(); detail.replaceChildren(); dirty = false;
@@ -146,7 +149,8 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     const tagSearch = element("input"); tagSearch.type = "search";
     tagSearch.placeholder = "搜索标签名称"; tagSearch.setAttribute("aria-label", "搜索标签");
     const clearTags = button("清空已选", () => { selectedTags.clear(); renderTagPicker(); page = 1; loadList(); });
-    tagToolbar.append(tagSearch, clearTags);
+    const manageTags = button('管理提示词标签',()=>{if(!tagManager)tagManager=openPromptTagManager({request,onClose:()=>{tagManager=null;}});});
+    tagToolbar.append(tagSearch, clearTags, manageTags);
     const selectedTagChips = element("div", "tbp-selected-tags");
     selectedTagChips.setAttribute("aria-label", "已选标签");
     const tagStatus = element("p", "tbp-status", "正在加载全部标签…"); tagStatus.setAttribute("role", "status");
@@ -202,7 +206,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
 
     const commonFilters = element("div", "tbp-common-filters");
     for (const [key, [label, choices]] of Object.entries(FILTERS)) field(commonFilters, label, key, choices, "全部");
-    for (const [key, label] of Object.entries(CATEGORY_LABELS)) field(commonFilters, label, key, ["全部", "是", "否"], "全部");
+    for (const [key, label] of Object.entries(CATEGORY_LABELS)) field(commonFilters, label, key, ["全部", "是", "否"], "否");
     filters.append(commonFilters);
     const sizeControls = element("div", "tbp-size-filter");
     const matchSize = field(sizeControls, "匹配宽高", "match_size");
@@ -241,7 +245,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     }
     updateSizeControls(true);
     const reset = button("重置筛选", () => {
-        for (const input of commonFilters.querySelectorAll("select")) input.value = "全部";
+        for (const input of commonFilters.querySelectorAll("select")) input.value = input.name in CATEGORY_LABELS ? "否" : "全部";
         levelMode = "all"; maxLevel.value = "L2"; exactLevels.clear(); exactLevels.add(0); updateLevelControls();
         selectedTags.clear(); tagSearch.value = ""; renderTagPicker();
         q.value = ""; matchSize.checked = false;
@@ -411,7 +415,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         fields.sensitivity_level = field(grid, "敏感等级（手动标注）", "sensitivity_level",
             LEVELS.map((label, level) => [String(level), `L${level}`]), String(selected.sensitivity_level));
         fields.sensitivity_level.title = LEVELS.join("\n");
-        tagEditor=createTagField({parent:grid,value:selected.tags.join(", "),request,allowCreate:true});
+        tagEditor=createTagField({parent:grid,value:selected.tags.join(", "),request,allowCreate:true,managePrompts:true});
         fields.tags=tagEditor.input;
         const editSizes = element("div", "tbp-editor-sizes");
         const initialSize = sizeSelection(selected.width, selected.height);
@@ -464,6 +468,31 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         const actions = element("div", "tbp-actions");
         const save = button(creating ? "保存提示词" : "保存修改", () => editor.requestSubmit(), "tbp-primary");
         const reload = button("重新加载详情", () => loadDetail(selected.id));
+        const remove = button('删除提示词', () => {
+            if (saving) return;
+            const record = selected;
+            confirmation = confirmPromptDeletion({title:'删除提示词',
+                text:`删除提示词 #${record.id}？${dirty ? '当前未保存的修改也将丢弃。' : ''}`,
+                details:`${record.prompt.slice(0,320)}\n\n将删除提示词、标签关联和全部历史示例关联；保留原始图片、视频文件和标签。此操作无法撤销。`,
+                onClose:()=>{confirmation=null;}, onConfirm:async()=>{
+                    if (saving || closed) return;
+                    saving=true; detailRequest?.abort();
+                    const controls=[...editor.querySelectorAll('input,select,textarea,button')].map(control=>({control,disabled:control.disabled}));
+                    controls.forEach(({control})=>{control.disabled=true;});
+                    status.textContent='正在删除…';
+                    try {
+                        await fetchJSON(`/${record.id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:record.version})});
+                        if(closed)return;
+                        dirty=false;closeDetail(true);selected=null;
+                        promptsChanged({deleted_prompt_ids:[record.id]});
+                        listStatus.textContent=`已删除提示词 #${record.id}`;
+                    } catch(error) {
+                        if(!closed)status.textContent=error.status===409?'记录已被修改。当前输入已保留，请重新加载后再删除。':error.message;
+                    } finally {
+                        saving=false;controls.forEach(({control,disabled})=>{control.disabled=disabled;});
+                    }
+                }});
+        },'tbp-danger');
         const use = button("使用此提示词", () => {
             if (closed || saving || using || !confirmDiscard()) return;
             using = true; use.disabled = true;
@@ -480,7 +509,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         use.hidden=!allowUse;
         if (creating) use.title = "请先保存提示词";
         actions.append(save);
-        if (!creating) actions.append(reload);
+        if (!creating) actions.append(reload, remove);
         actions.append(use);
         editor.append(grid, checks, legend, status, actions);
         editor.oninput = () => { dirty = true; status.textContent = "有未保存的修改"; };
@@ -553,6 +582,15 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     detail.addEventListener("cancel", event => { event.preventDefault(); closeDetail(); }, { signal: lifetime.signal });
     detail.addEventListener("click", event => { if (event.target === detail) closeDetail(); }, { signal: lifetime.signal });
     window.addEventListener(EXAMPLES_EVENT,()=>loadList(),{signal:lifetime.signal});
+    window.addEventListener(PROMPTS_EVENT,event=>{
+        for(const name of event.detail?.deleted_tags||[])selectedTags.delete(normalizeTag(name));
+        renderTagPicker();loadTags();loadList();
+        if(detail.open&&selected?.id>0){
+            const notice=detail.querySelector('.tbp-editor [role="status"]');
+            if(notice)notice.textContent=event.detail?.deleted_prompt_ids?.includes(selected.id)
+                ?'该提示词已被删除，当前输入已保留。':'提示词库已更新；当前输入已保留，保存或删除前请重新加载详情。';
+        }
+    },{signal:lifetime.signal});
     document.body.append(dialog, detail); dialog.showModal();
     loadList(); loadTags();
     if(initialExamples&&currentId>0)loadDetail(currentId,true,exampleShasum);

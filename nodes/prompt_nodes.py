@@ -441,7 +441,7 @@ class ToolBoxRandomPrompt:
             },
             "optional": {
                 "sensitivity_level": (LEVEL_FILTERS, {"default": "全部", "tooltip": "最高敏感等级，L2 包含 L0–L2"}),
-                **{key: (BOOLEAN_FILTERS, {"default": "全部"}) for key in CATEGORY_FIELDS},
+                **{key: (BOOLEAN_FILTERS, {"default": "否"}) for key in CATEGORY_FIELDS},
                 "sensitivity_mode": (["max", "exact"], {"default": "max", "tooltip": "max：等级及以下；exact：只匹配 sensitivity_levels 中指定的级别"}),
                 "sensitivity_levels": ("STRING", {"default": "", "tooltip": "exact 模式使用，逗号分隔，如 L1,L3；留空表示不匹配任何级别"}),
             },
@@ -457,8 +457,8 @@ class ToolBoxRandomPrompt:
 
     def random_prompt(
         self, seed, language, media_type, prompt_type, safety, content_format, dynamic,
-        match_size, width, height, tags, sensitivity_level="全部", nsfw="全部",
-        extreme="全部", horror="全部", gore="全部", minor="全部",
+        match_size, width, height, tags, sensitivity_level="全部", nsfw="否",
+        extreme="否", horror="否", gore="否", minor="否",
         sensitivity_mode="max", sensitivity_levels="",
     ):
         with connect_db() as conn:
@@ -488,6 +488,64 @@ class ToolBoxRandomPrompt:
                 raise ValueError("No prompt found for the selected filters.")
 
             return (row["id"], row["prompt"], row["suggested_width"], row["suggested_height"], metadata_json(conn, row))
+
+
+class ToolBoxPromptsByTag:
+    IS_CHANGED = staticmethod(prompt_data_revision)
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        inputs = ToolBoxRandomPrompt.INPUT_TYPES()
+        inputs["required"].pop("seed")
+        inputs["required"].update({
+            "start_index": ("INT", {"default": 0, "min": 0, "max": 2**63 - 1,
+                                     "tooltip": "筛选结果按 ID 升序排列，从 0 开始取值"}),
+            "limit": ("INT", {"default": 100, "min": 1, "max": 100}),
+        })
+        return inputs
+
+    RETURN_TYPES = ("INT", "STRING", "INT", "INT", "STRING", "INT")
+    RETURN_NAMES = ("id", "prompt", "width", "height", "metadata", "total")
+    OUTPUT_IS_LIST = (True, True, True, True, True, False)
+    FUNCTION = "execute_prompt"
+    CATEGORY = "eazy-toolbox/prompt"
+    # Keep this node executable when its outputs are not connected, for preview.
+    OUTPUT_NODE = True
+    HAS_INTERMEDIATE_OUTPUT = True
+
+    def execute_prompt(
+        self, start_index=0, limit=100, language="全部", media_type="全部",
+        prompt_type="全部", safety="全部", content_format="全部", dynamic="全部",
+        match_size=False, width=1024, height=768, tags="", sensitivity_level="全部",
+        nsfw="否", extreme="否", horror="否", gore="否", minor="否",
+        sensitivity_mode="max", sensitivity_levels="",
+    ):
+        if type(start_index) is not int or not 0 <= start_index <= 2**63 - 1:
+            raise ValueError("start_index must be a non-negative integer within SQLite range")
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("limit must be an integer between 1 and 100")
+        filters = dict(
+            language=language, media_type=media_type, prompt_type=prompt_type, safety=safety,
+            content_format=content_format, dynamic=dynamic, match_size=match_size,
+            width=width, height=height, tags=tags, sensitivity_level=sensitivity_level,
+            nsfw=nsfw, extreme=extreme, horror=horror, gore=gore, minor=minor,
+            sensitivity_mode=sensitivity_mode, sensitivity_levels=sensitivity_levels,
+        )
+        where, params = prompt_filter_sql(**filters)
+        clause = " WHERE " + " AND ".join(where) if where else ""
+        with connect_db() as conn:
+            ensure_schema(conn)
+            conn.execute("BEGIN")
+            total = conn.execute("SELECT COUNT(*) FROM prompts p" + clause, params).fetchone()[0]
+            rows = conn.execute("SELECT p.* FROM prompts p" + clause + " ORDER BY p.id LIMIT ? OFFSET ?",
+                                [*params, limit, start_index]).fetchall()
+            result = ([row["id"] for row in rows], [row["prompt"] for row in rows],
+                      [row["suggested_width"] for row in rows], [row["suggested_height"] for row in rows],
+                      [metadata_json(conn, row) for row in rows], total)
+        preview = {"total": total, "start_index": start_index, "count": len(rows),
+                   "inputs": {**filters, "start_index": start_index, "limit": limit},
+                   "items": [{"id": row["id"], "prompt": row["prompt"]} for row in rows]}
+        return {"ui": {"toolbox_prompt_batch": [preview]}, "result": result}
 
 
 class ToolBoxPromptReader:
@@ -727,5 +785,6 @@ NODE_CLASS_MAPPINGS = {
     "ToolBoxRandomPrompt": ToolBoxRandomPrompt,
     "ToolBoxPromptWriter": ToolBoxPromptWriter,
     "ToolBoxPromptReader": ToolBoxPromptReader,
+    "ToolBoxPromptsByTag": ToolBoxPromptsByTag,
     "ToolBoxPromptNSFWDetector": ToolBoxPromptNSFWDetector,
 }

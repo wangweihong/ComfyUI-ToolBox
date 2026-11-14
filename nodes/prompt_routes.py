@@ -65,6 +65,21 @@ def register_routes():
     async def example_list(request):
         return await respond(examples.list_examples, dict(request.query), request.match_info.get("id"))
 
+    async def remove(request):
+        if request.content_type != "application/json":
+            return web.json_response({"error": "请使用 application/json"}, status=415)
+        raw = bytearray()
+        async for chunk in request.content.iter_chunked(16384):
+            raw.extend(chunk)
+            if len(raw) > 16384:
+                return web.json_response({"error": "删除请求过大"}, status=413)
+        def operation():
+            payload = json.loads(raw)
+            if "id" not in request.match_info:
+                return library.delete_tag(payload)
+            return library.delete_prompt(library.positive_int(request.match_info["id"], "id"), payload)
+        return await respond(operation)
+
     async def example_write(request):
         removing = request.method == "DELETE" and "id" in request.match_info
         if removing and not request.can_read_body:
@@ -83,10 +98,12 @@ def register_routes():
 
     instance.routes.get("/toolbox/prompts/options")(options)
     instance.routes.get("/toolbox/prompts/tags")(tags)
+    instance.routes.delete("/toolbox/prompts/tags")(remove)
     instance.routes.get("/toolbox/prompts")(listing)
     instance.routes.post("/toolbox/prompts")(save)
     instance.routes.get("/toolbox/prompts/{id}")(get)
     instance.routes.patch("/toolbox/prompts/{id}")(save)
+    instance.routes.delete("/toolbox/prompts/{id}")(remove)
     instance.routes.get("/toolbox/prompts/{id}/examples")(example_list)
     instance.routes.get("/toolbox/prompt-examples")(example_list)
     instance.routes.post("/toolbox/prompt-examples/register")(example_write)

@@ -1,3 +1,5 @@
+import {PROMPTS_EVENT, openPromptTagManager} from './prompt_actions.mjs';
+
 export function normalizeTag(value) { return String(value).trim().toLowerCase(); }
 export function parseTags(value) { return [...new Set(String(value || "").split(",").map(normalizeTag).filter(Boolean))]; }
 export function newTagName(value) {
@@ -34,12 +36,12 @@ export function ensureTagStyles() {
     css.dataset.toolboxPrompts="true";document.head.append(css);
 }
 
-export function openTagPicker({request,value="",allowCreate=false,title="选择标签",focusNew=false,onApply,onClose=()=>{}}) {
+export function openTagPicker({request,value="",allowCreate=false,managePrompts=false,title="选择标签",focusNew=false,onApply,onClose=()=>{}}) {
     ensureTagStyles();const selected=new Set(parseTags(value));
-    let catalog=[],loaded=false,closed=false,controller;
+    let catalog=[],loaded=false,closed=false,controller,manager;
     const lifetime=new AbortController();
     const dialog=el("dialog",undefined,"tb-prompts tbt-dialog");dialog.setAttribute("aria-label",title);
-    const close=()=>{if(closed)return;closed=true;controller?.abort();lifetime.abort();dialog.close();dialog.remove();onClose();};
+    const close=()=>{if(closed)return;closed=true;controller?.abort();lifetime.abort();manager?.close();dialog.close();dialog.remove();onClose();};
     const header=el("header",undefined,"tbp-header");header.append(el("strong",title),button("关闭",close));
     const body=el("div",undefined,"tbt-body");
     const selectedLabel=el("strong"),chosen=el("div",undefined,"tbp-selected-tags tbt-chosen");chosen.setAttribute("aria-label","已选标签");
@@ -49,6 +51,7 @@ export function openTagPicker({request,value="",allowCreate=false,title="选择�
     const search=el("input");search.type="search";search.setAttribute("aria-label","搜索已有标签");search.placeholder="按名称搜索，点击标签多选";searchLabel.append(search);
     const state=el("p",undefined,"tbp-status");state.setAttribute("role","status");
     const reload=button("刷新标签",()=>load());
+    const manage=button("管理提示词标签",()=>{if(!manager)manager=openPromptTagManager({request,onClose:()=>{manager=null;}});});
     const list=el("div",undefined,"tbp-tag-cloud tbt-options");list.setAttribute("aria-label","已有标签");
     const createArea=el("div",undefined,"tbt-create");
     const addName=el("input");addName.setAttribute("aria-label","新标签名称");addName.placeholder="输入一个新标签名称";
@@ -65,7 +68,9 @@ export function openTagPicker({request,value="",allowCreate=false,title="选择�
     if(allowCreate){createArea.append(el("span","不存在的标签可通过＋新增；此处不会立即写入数据库。","tbp-status"),addName,add,addStatus);}
     const footer=el("footer",undefined,"tbp-actions tbt-footer");
     footer.append(button("取消",close),button("应用",()=>{const result=[...selected].join(", ");close();onApply(result);},"tbp-primary"));
-    body.append(selectedHeader,chosen,searchLabel,reload,state,list,createArea);dialog.append(header,body,footer);
+    body.append(selectedHeader,chosen,searchLabel,reload);
+    if(managePrompts)body.append(manage);
+    body.append(state,list,createArea);dialog.append(header,body,footer);
     function render() {
         selectedLabel.textContent=`已选 ${selected.size} 个标签`;clear.disabled=!selected.size;chosen.replaceChildren();
         const known=new Set(catalog.map(item=>item.name));
@@ -98,11 +103,15 @@ export function openTagPicker({request,value="",allowCreate=false,title="选择�
     addName.onkeydown=event=>{if(event.key==="Enter"){event.preventDefault();add.click();}};
     dialog.addEventListener("cancel",event=>{event.preventDefault();close();},{signal:lifetime.signal});
     dialog.addEventListener("click",event=>{if(event.target===dialog)close();},{signal:lifetime.signal});
+    if(managePrompts)window.addEventListener(PROMPTS_EVENT,event=>{
+        for(const name of event.detail?.deleted_tags||[])selected.delete(normalizeTag(name));
+        load();
+    },{signal:lifetime.signal});
     document.body.append(dialog);render();dialog.showModal();load();if(focusNew&&allowCreate)addName.focus();else search.focus();
     return {dialog,close};
 }
 
-export function createTagField({parent,value="",request,allowCreate=true,label="标签",hint,onChange=()=>{}}) {
+export function createTagField({parent,value="",request,allowCreate=true,managePrompts=false,label="标签",hint,onChange=()=>{}}) {
     ensureTagStyles();let picker=null,destroyed=false;
     const container=el("div",undefined,"tbp-field tbt-field");container.append(el("span",label));
     const input=el("input");input.type="hidden";input.name="tags";input.value=value;
@@ -110,7 +119,7 @@ export function createTagField({parent,value="",request,allowCreate=true,label="
     const controls=el("div",undefined,"tbt-field-actions");
     const launch=focusNew=>{
         if(picker||destroyed||choose.disabled)return;
-        picker=openTagPicker({request,value:input.value,allowCreate,title:allowCreate?"选择或新增标签":"选择筛选标签",focusNew,
+        picker=openTagPicker({request,value:input.value,allowCreate,managePrompts,title:allowCreate?"选择或新增标签":"选择筛选标签",focusNew,
             onApply:next=>{if(next===input.value)return;input.value=next;render();onChange(next);input.dispatchEvent(new Event("input",{bubbles:true}));},
             onClose:()=>{picker=null;if(choose.isConnected&&!choose.disabled)choose.focus();}});
     };
@@ -135,7 +144,7 @@ export function attachNodeTags(node,app,api,{allowCreate=false}={}) {
     const controls=el("div",undefined,"tb-tag-node");
     const hiddenSize=()=>[0,-4];
     const hint=allowCreate?"新标签在节点执行写入时入库":"多个标签全部匹配；不选表示不限";
-    const field=createTagField({parent:controls,value:widget.value,allowCreate,hint,request:(path,options)=>api.fetchApi(`/toolbox/prompts${path}`,options),
+    const field=createTagField({parent:controls,value:widget.value,allowCreate,managePrompts:true,hint,request:(path,options)=>api.fetchApi(`/toolbox/prompts${path}`,options),
         onChange:value=>{app.graph?.beforeChange?.();widget.value=value;widget.callback?.(value);app.graph?.afterChange?.();app.graph?.change?.();node.setDirtyCanvas?.(true,true);refresh();}});
     function refresh(){
         const slot=node.inputs?.find(input=>input.name==="tags"),linked=slot?.link!=null;

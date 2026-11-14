@@ -30,8 +30,14 @@ async function pageFor(t, viewport = { width: 1440, height: 1000 }) {
     await page.goto(base);
     await page.waitForFunction(() => Boolean(window.attachTestNode));
     await page.locator("#open").click();
+    await allCategories(page);
     await page.waitForFunction(() => document.querySelectorAll(".tbp-card").length === 50);
     return page;
+}
+
+async function allCategories(page) {
+    for(const name of ['nsfw','extreme','horror','gore','minor'])
+        await page.locator(`.tbp-filters [name="${name}"]`).selectOption('全部');
 }
 
 async function chooseTags(page,host,csv) {
@@ -58,6 +64,7 @@ test("pagination, upper level, tags, category conjunction and literal rendering"
     await page.waitForFunction(() => document.querySelector(".tbp-result-heading strong").textContent.startsWith("26 "));
     assert.ok((await page.locator(".tbp-level").allTextContents()).every(text => ["L0", "L1"].includes(text)));
     await page.getByRole("button", { name: "重置筛选", exact: true }).click();
+    await allCategories(page);
     await page.locator('.tbp-tag-option[data-tag="landscape"]').click();
     await page.locator('.tbp-tag-option[data-tag="night"]').click();
     await page.waitForFunction(() => document.querySelector(".tbp-result-heading strong").textContent.startsWith("32 "));
@@ -112,6 +119,7 @@ test("node adapter backfills ID, marks graph changed, closes on node removal and
     await page.evaluate(() => window.attachTestNode());
     const open = page.getByRole("button", { name: "浏览提示词库 · 筛选 / 详情 / 编辑" });
     await open.click();
+    await allCategories(page);
     await page.locator('.tbp-filters [name="q"]').fill("Synthetic prompt 000");
     await page.waitForFunction(() => document.querySelectorAll(".tbp-card").length === 1);
     await page.locator(".tbp-card").click();
@@ -133,6 +141,7 @@ test("two browsers keep separate selections and clean up their detail dialogs", 
     const original = await page.locator('.tbp-card[aria-pressed="true"]').getAttribute("data-id");
     await page.getByRole("button", { name: "返回列表", exact: true }).click();
     await page.evaluate(() => document.querySelector("#second").click());
+    await allCategories(page.locator('dialog:not(.tbp-detail-dialog)').nth(1));
     await page.waitForFunction(() => document.querySelectorAll("dialog:not(.tbp-detail-dialog)").length === 2 && document.querySelectorAll("dialog:not(.tbp-detail-dialog)")[1].querySelectorAll(".tbp-card").length === 50);
     const second = page.locator("dialog:not(.tbp-detail-dialog)").nth(1);
     const secondId = Number(await second.locator(".tbp-card").nth(5).getAttribute("data-id"));
@@ -144,6 +153,170 @@ test("two browsers keep separate selections and clean up their detail dialogs", 
     assert.equal(await page.locator('.tbp-card[aria-pressed="true"]').getAttribute("data-id"), original);
     await page.getByRole("button", { name: "关闭", exact: true }).click();
     assert.equal(await page.locator("dialog").count(), 0);
+});
+
+test('initial and reset category filters exclude all five flags', async t => {
+    const page = await browser.newPage(); t.after(() => page.close());
+    await page.goto(base); await page.locator('#open').click();
+    await page.locator('.tbp-card').first().waitFor();
+    for (const name of ['nsfw','extreme','horror','gore','minor']) {
+        assert.equal(await page.locator(`.tbp-filters [name="${name}"]`).inputValue(), '否');
+    }
+    const ids = await page.locator('.tbp-card').evaluateAll(cards => cards.map(card => card.dataset.id));
+    for (const id of ids) {
+        const row = await (await page.request.get(`${base}/toolbox/prompts/${id}`)).json();
+        assert.ok(['nsfw','extreme','horror','gore','minor'].every(key => !row[key]));
+    }
+    await allCategories(page);
+    await page.getByRole('button', {name:'重置筛选',exact:true}).click();
+    for (const name of ['nsfw','extreme','horror','gore','minor']) {
+        assert.equal(await page.locator(`.tbp-filters [name="${name}"]`).inputValue(), '否');
+    }
+});
+
+async function createSynthetic(page, text, tags) {
+    const payload = {prompt:text,tags,language:'zh',media_type:'image',prompt_type:'natural',
+        content_format:'plaintext',dynamic:false,width:1024,height:768,sensitivity_level:0,
+        nsfw:false,extreme:false,horror:false,gore:false,minor:false};
+    const response = await page.request.post(`${base}/toolbox/prompts`, {data:payload});
+    assert.equal(response.status(), 201);
+    return response.json();
+}
+
+async function removeSynthetic(id) {
+    const response=await fetch(`${base}/toolbox/prompts/${id}`);
+    if(!response.ok)return;
+    const row=await response.json();
+    await fetch(`${base}/toolbox/prompts/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:row.version})});
+}
+
+test('prompt deletion cancels, preserves dirty input on conflict, then removes the reloaded record', async t => {
+    const page = await pageFor(t);
+    const row = await createSynthetic(page, 'Synthetic delete UI case', 'delete-ui-tag');
+    await page.locator('.tbp-filters [name="q"]').fill(row.prompt);
+    await page.locator(`.tbp-card[data-id="${row.id}"]`).click();
+    const detail = page.locator('.tbp-detail-dialog[open]');
+    await detail.getByRole('button',{name:'删除提示词',exact:true}).click();
+    const confirmation = page.getByRole('dialog',{name:'删除提示词',exact:true});
+    assert.match(await confirmation.textContent(), /历史示例关联/);
+    await page.screenshot({path:'/tmp/toolbox-prompt-delete-confirm.png'});
+    await page.keyboard.press('Escape');
+    assert.equal((await page.request.get(`${base}/toolbox/prompts/${row.id}`)).status(), 200);
+    const payload = Object.fromEntries(['prompt','tags','language','media_type','prompt_type','content_format','dynamic',
+        'width','height','sensitivity_level','nsfw','extreme','horror','gore','minor','version'].map(key=>[key,row[key]]));
+    payload.tags = row.tags.join(','); payload.prompt = 'Synthetic delete UI externally updated';
+    assert.equal((await page.request.patch(`${base}/toolbox/prompts/${row.id}`,{data:payload})).status(), 200);
+    await detail.locator('textarea').fill('unsaved text to keep');
+    await detail.getByRole('button',{name:'删除提示词',exact:true}).click();
+    await confirmation.getByRole('button',{name:'确认删除',exact:true}).click();
+    await detail.getByRole('status').filter({hasText:/记录已被修改/}).waitFor();
+    assert.equal(await detail.locator('textarea').inputValue(), 'unsaved text to keep');
+    await detail.getByRole('button',{name:'重新加载详情',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-editor textarea').value==='Synthetic delete UI externally updated');
+    await detail.getByRole('button',{name:'删除提示词',exact:true}).click();
+    await confirmation.getByRole('button',{name:'确认删除',exact:true}).click();
+    await detail.waitFor({state:'hidden'});
+    assert.equal((await page.request.get(`${base}/toolbox/prompts/${row.id}`)).status(), 404);
+    const tags = await (await page.request.get(`${base}/toolbox/prompts/tags?q=delete-ui-tag`)).json();
+    assert.equal(tags.counts['delete-ui-tag'], 0);
+});
+
+test('tag manager cancels safely, deletes globally, clears filters and retains unsaved editing', async t => {
+    const page = await pageFor(t);
+    const row = await createSynthetic(page, 'Synthetic global tag case', 'delete-global-tag');
+    t.after(()=>removeSynthetic(row.id));
+    await page.locator('.tbp-filters [name="q"]').fill(row.prompt);
+    await page.locator(`.tbp-card[data-id="${row.id}"]`).click();
+    const detail = page.locator('.tbp-detail-dialog[open]');
+    await detail.locator('textarea').fill('unsaved global tag text');
+    await detail.getByRole('button',{name:'选择标签',exact:true}).click();
+    const picker = page.locator('.tbt-dialog:not(.tbp-tag-manager)');
+    await picker.getByRole('button',{name:'管理提示词标签',exact:true}).click();
+    const manager = page.getByRole('dialog',{name:'管理提示词标签',exact:true});
+    await manager.getByRole('searchbox').fill('delete-global-tag');
+    await manager.locator('.tbp-tag-manager-row').waitFor();
+    await page.screenshot({path:'/tmp/toolbox-prompt-tag-manager.png'});
+    await manager.getByRole('button',{name:'删除标签',exact:true}).click();
+    const confirmation = page.getByRole('dialog',{name:'删除标签',exact:true});
+    await confirmation.getByRole('button',{name:'取消操作',exact:true}).click();
+    assert.deepEqual((await (await page.request.get(`${base}/toolbox/prompts/${row.id}`)).json()).tags,['delete-global-tag']);
+    await manager.getByRole('button',{name:'删除标签',exact:true}).click();
+    await confirmation.getByRole('button',{name:'确认删除',exact:true}).click();
+    await manager.getByRole('status').filter({hasText:/解除 1 条关联/}).waitFor();
+    await manager.getByRole('button',{name:'关闭',exact:true}).click();
+    await picker.getByRole('button',{name:'取消',exact:true}).click();
+    assert.equal(await detail.locator('textarea').inputValue(), 'unsaved global tag text');
+    assert.deepEqual((await (await page.request.get(`${base}/toolbox/prompts/${row.id}`)).json()).tags,[]);
+    await detail.getByRole('button',{name:'返回列表',exact:true}).click();
+    await page.getByRole('button',{name:'管理提示词标签',exact:true}).click();
+    await manager.getByRole('searchbox').fill('delete-global-tag');
+    assert.equal(await manager.locator('.tbp-tag-manager-row').count(), 0);
+});
+
+test('batch preview renders list outputs literally, restores cached UI, marks changed inputs and cleans up', async t => {
+    const page = await browser.newPage(); t.after(() => page.close());
+    const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base); await page.waitForFunction(()=>Boolean(window.attachBatchTestNode));
+    const row=await createSynthetic(page,'Batch preview <script>not executable</script>\nfull text','batch-ui-tag');
+    t.after(()=>removeSynthetic(row.id));
+    await page.evaluate(()=>window.attachBatchTestNode());
+    await page.evaluate(()=>{window.batchNode.widgets.find(w=>w.name==='tags').value='batch-ui-tag';});
+    const result=await page.evaluate(()=>window.runBatch());
+    assert.deepEqual(result.result[0],[row.id]);assert.equal(result.result[5],1);
+    const preview=page.locator('.tbp-batch-preview');
+    assert.match(await preview.textContent(),/匹配 1 条.*本批 1 条/);
+    assert.equal(await preview.locator('pre').textContent(),row.prompt);
+    assert.equal(await preview.locator('script').count(),0);
+    await preview.screenshot({path:'/tmp/toolbox-prompt-batch-preview.png'});
+    await page.evaluate(()=>{window.batchNode.widgets.find(w=>w.name==='limit').value=1;window.batchNode.onDrawForeground();});
+    assert.match(await preview.textContent(),/预览待更新/);
+    await page.evaluate(()=>window.batchNode.onExecuted(window.batchResult.ui));
+    assert.match(await preview.textContent(),/预览待更新/);
+    await page.evaluate(()=>{window.batchNode.widgets.find(w=>w.name==='limit').value=100;window.batchNode.onExecuted(window.batchResult.ui);});
+    assert.match(await preview.textContent(),/匹配 1 条/);
+    await page.evaluate(()=>{window.batchNode.widgets.find(w=>w.name==='start_index').value=1;});
+    const empty=await page.evaluate(()=>window.runBatch());
+    assert.deepEqual(empty.result.slice(0,5),[[],[],[],[],[]]);
+    assert.match(await preview.textContent(),/越界/);
+    await page.evaluate(()=>{window.batchNode.widgets.find(w=>w.name==='tags').value='unknown-batch-tag';});
+    await page.evaluate(()=>window.runBatch());assert.match(await preview.textContent(),/没有匹配/);
+    await page.evaluate(()=>{
+        window.batchNode.widgets.find(w=>w.name==='tags').value='landscape';
+        window.batchNode.widgets.find(w=>w.name==='start_index').value=0;
+    });
+    await page.evaluate(()=>window.runBatch());
+    assert.ok(await preview.locator('.tbp-batch-items').evaluate(element=>element.scrollHeight>element.clientHeight));
+    await page.getByRole('button',{name:'选择标签',exact:true}).click();
+    await page.locator('.tbt-dialog').waitFor();
+    await page.evaluate(()=>window.batchNode.onRemoved());
+    assert.equal(await page.locator('dialog').count(),0);
+    assert.deepEqual(errors,[]);
+});
+
+test('global tag deletion updates other open browsers without replacing their dirty form', async t => {
+    const page = await browser.newPage(); t.after(()=>page.close());
+    page.on('dialog', dialog=>dialog.accept());
+    await page.goto(base);
+    const row=await createSynthetic(page,'Synthetic two-window tag case','cross-window-tag');
+    t.after(()=>removeSynthetic(row.id));
+    await page.locator('#open').click();
+    const first=page.getByRole('dialog',{name:'提示词库',exact:true}).first();
+    await first.locator('.tbp-tag-option[data-tag="cross-window-tag"]').click();
+    await first.locator(`.tbp-card[data-id="${row.id}"]`).click();
+    const firstDetail=page.getByRole('dialog',{name:'提示词详情',exact:true}).first();
+    await firstDetail.locator('textarea').fill('keep this cross-window draft');
+    await page.evaluate(()=>document.querySelector('#second').click());
+    const second=page.getByRole('dialog',{name:'提示词库',exact:true}).nth(1);
+    await second.getByRole('button',{name:'管理提示词标签',exact:true}).click();
+    const manager=page.getByRole('dialog',{name:'管理提示词标签',exact:true});
+    await manager.getByRole('searchbox').fill('cross-window-tag');
+    await manager.getByRole('button',{name:'删除标签',exact:true}).click();
+    await page.getByRole('dialog',{name:'删除标签',exact:true}).getByRole('button',{name:'确认删除',exact:true}).click();
+    await manager.getByRole('status').filter({hasText:/解除 1 条关联/}).waitFor();
+    assert.equal(await first.locator('.tbp-selected-tag').count(),0);
+    assert.equal(await firstDetail.locator('textarea').inputValue(),'keep this cross-window draft');
+    assert.match(await firstDetail.locator('.tbp-editor [role="status"]').textContent(),/当前输入已保留/);
+    assert.equal(await first.locator('.tbp-tag-option[data-tag="cross-window-tag"]').count(),0);
 });
 
 test("list errors are visible and retry recovers; desktop screenshot", async t => {
@@ -229,7 +402,7 @@ test("specific levels toggle independently, tag search preserves selections and 
     await page.getByRole("button", {name:"重置筛选",exact:true}).click();
     assert.equal(await page.locator(".tbp-selected-tag").count(), 0);
     assert.equal(await page.getByRole("button", {name:"不限",exact:true}).getAttribute("aria-pressed"), "true");
-    await page.waitForFunction(() => document.querySelectorAll(".tbp-card").length === 50);
+    await page.waitForFunction(() => document.querySelectorAll(".tbp-card").length > 0);
     assert.ok(await page.locator(".tbp-language").count() > 0);
     assert.ok(await page.locator(".tbp-media").count() > 0);
     assert.ok(await page.locator(".tbp-prompt-tag").count() > 0);

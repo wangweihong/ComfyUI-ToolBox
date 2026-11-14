@@ -1,4 +1,5 @@
 import {ensureTagStyles} from './tag_picker.mjs';
+import {PROMPTS_EVENT} from './prompt_actions.mjs';
 
 const STATUS={available:'有效',missing:'文件不存在',unavailable:'暂不可访问',changed:'文件已变化'};
 function el(tag,text,className=''){const node=document.createElement(tag);node.className=className;if(text!==undefined)node.textContent=text;return node;}
@@ -153,6 +154,18 @@ export function createExamplesPanel({parent,record=null,initialShasum=null,reque
     async function run(ids,mode){if(!ids.length){message.textContent='请先选择记录。';return;}await action(()=>batches(ids,mode));}
     version.onchange=statusFilter.onchange=()=>{page=1;load();};
     window.addEventListener(EXAMPLES_EVENT,event=>{if(!root.hidden&&!busy&&(!record||!event.detail?.prompt_ids?.length||event.detail.prompt_ids.includes(record.id)))load();},{signal:lifetime.signal});
+    window.addEventListener(PROMPTS_EVENT,event=>{
+        const deleted=event.detail?.deleted_prompt_ids||[];
+        if(!deleted.length||busy)return;
+        if(!record){selected.clear();load();}
+        else if(deleted.includes(record.id)){
+            loadController?.abort();selected.clear();
+            for(const media of cards.querySelectorAll('video'))media.pause();
+            cards.replaceChildren();summary.textContent='0 个示例素材';
+            message.textContent=`提示词 #${record.id} 已删除，全部示例关联已清理，原始素材文件保留。`;
+            for(const control of root.querySelectorAll('button,input,select'))control.disabled=true;
+        }
+    },{signal:lifetime.signal});
     return {container:root,load,destroy:()=>{closed=true;stopping=true;confirmation?.close();loadController?.abort();lifetime.abort();for(const media of root.querySelectorAll('video')){media.pause();media.removeAttribute('src');media.load();}}};
 }
 
@@ -194,6 +207,11 @@ export function attachExampleCounter(node,app,api,{reader=false,openBrowser}){
     if(display){display.serialize=false;display.serializeValue=()=>undefined;}
     const removed=node.onRemoved;node.onRemoved=function(){closed=true;lifetime.abort();controller?.abort();browser?.close();return removed?.apply(this,arguments);};
     window.addEventListener(EXAMPLES_EVENT,event=>{if(source&&(!event.detail?.prompt_ids?.length||event.detail.prompt_ids.includes(source.id)))load();},{signal:lifetime.signal});
+    window.addEventListener(PROMPTS_EVENT,event=>{
+        if(source&&event.detail?.deleted_prompt_ids?.includes(source.id)){
+            controller?.abort();label.textContent=`提示词 #${source.id} 已删除 · 示例关联已清理`;view.disabled=true;
+        }
+    },{signal:lifetime.signal});
     refresh();node.setSize([Math.max(node.size?.[0]||0,350),Math.max(node.size?.[1]||0,node.computeSize?.()[1]||180)]);
 }
 

@@ -112,6 +112,30 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.post("/toolbox/prompts", json={**payload, "prompt": " "})).status, 400)
         self.assertEqual((await self.client.post("/toolbox/prompts", data="x")).status, 415)
 
+    async def test_delete_prompt_and_tag_routes_validate_and_report_conflicts(self):
+        row = library.detail(1)
+        for path in ('/toolbox/prompts/1', '/toolbox/prompts/tags'):
+            self.assertEqual((await self.client.delete(path, data='x')).status, 415)
+            self.assertEqual((await self.client.delete(path, json={})).status, 400)
+            self.assertEqual((await self.client.delete(path, data='{', headers={'Content-Type':'application/json'})).status, 400)
+            self.assertEqual((await self.client.delete(path, data=b'x' * 16385, headers={'Content-Type':'application/json'})).status, 413)
+        deleted = await self.client.delete('/toolbox/prompts/tags', json={'name':'night'})
+        self.assertEqual(deleted.status, 200)
+        self.assertEqual(await deleted.json(), {'deleted':['night'], 'affected_count':1})
+        self.assertEqual((await self.client.delete('/toolbox/prompts/tags', json={'name':'night'})).status, 404)
+        self.assertEqual((await self.client.delete('/toolbox/prompts/1', json={'version':row['version']})).status, 409)
+        fresh = library.detail(1)
+        self.assertEqual(fresh['tags'], [])
+        response = await self.client.delete('/toolbox/prompts/1', json={'version':fresh['version']})
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+        self.assertEqual(await response.json(), {'deleted':[1]})
+        self.assertEqual((await self.client.get('/toolbox/prompts/1')).status, 404)
+        self.assertEqual((await self.client.delete('/toolbox/prompts/1', json={'version':fresh['version']})).status, 404)
+        self.assertEqual((await self.client.delete('/toolbox/prompts/bad', json={'version':fresh['version']})).status, 400)
+        with patch.object(library, 'delete_tag', side_effect=OSError('unavailable')):
+            self.assertEqual((await self.client.delete('/toolbox/prompts/tags', json={'name':'x'})).status, 503)
+
 
 if __name__ == "__main__":
     unittest.main()

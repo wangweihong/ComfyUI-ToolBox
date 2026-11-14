@@ -57,7 +57,8 @@ class PromptLibraryTest(unittest.TestCase):
 
     def random(self, **changes):
         values = dict(seed=0, language="全部", media_type="全部", prompt_type="全部", safety="全部",
-                      content_format="全部", dynamic="全部", match_size=False, width=1024, height=768, tags="")
+                      content_format="全部", dynamic="全部", match_size=False, width=1024, height=768, tags="",
+                      nsfw="全部", extreme="全部", horror="全部", gore="全部", minor="全部")
         values.update(changes)
         return prompts.ToolBoxRandomPrompt().random_prompt(**values)
 

@@ -50,6 +50,8 @@ async def fixture_page(_request):
         <script type="module">
         import {openPromptBrowser,attachPromptReader} from '/web/js/prompt_browser.mjs';
         import {createPromptLibraryToolbar} from '/web/js/prompt_toolbar.mjs';
+        import {attachPromptBatchPreview} from '/web/js/prompt_batch.mjs';
+        import {attachNodeTags} from '/web/js/tag_picker.mjs';
         const graph={nodes:[],beforeChange(){},afterChange(){},
             add(node){node.graph=this;this.nodes.push(node);},remove(node){this.nodes=this.nodes.filter(item=>item!==node);node.graph=null;},
             change(){document.querySelector('#toolbar-result').textContent=JSON.stringify(this.nodes.map(node=>({id:node.widgets[0].value,title:node.title,pos:node.pos})));}};
@@ -75,7 +77,25 @@ async def fixture_page(_request):
                 {fetchApi:(path,options)=>fetch(path,options)});
             window.testNode=node;
         };
+        window.attachBatchTestNode = () => {
+            const node={widgets:Object.entries({tags:'landscape',start_index:0,limit:100,
+                    nsfw:'否',extreme:'否',horror:'否',gore:'否',minor:'否'}).map(([name,value])=>({name,value,type:'text'})),
+                inputs:[],size:[400,400],setDirtyCanvas(){},setSize(){},
+                addDOMWidget(name,type,content,options){content.style.width='400px';content.style.height=`${options.getMinHeight()}px`;document.body.append(content);return {name,options};}};
+            attachPromptBatchPreview(node);
+            attachNodeTags(node,{graph:{}},{fetchApi:(path,options)=>fetch(path,options)});
+            window.batchNode=node;
+            window.runBatch=async()=>{
+                const data=await (await fetch('/batch-preview',{method:'POST',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify(Object.fromEntries(node.widgets.map(widget=>[widget.name,widget.value])))})).json();
+                window.batchResult=data;node.onExecuted(data.ui);return data;
+            };
+        };
         </script></body></html>""")
+
+
+async def batch_preview(request):
+    return web.json_response(prompts.ToolBoxPromptsByTag().execute_prompt(**await request.json()))
 
 
 def main():
@@ -87,6 +107,7 @@ def main():
         seed_records()
         app = create_app()
         app.router.add_get("/", fixture_page)
+        app.router.add_post('/batch-preview', batch_preview)
         app.router.add_static("/web", ROOT / "web")
         web.run_app(app, host="127.0.0.1", port=args.port)
 
