@@ -1,7 +1,7 @@
 import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_sizes.mjs";
-import {createTagField} from "./tag_picker.mjs";
-import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs';
-import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261109-example-delete";
+import {createTagField} from "./tag_picker.mjs?v=20261114-prompt-library-management";
+import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs?v=20261114-prompt-library-management';
+import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261114-prompt-library-management";
 
 const CATEGORY_LABELS = {
     nsfw: "NSFW", extreme: "重口味", horror: "恐怖", gore: "血腥", minor: "未成年",
@@ -59,7 +59,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     if (!document.querySelector("link[data-toolbox-prompts]")) {
         const css = element("link");
         css.rel = "stylesheet";
-        css.href = new URL("../css/prompt_reader.css", import.meta.url).href;
+        css.href = new URL("../css/prompt_reader.css?v=20261114-prompt-library-management", import.meta.url).href;
         css.dataset.toolboxPrompts = "true";
         document.head.append(css);
     }

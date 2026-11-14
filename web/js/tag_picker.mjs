@@ -1,4 +1,4 @@
-import {PROMPTS_EVENT, openPromptTagManager} from './prompt_actions.mjs';
+import {PROMPTS_EVENT, openPromptTagManager} from './prompt_actions.mjs?v=20261114-prompt-library-management';
 
 export function normalizeTag(value) { return String(value).trim().toLowerCase(); }
 export function parseTags(value) { return [...new Set(String(value || "").split(",").map(normalizeTag).filter(Boolean))]; }
@@ -32,7 +32,7 @@ function button(text,callback,className="") {
 }
 export function ensureTagStyles() {
     if(document.querySelector('link[data-toolbox-prompts]'))return;
-    const css=el("link");css.rel="stylesheet";css.href=new URL("../css/prompt_reader.css",import.meta.url).href;
+    const css=el("link");css.rel="stylesheet";css.href=new URL("../css/prompt_reader.css?v=20261114-prompt-library-management",import.meta.url).href;
     css.dataset.toolboxPrompts="true";document.head.append(css);
 }
 

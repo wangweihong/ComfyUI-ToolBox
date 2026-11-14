@@ -1,5 +1,5 @@
 import {app} from '../../../scripts/app.js';
-import {attachPromptBatchPreview} from './prompt_batch.mjs';
+import {attachPromptBatchPreview} from './prompt_batch.mjs?v=20261114-prompt-library-management';
 
 app.registerExtension({
     name:'eazy.toolbox.prompt_batch',

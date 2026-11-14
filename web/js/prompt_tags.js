@@ -1,7 +1,7 @@
 import {app} from "../../../scripts/app.js";
 import {api} from "../../../scripts/api.js";
-import {attachNodeTags} from "./tag_picker.mjs";
-import {PROMPTS_EVENT} from "./prompt_actions.mjs";
+import {attachNodeTags} from "./tag_picker.mjs?v=20261114-prompt-library-management";
+import {PROMPTS_EVENT} from "./prompt_actions.mjs?v=20261114-prompt-library-management";
 
 app.registerExtension({
     name:"eazy.toolbox.prompt_tags",

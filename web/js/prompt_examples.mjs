@@ -1,5 +1,5 @@
-import {ensureTagStyles} from './tag_picker.mjs';
-import {PROMPTS_EVENT} from './prompt_actions.mjs';
+import {ensureTagStyles} from './tag_picker.mjs?v=20261114-prompt-library-management';
+import {PROMPTS_EVENT} from './prompt_actions.mjs?v=20261114-prompt-library-management';
 
 const STATUS={available:'有效',missing:'文件不存在',unavailable:'暂不可访问',changed:'文件已变化'};
 function el(tag,text,className=''){const node=document.createElement(tag);node.className=className;if(text!==undefined)node.textContent=text;return node;}
