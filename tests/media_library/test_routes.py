@@ -12,7 +12,7 @@ from support import register_routes
 
 @pytest.fixture
 async def client(lib):
-    app=web.Application();routes=web.RouteTableDef();register_routes(routes,lambda:lib);app.add_routes(routes)
+    app=web.Application();routes=web.RouteTableDef();register_routes(routes,lambda:lib,app=app);app.add_routes(routes)
     async with TestClient(TestServer(app)) as client: yield client
 
 async def test_routes_select_and_range(client,lib):
@@ -123,3 +123,23 @@ async def test_rename_validation_and_database_errors_are_reported(client,lib):
     with patch.object(lib,'rename_folder',side_effect=sqlite3.OperationalError('database is locked')):
         response=await client.post('/toolbox/media-library/folders/rename',json={'path':str(source),'name':'after'})
     assert response.status==503 and 'database is locked' in (await response.json())['error']
+
+async def test_directory_history_records_successful_visits_and_prunes_missing(client,lib):
+    root=Path(lib.roots()[0]['path']);folder=root/'deep';folder.mkdir()
+    assert (await(await client.get('/toolbox/media-library/folder-visits')).json())['items']==[]
+    response=await client.post('/toolbox/media-library/folder-visits',json={'path':str(folder),'root_id':lib.roots()[0]['id']})
+    assert response.status==200 and (await response.json())['items'][0]['path']==str(folder)
+    folder.rmdir()
+    response=await client.get('/toolbox/media-library/folder-visits');assert (await response.json())['items'][0]['available'] is False
+    response=await client.post('/toolbox/media-library/folder-visits/prune',json={});assert (await response.json())['items']==[]
+    await client.post('/toolbox/media-library/folder-visits',json={'path':str(root)})
+    response=await client.delete('/toolbox/media-library/folder-visits',json={});assert (await response.json())['items']==[]
+
+async def test_regeneration_refuses_incomplete_metadata_and_cross_origin(client,lib):
+    root=Path(lib.roots()[0]['path']);path=root/'no-metadata.png';Image.new('RGB',(16,16),'red').save(path);asset=lib.upsert(path)
+    response=await client.get('/toolbox/media-library/regenerations/options',params={'id':asset})
+    result=await response.json();assert result['available'] is False and 'API' in result['reason']
+    response=await client.post('/toolbox/media-library/regenerations/submit',json={'token':'invalid'},headers={'Origin':'https://other.example'})
+    assert response.status==400
+    response=await client.post('/toolbox/media-library/regenerations/prepare',json={'id':asset,'output_node':'save'})
+    assert response.status==400

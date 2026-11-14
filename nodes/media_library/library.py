@@ -50,6 +50,10 @@ class Library:
           CREATE INDEX IF NOT EXISTS media_files_root ON media_files(root_id,missing);
           CREATE INDEX IF NOT EXISTS media_files_sort ON media_files(mtime_ns);
           CREATE TABLE IF NOT EXISTS media_recents(file_id TEXT PRIMARY KEY, used_at INTEGER);
+          CREATE TABLE IF NOT EXISTS media_folder_visits(path TEXT PRIMARY KEY, root_id TEXT NOT NULL, visited_at INTEGER NOT NULL);
+          CREATE TABLE IF NOT EXISTS media_regenerations(id TEXT PRIMARY KEY, source_id TEXT NOT NULL,
+            status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+            details TEXT NOT NULL, outputs TEXT NOT NULL DEFAULT '[]', error TEXT NOT NULL DEFAULT '');
             '''.split(';'):
                 if statement.strip():
                     db.execute(statement)
@@ -97,6 +101,7 @@ class Library:
             row = db.execute('SELECT * FROM media_roots WHERE id=?', (root_id,)).fetchone()
             if not row or row['builtin']: raise LibraryError('默认目录不能移除')
             db.execute('DELETE FROM media_roots WHERE id=?', (root_id,))
+            db.execute('DELETE FROM media_folder_visits WHERE root_id=?', (root_id,))
             db.execute('UPDATE media_files SET missing=1 WHERE root_id=?', (root_id,))
             self.revision += 1
 
@@ -105,6 +110,40 @@ class Library:
         return (p == self.cache or p.is_relative_to(self.cache) or
                 p.parent == self.db_path.parent and
                 p.name in {self.db_path.name + suffix for suffix in ('', '-wal', '-shm', '-journal')})
+
+    def folder_visits(self):
+        with self.lock:
+            rows = [dict(row) for row in self.db.execute('SELECT * FROM media_folder_visits ORDER BY visited_at DESC,path LIMIT 20')]
+        roots = {root['id']: root for root in self.roots()}
+        for row in rows:
+            row.update(name=Path(row['path']).name or row['path'], available=False, error='')
+            try:
+                path, fallback = self.check_path(row['path'])
+                if not path.is_dir(): raise LibraryError('目录不存在或未挂载')
+                root = roots.get(row['root_id'])
+                if root is None or not path.is_relative_to(Path(root['path'])): row['root_id'] = fallback['id']
+                row['available'] = True
+            except (LibraryError, OSError) as exc:
+                row['error'] = str(exc)
+        return rows
+
+    def visit_folder(self, path, root_id=''):
+        with self.operations_lock:
+            directory, root = self.check_path(path)
+            if not directory.is_dir(): raise LibraryError('请选择目录')
+            selected = next((item for item in self.roots() if item['id'] == root_id), None)
+            if selected and directory.is_relative_to(Path(selected['path'])): root = selected
+            with self.transaction() as db:
+                db.execute('INSERT INTO media_folder_visits VALUES(?,?,?) ON CONFLICT(path) DO UPDATE SET root_id=excluded.root_id,visited_at=excluded.visited_at',
+                           (str(directory), root['id'], time.time_ns()))
+                db.execute('DELETE FROM media_folder_visits WHERE path NOT IN (SELECT path FROM media_folder_visits ORDER BY visited_at DESC,path LIMIT 20)')
+        return self.folder_visits()
+
+    def prune_folder_visits(self):
+        invalid = [(row['path'], row['visited_at']) for row in self.folder_visits() if not row['available']]
+        with self.transaction() as db:
+            db.executemany('DELETE FROM media_folder_visits WHERE path=? AND visited_at=?', invalid)
+        return self.folder_visits()
 
     def check_path(self, path, *, must_exist=True):
         p = Path(os.path.abspath(os.path.expanduser(str(path))))
@@ -319,6 +358,17 @@ class Library:
                             db.execute('UPDATE media_files SET missing=1 WHERE path=? AND id!=?', (str(new_path), row['id']))
                         db.execute('UPDATE media_files SET path=?,root_id=?,signature=NULL,search_text=? WHERE id=?',
                                    (str(new_path), root['id'], self.search_text(new_path, json.loads(row['metadata'])), row['id']))
+                    visits = {}
+                    for row in db.execute('SELECT * FROM media_folder_visits').fetchall():
+                        visit = dict(row)
+                        old_path = Path(visit['path'])
+                        if old_path.is_relative_to(source):
+                            visit['path'] = str(target / old_path.relative_to(source))
+                        if visit['path'] not in visits or visits[visit['path']]['visited_at'] < visit['visited_at']:
+                            visits[visit['path']] = visit
+                    db.execute('DELETE FROM media_folder_visits')
+                    db.executemany('INSERT INTO media_folder_visits VALUES(?,?,?)',
+                                   [(visit['path'], visit['root_id'], visit['visited_at']) for visit in visits.values()])
                     self.rename_directory_no_replace(source, target)
                     moved = True
             except BaseException:

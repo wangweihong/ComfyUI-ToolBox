@@ -1,5 +1,7 @@
 import {test,expect} from '@playwright/test';
 
+test.beforeEach(async({request})=>{await request.delete('/toolbox/media-library/folder-visits',{data:{}});});
+
 test('viewer buttons and arrow keys follow the filtered order and respect other dialogs',async({page})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto('/toolbox/media-library/gallery');await page.locator('#roots .root-name').first().click();

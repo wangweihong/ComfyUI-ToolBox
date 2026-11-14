@@ -8,12 +8,15 @@ from pathlib import Path
 from aiohttp import web
 from PIL import Image, ImageDraw, PngImagePlugin
 from support import Library, register_routes, ROOT, PROJECT
+from regeneration_fixture import FakeRuntime, graph
 
 parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8919);args=parser.parse_args()
 temp=tempfile.TemporaryDirectory(prefix='tb-media-library-qa-');base=Path(temp.name)
 root=base/'素材';root.mkdir();(root/'归档').mkdir()
 lib=Library(base/'data'/'prompts.sqlite3',base/'cache',{'input':str(root)})
 extra=PngImagePlugin.PngInfo();extra.add_text('parameters','a quiet coastline, cinematic light\nNegative prompt: blurry\nSteps: 20, Sampler: Euler, CFG scale: 6, Seed: 20261105, Model: coastline-v1')
+extra.add_text('prompt',json.dumps(graph()))
+extra.add_text('workflow',json.dumps({'nodes':[{'id':1,'type':'Seed (rgthree)','widgets_values':[123]}]}))
 # Generated geometry makes visual fixtures deterministic and avoids any external material.
 for n,(name,color) in enumerate([('海岸参考.png','#446b76'),('光影研究.png','#a28268'),('角色构图.png','#657384'),('森林色彩.png','#526d5a')]):
     im=Image.new('RGB',(960,640),color);draw=ImageDraw.Draw(im)
@@ -28,7 +31,7 @@ custom=PngImagePlugin.PngInfo();custom.add_text('prompt',json.dumps({'9':{'class
 Image.new('RGB',(992,736),'red').save(root/'归档'/'子目录图片.png',pnginfo=custom)
 (root/'归档'/'更深层'/'深层文本.txt').write_text('深层内容')
 lib.scan()
-app=web.Application();routes=web.RouteTableDef();register_routes(routes,lambda:lib);app.add_routes(routes)
+app=web.Application();routes=web.RouteTableDef();register_routes(routes,lambda:lib,regeneration_runtime=FakeRuntime(root),app=app);app.add_routes(routes)
 
 async def script(request):
     name=request.match_info['name']

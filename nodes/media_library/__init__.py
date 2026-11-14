@@ -53,7 +53,7 @@ class ToolBoxMediaLibrary:
         return (str(get_library().resolve(asset_id, file_path)),)
 
 
-register_routes(PromptServer.instance.routes, get_library, lambda: PromptServer.instance.send_sync('tb-media-library-changed', {}))
+register_routes(PromptServer.instance.routes, get_library, lambda: PromptServer.instance.send_sync('tb-media-library-changed', {}), app=getattr(PromptServer.instance, 'app', None))
 
 # Initialize when the ComfyUI HTTP app starts, including before any gallery tab is opened.
 async def _startup(app):

@@ -1,10 +1,13 @@
 import './style.css';
+import {structuredMetadata} from './metadata_export';
+import {openRegenerationDialog} from './regeneration_dialog';
 
 type Item = {id:string; path:string; name:string; kind:string; extension:string; size:number; mtime:number; missing:number; properties:Record<string,unknown>; errors:string[]};
 type GenerationNode={node_id:string;node_type:string;title:string;fields:{name:string;label:string;value:string}[];highlight:boolean};
 type Detail = Item & {generation_nodes:GenerationNode[];has_workflow:boolean;generation_truncated:boolean;raw:Record<string,unknown>; summary:Record<string,unknown>; text:string; truncated:boolean; metadata_state:string};
 type Folder = {name:string;path:string;root_id?:string};
 type Root = {id:string; path:string; name:string; builtin:number};
+type FolderVisit = Folder & {root_id:string;visited_at:number;available:boolean;error:string};
 type Neighbors = {position:number;previous_id:string|null;next_id:string|null};
 type Action = {source:string; target:string|null};
 type Plan = {token:string; op:string; entries:{id:string; error?:string; actions:Action[]}[]};
@@ -26,6 +29,7 @@ const api = async <T = any>(path:string, data?:unknown, method=data === undefine
 const names:Record<string,string> = {image:'图片',video:'视频',audio:'音频',text:'文本',ply:'PLY',other:'其他'};
 const glyphs:Record<string,string> = {image:'▧',video:'▷',audio:'♫',text:'TXT',ply:'PLY',other:'FILE'};
 const state = {roots:[] as Root[], root:'', folder:'', q:'', kind:'', sort:'time', direction:'desc', recent:false, recursive:false, selectionMode:false, focusId:'',offset:0, folders:[] as Folder[], items:[] as Item[], total:0, selected:new Set<string>(), current:null as Detail|null};
+let folderVisits:FolderVisit[]=[];
 let renderedScope='',statusEpoch=0,locationEpoch=0,lastLocation='';
 let listEpoch=0, detailEpoch=0, toastTimer=0, statusTimer=0, previewTimer=0;
 let plan:Plan|null=null, operationIds:string[]=[], operation='',moveDestination='';
@@ -35,7 +39,7 @@ let detailBusy=false,neighbors:Neighbors|null=null,neighborTotal=0,neighborEpoch
 function toast(text:string) { $('toast').textContent=text; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=window.setTimeout(()=>$('toast').hidden=true,5000); }
 async function copy(text:string) {
   try { await navigator.clipboard.writeText(text); }
-  catch { const area=el('textarea'); area.value=text; area.style.position='fixed'; area.style.opacity='0'; document.body.append(area); area.select(); const ok=document.execCommand('copy'); area.remove(); if(!ok) throw new Error('浏览器拒绝复制，请手动选择路径复制'); }
+  catch { const area=el('textarea'),focused=document.activeElement as HTMLElement|null;area.value=text;area.style.position='fixed';area.style.opacity='0';(focused?.closest('dialog')||document.body).append(area);area.select();const ok=document.execCommand('copy');area.remove();focused?.focus({preventScroll:true});if(!ok)throw new Error('浏览器拒绝复制，请手动选择路径复制'); }
   toast('已复制');
 }
 function action(label:string, handler:()=>void|Promise<void>, className='') {
@@ -84,12 +88,27 @@ async function fillFolders(container:HTMLElement,path:string,rootId:string) {
   if(!data.folders.length)container.append(el('div','muted','没有子目录'));
 }
 function currentPath(){return state.folder||state.roots.find(r=>r.id===state.root)?.path||'';}
+function renderRecentFolders(){
+  const list=$('recent-folders');list.replaceChildren();$('recent-count').textContent=String(folderVisits.length);
+  for(const visit of folderVisits.slice(0,6)){
+    const button=folderButton(visit.name,()=>chooseFolder(visit.root_id,visit.path));button.classList.add('recent-folder');button.title=visit.path+(visit.error?'\n'+visit.error:'');button.disabled=!visit.available;list.append(button);
+  }
+}
+async function loadFolderVisits(){folderVisits=(await api<{items:FolderVisit[]}>('/folder-visits')).items;renderRecentFolders();}
+async function recordFolderVisit(path=currentPath(),rootId=state.root){
+  try{folderVisits=(await api<{items:FolderVisit[]}>('/folder-visits',{path,root_id:rootId})).items;renderRecentFolders();return true;}
+  catch(error){toast('目录访问记录保存失败：'+(error as Error).message);return false;}
+}
 function resetRecursive(){state.recursive=false;$<HTMLInputElement>('recursive').checked=false;}
 function clearSearch(){state.q='';$<HTMLInputElement>('search').value='';}
 async function chooseFolder(root:string,folder:string) {
   state.root=root;state.folder=folder===state.roots.find(r=>r.id===root)?.path?'':folder;state.recent=false;state.focusId='';state.offset=0;resetRecursive();clearSearch();clearSelection();
-  await loadFiles();
-  await api('/scan',{path:currentPath(),recursive:false});void pollStatus();
+  const path=currentPath();await loadFiles();
+  // A sort/filter request can supersede this list request without cancelling directory entry.
+  if(state.root!==root||currentPath()!==path)return;
+  const valid=await recordFolderVisit(path,root);
+  if(!valid||state.root!==root||currentPath()!==path)return;
+  try{await api('/scan',{path,recursive:false});void pollStatus();}catch(error){toast((error as Error).message);}
 }
 function rootForItem(item:Detail){return state.roots.find(root=>root.id===(item as Detail&{root_id?:string}).root_id)||[...state.roots].sort((a,b)=>b.path.length-a.path.length).find(root=>item.path.startsWith(root.path+'/')||item.path.startsWith(root.path+'\\'));}
 async function revealFolder(root:Root,folder:string){
@@ -110,7 +129,7 @@ async function locateItem(item:Detail){
   state.root=root.id;state.folder=folder===root.path?'':folder;state.recent=false;state.kind='';state.offset=0;state.focusId=item.id;
   resetRecursive();clearSearch();clearSelection();
   for(const button of $('types').children)button.classList.toggle('active',(button as HTMLElement).dataset.kind==='');
-  await loadFiles();await revealFolder(root,folder);
+  await loadFiles();if(state.root!==root.id||currentPath()!==folder)return;await recordFolderVisit();await revealFolder(root,folder);
   $('grid').querySelector<HTMLElement>(`.card[data-id="${item.id}"]`)?.scrollIntoView({block:'center'});
   await api('/scan',{path:folder,recursive:false});void pollStatus();
 }
@@ -157,16 +176,17 @@ function updateHeading() {
   const homeView=!state.recent&&!state.root;
   $('all').classList.toggle('active',homeView);$('recent').classList.toggle('active',state.recent);
   const root=state.roots.find(r=>r.id===state.root);
-  $('view-title').replaceChildren(document.createTextNode(state.recent?'最近使用':state.folder?state.folder.split(/[\\/]/).pop()||'素材':root?.name||'素材目录'),$('count'));
-  $('count').textContent=homeView?`${state.roots.length} 个位置`:`${state.total} 个文件`;
-  $('breadcrumb').textContent=state.recent?'最近使用的 20 个文件':currentPath()||'选择一个目录开始浏览';
-  $('scope-hint').textContent=homeView?'选择目录后才加载文件':state.recent?'只显示最近使用的文件':state.recursive?'递归平铺 · 包含全部子目录':'当前层 · 保留子目录结构';
-  $('prune').hidden=!state.recent;
-  $('multi-select').hidden=homeView;
+  $('view-title').replaceChildren(document.createTextNode(state.recent?'最近访问目录':state.folder?state.folder.split(/[\\/]/).pop()||'素材':root?.name||'素材目录'),$('count'));
+  $('count').textContent=state.recent?`${folderVisits.length} 个目录`:homeView?`${state.roots.length} 个位置`:`${state.total} 个文件`;
+  $('breadcrumb').textContent=state.recent?'最近访问的 20 个目录 · 点击直接进入':currentPath()||'选择一个目录开始浏览';
+  $('scope-hint').textContent=homeView?'选择目录后才加载文件':state.recent?'自动保存访问位置，下次打开时恢复':state.recursive?'递归平铺 · 包含全部子目录':'当前层 · 保留子目录结构';
+  $('prune').hidden=!state.recent;$('clear-folder-history').hidden=!state.recent;
+  document.querySelector<HTMLElement>('.filters')!.hidden=state.recent;
+  $('multi-select').hidden=homeView||state.recent;
   $('parent').hidden=!state.root||state.recent;
   $('rename-folder').hidden=!state.root||state.recent||!canRenameFolder(currentPath());
   $<HTMLInputElement>('recursive').disabled=!state.root||state.recent;
-  $<HTMLInputElement>('search').disabled=homeView;
+  $<HTMLInputElement>('search').disabled=homeView||state.recent;
   $<HTMLButtonElement>('scan').disabled=homeView||state.recent;
   const inputRoot=state.roots.find(r=>r.id==='builtin-input'),folder=currentPath();
   const uploadPath=inputRoot&&(folder===inputRoot.path||folder.startsWith(inputRoot.path+'/')||folder.startsWith(inputRoot.path+'\\'))?folder:'input/tb_media_library';
@@ -174,11 +194,12 @@ function updateHeading() {
   for(const row of document.querySelectorAll<HTMLElement>('.root-row'))row.classList.toggle('active',row.dataset.path===currentPath());
 }
 function filesQuery(offset=0,limit=80,focusId=''){
-  return new URLSearchParams({focus_id:focusId,q:state.q,kind:state.kind,root_id:state.root,folder:state.folder,recursive:state.recursive?'1':'0',sort:state.sort,direction:state.direction,recent:state.recent?'1':'0',offset:String(offset),limit:String(limit)});
+  return new URLSearchParams({focus_id:focusId,q:state.q,kind:state.kind,root_id:state.root,folder:state.folder,recursive:state.recursive?'1':'0',sort:state.sort,direction:state.direction,offset:String(offset),limit:String(limit)});
 }
 async function loadFiles(append=false) {
   const epoch=++listEpoch;
-  if(!state.root&&!state.recent){state.items=[];state.folders=[];state.total=0;renderedScope='home';renderGrid();updateHeading();updateSelection();$('from-start').hidden=true;$('more').hidden=true;$('paging').textContent='';return;}
+  if(state.recent){await loadFolderVisits();if(epoch!==listEpoch)return false;}
+  if(!state.root||state.recent){state.items=[];state.folders=[];state.total=0;renderedScope=state.recent?'recent-folders':'home';renderGrid();updateHeading();updateSelection();$('from-start').hidden=true;$('more').hidden=true;$('paging').textContent='';return true;}
   const query=filesQuery(append?state.offset+state.items.length:state.offset,80,append?'':state.focusId);
   const showFolders=!state.recent&&!state.recursive;
   try {
@@ -186,7 +207,7 @@ async function loadFiles(append=false) {
       api<{items:Item[];total:number;offset:number}>('/files?'+query),
       showFolders?api<{folders:Folder[]}>('/folders?'+new URLSearchParams({path:currentPath()})):Promise.resolve({folders:[] as Folder[]})
     ]);
-    if(epoch!==listEpoch)return;
+    if(epoch!==listEpoch)return false;
     const items=append?[...state.items,...data.items]:data.items;
     const scope=JSON.stringify([state.root,state.folder,state.recent,state.recursive,state.q,state.kind,state.sort,state.direction]);
     const changed=renderedScope!==scope||JSON.stringify([items,directories.folders])!==JSON.stringify([state.items,state.folders]);renderedScope=scope;
@@ -196,7 +217,8 @@ async function loadFiles(append=false) {
     $('from-start').hidden=state.offset===0;
     $('more').hidden=state.offset+state.items.length>=data.total;$('paging').textContent=data.total?`已加载 ${state.items.length} / ${data.total}${state.offset?` · 从第 ${state.offset+1} 项开始`:''}`:'';
     if(state.current&&!detailBusy)void loadNeighbors(state.current.id,detailEpoch);
-  } catch(e) {if(epoch===listEpoch){$('grid').replaceChildren(el('div','empty-grid',(e as Error).message));toast((e as Error).message);}}
+    return true;
+  } catch(e) {if(epoch===listEpoch){$('grid').replaceChildren(el('div','empty-grid',(e as Error).message));toast((e as Error).message);}return false;}
 }
 function directoryCard(folder:Folder,rootId:string){
   const card=el('div','directory-card');card.title=folder.path;card.dataset.path=folder.path;
@@ -206,6 +228,10 @@ function directoryCard(folder:Folder,rootId:string){
 function renderGrid() {
   const grid=$('grid');grid.replaceChildren();
   const directories=el('div','directory-grid');
+  if(state.recent){
+    for(const visit of folderVisits){const card=directoryCard(visit,visit.root_id);card.classList.toggle('unavailable',!visit.available);card.querySelector('.folder-label .muted')!.textContent=visit.available?visit.path:visit.error;for(const button of card.querySelectorAll('button'))button.disabled=!visit.available;directories.append(card);}
+    grid.append(directories);if(!folderVisits.length)grid.append(el('div','empty-grid','还没有访问记录。进入任意素材目录后，这里会自动保留最近 20 个目录。'));return;
+  }
   if(!state.root&&!state.recent){for(const root of state.roots)directories.append(directoryCard({name:root.name,path:root.path},root.id));grid.append(directories);return;}
   if(state.folders.length){for(const folder of state.folders)directories.append(directoryCard(folder,state.root));grid.append(directories);}
   if(!state.items.length&&!state.folders.length){grid.append(el('div','empty-grid',state.recent?'还没有使用记录。选择素材并点击“使用”后，将保留最近 20 项。':'没有匹配的素材。可更换筛选、添加目录或刷新索引。'));return;}
@@ -323,6 +349,11 @@ function renderDetail(item:Detail) {
     if(window.parent!==window)window.parent.postMessage({type:'tb-media-library-select',id:chosen.id,path:chosen.path},location.origin);
     else {await copy(chosen.path);toast('已使用并复制原文件路径');closeDetail();if(state.recent)await loadFiles();}
   },'primary use');content.append(use);
+  if(item.kind==='image'){
+    const regenerate=action('重新生成',()=>openRegenerationDialog({assetId:item.id,assetName:item.name,request:api,locate:async output=>{
+      closeDetail();const detail=await api<Detail>('/detail?'+new URLSearchParams({id:output.id}));await locateItem(detail);await openDetail(output.id);
+    }}),'regenerate-image');regenerate.id='regenerate-image';content.append(regenerate);
+  }
   if(item.truncated)content.append(el('p','error','信息达到读取上限，当前内容已截断；复制全部信息会包含此标记。'));
   for(const error of item.errors)content.append(el('p','error',error));
   const info=el('section','info-section');info.append(el('div','info-title','文件信息'));const dl=el('dl');
@@ -385,7 +416,8 @@ function openGeneration(item:Detail){
   if(values.length)content.append(table);
   else content.append(el('p','muted','没有读取到提示词、模型等关键信息。'));
   $('show-all-info').onclick=()=>openAllInfo(item);
-  $('copy-generation').onclick=()=>void copy(JSON.stringify(item,null,2));
+  $('copy-generation').onclick=()=>void copy(JSON.stringify(structuredMetadata(item),null,2)).catch(error=>toast(error.message));
+  $('copy-generation-raw').onclick=()=>void copy(JSON.stringify(item,null,2)).catch(error=>toast(error.message));
   $<HTMLDialogElement>('generation-dialog').showModal();
 }
 function jsonTreeNode(key:string,value:unknown,root=false):HTMLElement{
@@ -414,8 +446,10 @@ function jsonTreeNode(key:string,value:unknown,root=false):HTMLElement{
   return row;
 }
 function openAllInfo(item:Detail){
-  $('json-file').textContent=item.name;$('json-tree').replaceChildren(jsonTreeNode('root',item,true));
-  $('json-copy').onclick=()=>void copy(JSON.stringify(item,null,2));
+  const structured=structuredMetadata(item);
+  $('json-file').textContent=item.name+(item.truncated?' · 元数据已截断':'');$('json-tree').replaceChildren(jsonTreeNode('root',structured,true));
+  $('json-copy').onclick=()=>void copy(JSON.stringify(structured,null,2)).catch(error=>toast(error.message));
+  $('json-copy-raw').onclick=()=>void copy(JSON.stringify(item,null,2)).catch(error=>toast(error.message));
   $('json-expand').onclick=()=>{for(const branch of Array.from($('json-tree').querySelectorAll<HTMLDetailsElement>('details:not([open])')))branch.open=true;};
   $('json-collapse').onclick=()=>{for(const branch of $('json-tree').querySelectorAll<HTMLDetailsElement>('details'))branch.open=false;};
   $<HTMLDialogElement>('json-dialog').showModal();
@@ -436,7 +470,7 @@ async function renameFolder(event:SubmitEvent){
     const data=await api<{path:string;previous_path:string;roots:Root[]}>('/folders/rename',{path:source,name:$<HTMLInputElement>('folder-name').value.trim()});
     ++listEpoch;++locationEpoch;lastLocation='';
     if(state.folder&&isWithin(state.folder,data.previous_path))state.folder=data.path+state.folder.slice(data.previous_path.length);
-    state.roots=data.roots;renderedScope='';renderRoots();renderRootSettings();
+    state.roots=data.roots;renderedScope='';renderRoots();renderRootSettings();await loadFolderVisits();
     if(epoch===folderRenameEpoch)$<HTMLDialogElement>('folder-rename-dialog').close();
     await loadFiles();const root=state.roots.find(root=>root.id===state.root);if(root)await revealFolder(root,currentPath());
     if(state.current&&isWithin(state.current.path,data.previous_path))await openDetail(state.current.id);
@@ -565,7 +599,8 @@ async function main(){
   $('folder-rename-dialog').addEventListener('close',()=>{++folderRenameEpoch;});
   $('scan').onclick=async()=>{try{await api('/scan',{path:currentPath(),recursive:state.recursive});toast(state.recursive?'已开始刷新当前目录及子目录':'已开始刷新当前层目录');clearTimeout(statusTimer);void pollStatus();}catch(e){toast((e as Error).message);}};
   $('from-start').onclick=()=>{state.offset=0;state.focusId='';clearSelection();void loadFiles();};
-  $('more').onclick=()=>void loadFiles(true);$('prune').onclick=async()=>{await api('/recents/prune',{});await loadFiles();};
+  $('more').onclick=()=>void loadFiles(true);$('prune').onclick=async()=>{await api('/folder-visits/prune',{});await loadFiles();};
+  $('clear-folder-history').onclick=async()=>{await api('/folder-visits',{},'DELETE');await loadFolderVisits();if(state.recent)await loadFiles();};
   let debounce=0;$('search').oninput=()=>{clearTimeout(debounce);debounce=window.setTimeout(()=>{state.q=$<HTMLInputElement>('search').value;state.offset=0;state.focusId='';clearSelection();void loadFiles();},240);};
   $('sort').onchange=()=>{state.sort=$<HTMLSelectElement>('sort').value;state.offset=0;state.focusId='';void loadFiles();};$('direction').onclick=()=>{state.direction=state.direction==='desc'?'asc':'desc';state.offset=0;state.focusId='';$('direction').textContent=state.direction==='desc'?'↓':'↑';void loadFiles();};
   $('multi-select').onclick=()=>{state.selectionMode=!state.selectionMode;updateSelection();};
@@ -580,7 +615,11 @@ async function main(){
   for(const b of document.querySelectorAll<HTMLButtonElement>('[data-close]'))b.onclick=()=>$<HTMLDialogElement>(b.dataset.close!).close();
   $<HTMLFormElement>('root-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget as HTMLFormElement,button=form.querySelector('button')!;button.disabled=true;try{const data=new FormData(form);await api('/roots',{name:data.get('name'),path:data.get('path')});form.reset();$('root-error').textContent='';await loadRoots();await loadFiles();toast('目录已添加，正在后台索引');}catch(e){$('root-error').textContent=(e as Error).message;}finally{button.disabled=false;}};
   window.addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='tb-media-library-current')return;if(event.data.id||event.data.path)void locateCurrent(String(event.data.id||''),String(event.data.path||''));});
-  await loadRoots();const initialId=params.get('current_id')||'',initialPath=params.get('current_path')||'';if(initialId||initialPath)await locateCurrent(initialId,initialPath);else await loadFiles();void pollStatus();window.parent.postMessage({type:'tb-media-library-ready'},location.origin);
+  await loadRoots();await loadFolderVisits();const initialId=params.get('current_id')||'',initialPath=params.get('current_path')||'';
+  if(initialId||initialPath)await locateCurrent(initialId,initialPath);
+  else if(folderVisits.length&&folderVisits[0].available)await chooseFolder(folderVisits[0].root_id,folderVisits[0].path);
+  else{await loadFiles();if(folderVisits.length)toast('上次访问的目录暂不可用，请选择其他位置');}
+  void pollStatus();window.parent.postMessage({type:'tb-media-library-ready'},location.origin);
 }
 window.addEventListener('pagehide',()=>{++statusEpoch;releaseMedia();clearTimeout(statusTimer);});
 void main().catch(e=>toast(e.message));

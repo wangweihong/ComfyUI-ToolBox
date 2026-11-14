@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async({request})=>{await request.delete('/toolbox/media-library/folder-visits',{data:{}});});
+
 test('video plays, seeks, exposes metadata and keeps original path',async({page,request})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   const fixture=await(await request.get('/fixture/info')).json();
@@ -25,9 +27,9 @@ test('video plays, seeks, exposes metadata and keeps original path',async({page,
   await page.screenshot({path:'test-results/media-library/gallery-video.png',fullPage:true});
   await page.getByRole('button',{name:'使用此文件'}).click();
   await page.locator('#recent').click();
-  await expect(page.locator('.card[data-id="'+item.id+'"]').first()).toBeVisible();
+  await expect(page.locator('.directory-card').first()).toBeVisible();
   expect(errors).toEqual([]);
-  await expect(page.locator('#view-title')).toContainText('最近使用');
+  await expect(page.locator('#view-title')).toContainText('最近访问目录');
 });
 
 test('text, PLY, ZIP and search work without interpreting archives',async({page})=>{
@@ -57,7 +59,7 @@ test('delete opens one confirmation with no preview step or extra checkbox',asyn
 
 test('node bridge scopes selection, persists ID, restores after rename and clears ID for manual path',async({page,request})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  const info=await(await request.get('/fixture/info')).json();const image=info.items.find((i:any)=>i.kind==='image');
+  const info=await(await request.get('/fixture/info')).json();const image=info.items.find((i:any)=>i.kind==='image'&&i.path===info.root+'/'+i.name);
   await page.goto('/fixture/comfy');await page.waitForFunction(()=>window['ready']);
   await page.locator('[data-node="1"] button').click();
   const gallery=page.frameLocator('dialog iframe');await gallery.locator('#roots .root-name').first().click();await gallery.locator(`.card[data-id="${image.id}"]`).click();await gallery.getByRole('button',{name:'使用此文件'}).click();

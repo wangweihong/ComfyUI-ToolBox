@@ -14,12 +14,15 @@ from aiohttp import web
 from PIL import Image, ImageOps
 from .library import LibraryError
 from . import metadata
+from .regeneration import Regenerator
 
 BASE = Path(__file__).parent
 PREFIX = '/toolbox/media-library'
 
 
-def register_routes(routes, get_library, on_change=lambda: None):
+def register_routes(routes, get_library, on_change=lambda: None, *, regeneration_runtime=None, app=None):
+    regeneration = Regenerator(get_library, regeneration_runtime, on_change)
+    if app is not None: app.on_cleanup.append(regeneration.close)
     scan_tasks = set()
     preview_jobs = {}
     conversion_gate = asyncio.Semaphore(1)
@@ -131,6 +134,50 @@ def register_routes(routes, get_library, on_change=lambda: None):
     @endpoint('GET', '/folders')
     async def folders(request):
         return web.json_response({'folders': await work(get_library().folders, request.query.get('path', ''))})
+
+    @endpoint('GET', '/folder-visits')
+    async def folder_visits(request):
+        return web.json_response({'items': await work(get_library().folder_visits)})
+
+    @endpoint('POST', '/folder-visits')
+    async def visit_folder(request):
+        data = await body(request)
+        return web.json_response({'items': await work(get_library().visit_folder, data.get('path', ''), data.get('root_id', ''))})
+
+    @endpoint('POST', '/folder-visits/prune')
+    async def prune_folder_visits(request):
+        await body(request)
+        return web.json_response({'items': await work(get_library().prune_folder_visits)})
+
+    @endpoint('DELETE', '/folder-visits')
+    async def clear_folder_visits(request):
+        await body(request)
+        def clear():
+            with get_library().transaction() as db: db.execute('DELETE FROM media_folder_visits')
+        await work(clear)
+        return web.json_response({'items': []})
+
+    @endpoint('GET', '/regenerations/options')
+    async def regeneration_options(request):
+        return web.json_response(await work(regeneration.options, request.query.get('id', '')))
+
+    @endpoint('POST', '/regenerations/prepare')
+    async def regeneration_prepare(request):
+        data = await body(request)
+        return web.json_response(await regeneration.prepare(data.get('id', ''), data.get('output_node', '')))
+
+    @endpoint('POST', '/regenerations/submit')
+    async def regeneration_submit(request):
+        data = await body(request)
+        return web.json_response(await regeneration.submit(data.get('token', '')))
+
+    @endpoint('GET', '/regenerations')
+    async def regeneration_jobs(request):
+        return web.json_response({'items': await work(regeneration.jobs, request.query.get('source_id', ''))})
+
+    @endpoint('GET', '/regenerations/{id}')
+    async def regeneration_status(request):
+        return web.json_response(await regeneration.status(request.match_info['id']))
 
     @endpoint('POST', '/folders/rename')
     async def rename_folder(request):
