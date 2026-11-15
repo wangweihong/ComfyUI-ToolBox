@@ -61,3 +61,4 @@
 
 #folder-action-dialog{width:min(520px,94vw)}.asset-context-menu button:focus-visible{outline:2px solid #80b6ff;outline-offset:-2px}.asset-context-menu button:disabled{opacity:.45;cursor:default}
 #folder-action-submit.danger{background:#a42b3c;border-color:#c14759;color:#fff}#folder-action-submit.danger:hover{background:#b83547}
+.json-view-switch{display:flex;gap:4px}.json-tools .json-view-switch button[aria-pressed=true]{background:#405675;border-color:#91b6ed;color:#e0ecff}.json-raw{margin:0;padding:20px 24px 28px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d4dfef}@media(max-width:650px){.json-raw{padding:14px 12px}}

@@ -473,6 +473,14 @@ function jsonTreeNode(key:string,value:unknown,root=false):HTMLElement{
 function openAllInfo(item:Detail){
   const structured=structuredMetadata(item);
   $('json-file').textContent=item.name+(item.truncated?' · 元数据已截断':'');$('json-tree').replaceChildren(jsonTreeNode('root',structured,true));
+  $('json-raw').textContent='';
+  const setView=(raw:boolean)=>{
+    $('json-tree').hidden=raw;$('json-raw').hidden=!raw;
+    if(raw&&!$('json-raw').textContent)$('json-raw').textContent=JSON.stringify(item,null,2);
+    $('json-view-tree').setAttribute('aria-pressed',String(!raw));$('json-view-raw').setAttribute('aria-pressed',String(raw));
+    $('json-expand').hidden=raw;$('json-collapse').hidden=raw;
+  };
+  $('json-view-tree').onclick=()=>setView(false);$('json-view-raw').onclick=()=>setView(true);setView(false);
   $('json-copy').onclick=()=>void copy(JSON.stringify(structured,null,2)).catch(error=>toast(error.message));
   $('json-copy-raw').onclick=()=>void copy(JSON.stringify(item,null,2)).catch(error=>toast(error.message));
   $('json-expand').onclick=()=>{for(const branch of Array.from($('json-tree').querySelectorAll<HTMLDetailsElement>('details:not([open])')))branch.open=true;};
