@@ -6,6 +6,59 @@ const { once } = require("node:events");
 const { chromium } = require("playwright");
 const net = require("node:net");
 
+test('random prompt count follows filters and handles linked inputs without counting seed changes', async t => {
+    const page=await browser.newPage();t.after(()=>page.close());
+    let requests=0;page.on('request',request=>{if(request.url().includes('/toolbox/prompts?'))requests++;});
+    await page.goto(base);await page.evaluate(()=>window.attachRandomTestNode());
+    const status=page.locator('.tbp-random-count [role="status"]');
+    await status.waitFor();await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 9 条');
+    const initialRequests=requests;
+    await page.evaluate(()=>{window.setRandomFilter('seed',123);window.randomNode.onDrawForeground();});
+    await page.waitForTimeout(350);assert.equal(requests,initialRequests);
+    await page.evaluate(()=>window.setRandomFilter('sensitivity_level','L0'));
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 4 条');
+    await page.evaluate(()=>{window.setRandomFilter('sensitivity_mode','exact');window.setRandomFilter('sensitivity_levels','L1');});
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 5 条');
+    await page.evaluate(()=>window.setRandomFilter('tags','day'));
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 0 条');
+    await page.evaluate(()=>window.setRandomFilter('tags',''));
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 5 条');
+    await page.evaluate(()=>{window.setRandomFilter('match_size',true);window.setRandomFilter('width',2048);});
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 0 条');
+    await page.evaluate(()=>{window.randomNode.inputs=[{name:'tags',link:1}];window.randomNode.onConnectionsChange();});
+    assert.match(await status.textContent(),/由连线提供/);
+    assert.equal(await page.getByRole('button',{name:'刷新数量',exact:true}).isDisabled(),true);
+    await page.evaluate(()=>{window.randomNode.inputs=[];window.randomNode.onConnectionsChange();window.setRandomFilter('match_size',false);});
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 5 条');
+    const beforeEvent=requests;
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('toolbox-prompts-changed')));
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 5 条');
+    assert.equal(requests,beforeEvent+1);
+    await page.screenshot({path:'test-results/random-prompt-count.png'});
+});
+
+test('random prompt count ignores stale responses and recovers from request failures',async t=>{
+    const page=await browser.newPage();t.after(()=>page.close());
+    let releaseOld;const oldReady=new Promise(resolve=>releaseOld=resolve);
+    let oldRoute;
+    await page.route('**/toolbox/prompts?*',route=>{oldRoute=route;releaseOld();});
+    await page.goto(base);await page.evaluate(()=>window.attachRandomTestNode());await oldReady;
+    await page.unroute('**/toolbox/prompts?*');
+    await page.evaluate(()=>window.setRandomFilter('sensitivity_level','L0'));
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 4 条');
+    await oldRoute.fulfill({json:{total:999}}).catch(()=>{});
+    assert.equal(await page.locator('.tbp-random-count span').textContent(),'当前条件匹配 4 条');
+    await page.route('**/toolbox/prompts?*',route=>route.fulfill({status:503,json:{error:'测试读取失败'}}));
+    await page.getByRole('button',{name:'刷新数量',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='数量读取失败：测试读取失败');
+    await page.unroute('**/toolbox/prompts?*');await page.getByRole('button',{name:'刷新数量',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-random-count span').textContent==='当前条件匹配 4 条');
+    await page.evaluate(()=>window.randomNode.onRemoved());
+    let calls=0;page.on('request',request=>{if(request.url().includes('/toolbox/prompts?'))calls++;});
+    await page.evaluate(()=>{window.setRandomFilter('tags','night');window.dispatchEvent(new CustomEvent('toolbox-prompts-changed'));});
+    await page.waitForTimeout(350);assert.equal(calls,0);
+});
+
 let server, browser, base;
 before(async () => {
     const socket = net.createServer(); socket.listen(0, "127.0.0.1"); await once(socket, "listening");

@@ -90,6 +90,8 @@ English: MOSS prompt enhancement now lives in ToolBox, retaining the legacy work
 
 该节点从本地 SQLite 数据库中按 seed 稳定抽取一条提示词，可按语言、媒体类型、提示词类型、NSFW、格式、动态性、标签和宽高过滤，输出 `id`、`prompt`、`width`、`height` 和 `metadata`。
 
+节点显示“当前条件匹配 N 条”，创建或载入节点、修改筛选选项及提示词库变化时自动更新，也可点击“刷新数量”。统计沿用随机抽取的筛选规则，改变 seed 不会触发重新统计。筛选条件由连接输入提供时，显示“无法预先统计”，避免使用控件中的旧值显示错误数量。
+
 首次使用前运行导入脚本：
 
 ```bash

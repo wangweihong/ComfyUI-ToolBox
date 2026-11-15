@@ -51,6 +51,7 @@ async def fixture_page(_request):
         import {openPromptBrowser,attachPromptReader} from '/web/js/prompt_browser.mjs';
         import {createPromptLibraryToolbar} from '/web/js/prompt_toolbar.mjs';
         import {attachPromptBatchPreview} from '/web/js/prompt_batch.mjs';
+        import {attachRandomPromptCount} from '/web/js/random_prompt_count.mjs';
         import {attachNodeTags} from '/web/js/tag_picker.mjs';
         const graph={nodes:[],beforeChange(){},afterChange(){},
             add(node){node.graph=this;this.nodes.push(node);},remove(node){this.nodes=this.nodes.filter(item=>item!==node);node.graph=null;},
@@ -76,6 +77,17 @@ async def fixture_page(_request):
             attachPromptReader(node,{graph:{change:()=>node.changed=true}},
                 {fetchApi:(path,options)=>fetch(path,options)});
             window.testNode=node;
+        };
+        window.attachRandomTestNode = () => {
+            const node={widgets:Object.entries({seed:0,language:'全部',media_type:'image',prompt_type:'natural',
+                    safety:'全部',content_format:'plaintext',dynamic:'static',match_size:false,width:1024,height:768,
+                    tags:'',sensitivity_level:'L1',nsfw:'是',extreme:'否',horror:'否',gore:'否',minor:'否',
+                    sensitivity_mode:'max',sensitivity_levels:''}).map(([name,value])=>({name,value})),
+                inputs:[],size:[350,400],setDirtyCanvas(){},setSize(){},
+                addDOMWidget(name,type,content,options){content.style.width='350px';content.style.height=`${options.getMinHeight()}px`;document.body.append(content);return {name,options};}};
+            attachRandomPromptCount(node,{fetchApi:(path,options)=>fetch(path,options)});
+            window.randomNode=node;
+            window.setRandomFilter=(name,value)=>{const widget=node.widgets.find(widget=>widget.name===name);widget.value=value;widget.callback?.(value);};
         };
         window.attachBatchTestNode = () => {
             const node={widgets:Object.entries({tags:'landscape',start_index:0,limit:100,
