@@ -247,6 +247,12 @@ Skill／模板库标签区及详情“选择标签”弹窗中的“管理 Skill
 
 ### 数据库升级与测试
 
+提示词库顶部工具栏提供“备份数据库”，打开后可点击“立即备份”，查看历史备份并下载到本机。备份整个共享数据库，包含提示词、标签、Skill / 模板及内嵌文件、素材索引和历史记录；不包含素材原文件。使用 SQLite 在线备份接口读取当前运行库及已提交的 WAL 数据，完成后校验完整性，再保存为无需 WAL/SHM 的独立 `.sqlite3` 文件。
+
+备份默认保存在 ComfyUI 用户目录的 `toolbox-database-backups/` 下，文件名包含 UTC 时间和随机标识；独立开发环境使用数据库旁的 `backups/`。支持创建进度、失败重试和下载，关闭弹窗不取消已经开始的备份。历史列表显示最近 100 个备份，不自动删除旧文件；空间不足会拒绝创建。接口为 `GET /toolbox/database/backups`（列表和当前进度）、`POST /toolbox/database/backups`（JSON 空对象，创建备份）、`GET /toolbox/database/backups/{filename}`（下载）。
+
+备份弹窗内提供“清理旧备份”：默认保留最新 5 份，可调整为 1–1000 份；先预览待删除文件和预计释放空间，再点击“确认清理”永久删除。清理仅限本功能创建的已完成备份，保留最新备份，不处理临时文件、链接和其他文件。预览有效期为 10 分钟，确认时复查备份列表及文件身份；列表变化需重新预览，备份创建与清理不能同时执行。接口为 `POST /toolbox/database/backups/cleanup/plan`（`keep_latest`）和 `POST /toolbox/database/backups/cleanup/apply`（预览返回的 `token` 及 `confirmed: true`）。
+
 默认数据库位于插件目录的 `data/prompts.sqlite3`；容器中应对挂载后的实际数据库执行迁移。已有全部字段的数据库无需再次迁移，程序不会自动修改旧库结构。更旧的库可先在停止写入时执行：
 
 ```bash

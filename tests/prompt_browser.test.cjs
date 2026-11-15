@@ -6,6 +6,101 @@ const { once } = require("node:events");
 const { chromium } = require("playwright");
 const net = require("node:net");
 
+test('database backup toolbar creates a full snapshot, downloads it and retains history',async t=>{
+    const page=await pageFor(t);
+    await page.locator('.tbp-filters [name="q"]').fill('no matching synthetic record');
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    const dialog=page.getByRole('dialog',{name:'数据库备份',exact:true});
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-location').textContent.includes('backups'));
+    assert.match(await dialog.textContent(),/备份整个 ToolBox 数据库/);
+    await dialog.getByRole('button',{name:'立即备份',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-status').textContent.includes('完整性校验通过'));
+    assert.equal(await dialog.locator('.tbp-backup-row').count(),1);
+    const listing=await(await page.request.get(base+'/toolbox/database/backups')).json();
+    const saved=await page.request.get(base+'/toolbox/database/backups/'+listing.items[0].filename);
+    assert.equal((await saved.body()).subarray(0,16).toString(),'SQLite format 3\0');
+    const downloadPromise=page.waitForEvent('download');await dialog.getByRole('link',{name:'下载',exact:true}).click();
+    const download=await downloadPromise;assert.equal(download.suggestedFilename(),listing.items[0].filename);assert.equal(await download.failure(),null);
+    await page.screenshot({path:'test-results/database-backups-desktop.png'});
+    await page.setViewportSize({width:620,height:1000});
+    assert.equal(await dialog.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+    await page.screenshot({path:'test-results/database-backups-mobile.png'});
+    await dialog.getByRole('button',{name:'关闭',exact:true}).click();
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.tbp-backup-row').length===1);
+    await page.getByRole('dialog',{name:'提示词库',exact:true}).evaluate(node=>node.querySelector('.tbp-header-actions button:last-child').click());
+    assert.equal(await page.locator('.tbp-backup-dialog').count(),0);
+});
+
+test('database backup UI prevents duplicate requests, shows failures and can retry',async t=>{
+    const page=await pageFor(t);let release,received;
+    const gate=new Promise(resolve=>release=resolve),started=new Promise(resolve=>received=resolve);let posts=0;
+    await page.route('**/toolbox/database/backups',async route=>{
+        if(route.request().method()!=='POST')return route.continue();
+        posts++;received();await gate;await route.fulfill({status:503,json:{error:'模拟磁盘空间不足'}});
+    });
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    const dialog=page.getByRole('dialog',{name:'数据库备份',exact:true});
+    const create=dialog.getByRole('button',{name:'立即备份',exact:true});await create.click();await started;
+    assert.equal(await create.isDisabled(),true);assert.equal(posts,1);release();
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-status').textContent.includes('备份失败：模拟磁盘空间不足'));
+    await page.unroute('**/toolbox/database/backups');await create.click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-status').textContent.includes('完整性校验通过'));
+    assert.equal(await create.isEnabled(),true);
+});
+
+test('database backup cleanup previews without deleting and retains the selected newest backups',async t=>{
+    const page=await pageFor(t),endpoint=base+'/toolbox/database/backups';
+    for(let n=0;n<3;n++)assert.equal((await page.request.post(endpoint,{data:{}})).status(),201);
+    const before=await(await page.request.get(endpoint)).json();
+    const sourceTotal=(await(await page.request.get(base+'/toolbox/prompts?page_size=1')).json()).total;
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    const backups=page.getByRole('dialog',{name:'数据库备份',exact:true});
+    await backups.getByRole('button',{name:'清理旧备份',exact:true}).click();
+    let cleanup=page.getByRole('dialog',{name:'清理旧备份',exact:true});
+    assert.equal(await cleanup.getByLabel('保留最近备份数量').inputValue(),'5');
+    assert.equal(await cleanup.getByRole('button',{name:'确认清理',exact:true}).isDisabled(),true);
+    await cleanup.getByLabel('保留最近备份数量').fill('2');await cleanup.getByRole('button',{name:'预览清理',exact:true}).click();
+    await page.waitForFunction(count=>document.querySelectorAll('.tbp-backup-candidate').length===count,before.total-2);
+    assert.match(await cleanup.locator('[role="status"]').textContent(),/预计释放/);
+    assert.equal((await(await page.request.get(endpoint)).json()).total,before.total);
+    await cleanup.getByRole('button',{name:'取消',exact:true}).click();
+    assert.equal((await(await page.request.get(endpoint)).json()).total,before.total);
+    await backups.getByRole('button',{name:'清理旧备份',exact:true}).click();
+    cleanup=page.getByRole('dialog',{name:'清理旧备份',exact:true});
+    await cleanup.getByLabel('保留最近备份数量').fill('2');await cleanup.getByRole('button',{name:'预览清理',exact:true}).click();
+    await page.waitForFunction(count=>document.querySelectorAll('.tbp-backup-candidate').length===count,before.total-2);
+    await page.setViewportSize({width:620,height:1000});assert.equal(await cleanup.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+    await page.screenshot({path:'test-results/database-backups-cleanup.png'});
+    await cleanup.getByRole('button',{name:'确认清理',exact:true}).click();
+    await page.waitForFunction(()=>!document.querySelector('.tbp-backup-cleanup-dialog'));
+    const after=await(await page.request.get(endpoint)).json();assert.equal(after.total,2);
+    assert.deepEqual(after.items.map(item=>item.filename),before.items.slice(0,2).map(item=>item.filename));
+    assert.equal((await(await page.request.get(base+'/toolbox/prompts?page_size=1')).json()).total,sourceTotal);
+    assert.match(await backups.locator('.tbp-backup-status').textContent(),/已清理.*保留 2 份/);
+});
+
+test('database backup cleanup requires another preview after retention changes or stale plans',async t=>{
+    const page=await pageFor(t),endpoint=base+'/toolbox/database/backups';
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    await page.getByRole('button',{name:'清理旧备份',exact:true}).click();
+    const cleanup=page.getByRole('dialog',{name:'清理旧备份',exact:true});
+    await cleanup.getByRole('button',{name:'预览清理',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-cleanup-dialog [role="status"]').textContent.includes('没有可清理'));
+    assert.equal(await cleanup.getByRole('button',{name:'确认清理',exact:true}).isDisabled(),true);
+    await cleanup.getByLabel('保留最近备份数量').fill('1');await cleanup.getByRole('button',{name:'预览清理',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.tbp-backup-candidate').length===1);
+    await cleanup.getByLabel('保留最近备份数量').fill('2');
+    assert.equal(await cleanup.getByRole('button',{name:'确认清理',exact:true}).isDisabled(),true);
+    await cleanup.getByLabel('保留最近备份数量').fill('1');await cleanup.getByRole('button',{name:'预览清理',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelectorAll('.tbp-backup-candidate').length===1);
+    await page.request.post(endpoint,{data:{}});
+    await cleanup.getByRole('button',{name:'确认清理',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-cleanup-dialog [role="status"]').textContent.includes('备份列表已改变'));
+    assert.equal(await cleanup.getByRole('button',{name:'确认清理',exact:true}).isDisabled(),true);
+    assert.equal((await(await page.request.get(endpoint)).json()).total,3);
+});
+
 test('random prompt count follows filters and handles linked inputs without counting seed changes', async t => {
     const page=await browser.newPage();t.after(()=>page.close());
     let requests=0;page.on('request',request=>{if(request.url().includes('/toolbox/prompts?'))requests++;});

@@ -1,6 +1,6 @@
 import {app} from '../../../scripts/app.js';
 import {api} from '../../../scripts/api.js';
-import {openPromptBrowser} from './prompt_browser.mjs?v=20261114-prompt-library-management';
+import {openPromptBrowser} from './prompt_browser.mjs?v=20261115-backup-cleanup';
 import {EXAMPLES_EVENT,attachExampleCounter,attachMediaStatus} from './prompt_examples.mjs?v=20261114-prompt-library-management';
 
 app.registerExtension({name:'eazy.toolbox.prompt_examples',

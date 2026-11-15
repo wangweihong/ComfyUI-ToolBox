@@ -10,6 +10,7 @@ except ImportError:
     TestClient = None
 
 from nodes import prompt_library as library, prompt_nodes as prompts
+from nodes import database_backups
 
 
 @unittest.skipUnless(TestClient, "aiohttp is required for API integration tests")
@@ -44,6 +45,54 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await saved.json())["prompt"], "saved")
         self.assertEqual((await self.client.patch("/toolbox/prompts/1", json=payload)).status, 409)
         self.assertEqual(library.detail(1)["tags"], ["new", "night"])
+
+    async def test_database_backup_create_list_download_and_request_validation(self):
+        output = Path(self.directory.name) / 'backups'
+        with patch.object(database_backups, 'backup_directory', return_value=output):
+            endpoint = '/toolbox/database/backups'
+            self.assertEqual((await (await self.client.get(endpoint)).json())['items'], [])
+            self.assertEqual((await self.client.post(endpoint, data='x')).status, 415)
+            for payload in ({'path': '/tmp/not-allowed'}, [], None):
+                self.assertEqual((await self.client.post(endpoint, json=payload, headers={'Content-Type':'application/json'})).status, 400)
+            self.assertEqual((await self.client.post(endpoint, data='x' * 1025, headers={'Content-Type':'application/json'})).status, 413)
+            self.assertEqual((await self.client.post(endpoint, json={}, headers={'Origin':'https://elsewhere.invalid'})).status, 403)
+            self.assertEqual((await self.client.post(endpoint + '?path=x', json={})).status, 400)
+            with database_backups._operation_lock:
+                self.assertEqual((await self.client.post(endpoint, json={})).status, 409)
+            response = await self.client.post(endpoint, json={})
+            self.assertEqual(response.status, 201)
+            record = await response.json()
+            self.assertEqual(record['integrity'], 'ok')
+            listing = await (await self.client.get(endpoint)).json()
+            self.assertEqual(listing['total'], 1)
+            self.assertEqual(listing['items'][0]['filename'], record['filename'])
+            download = await self.client.get(endpoint + '/' + record['filename'])
+            self.assertEqual(download.status, 200)
+            self.assertIn('attachment;', download.headers['Content-Disposition'])
+            self.assertEqual(await download.read(), Path(record['path']).read_bytes())
+            self.assertEqual((await self.client.get(endpoint + '/prompts.sqlite3')).status, 404)
+            self.assertEqual((await self.client.get(endpoint + '/.partial')).status, 404)
+
+    async def test_database_backup_cleanup_routes_require_preview_and_confirmation(self):
+        with patch.object(database_backups, 'backup_directory', return_value=Path(self.directory.name) / 'backups'):
+            endpoint = '/toolbox/database/backups'
+            for _ in range(3):
+                self.assertEqual((await self.client.post(endpoint, json={})).status, 201)
+            plan_url, apply_url = endpoint + '/cleanup/plan', endpoint + '/cleanup/apply'
+            self.assertEqual((await self.client.post(plan_url, data='x')).status, 415)
+            self.assertEqual((await self.client.post(plan_url, json={'keep_latest': 0})).status, 400)
+            self.assertEqual((await self.client.post(plan_url, json={'keep_latest': True})).status, 400)
+            self.assertEqual((await self.client.post(plan_url, json={'keep_latest': 1}, headers={'Origin':'https://elsewhere.invalid'})).status, 403)
+            plan = await (await self.client.post(plan_url, json={'keep_latest': 1})).json()
+            self.assertEqual(plan['count'], 2)
+            self.assertEqual((await (await self.client.get(endpoint)).json())['total'], 3)
+            self.assertEqual((await self.client.post(apply_url, json={'token': plan['token'], 'confirmed': False})).status, 400)
+            result = await self.client.post(apply_url, json={'token': plan['token'], 'confirmed': True})
+            self.assertEqual(result.status, 200)
+            self.assertEqual((await result.json())['deleted_count'], 2)
+            self.assertEqual((await (await self.client.get(endpoint)).json())['total'], 1)
+            self.assertEqual((await self.client.post(apply_url, json={'token': plan['token'], 'confirmed': True})).status, 409)
+            self.assertEqual(library.list_prompts({})['total'], 1)
 
     async def test_invalid_http_requests_and_missing_database(self):
         for url, status in (("/toolbox/prompts/999", 404), ("/toolbox/prompts/bad", 400),

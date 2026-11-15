@@ -2,6 +2,7 @@ import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_
 import {createTagField} from "./tag_picker.mjs?v=20261114-skill-library-management";
 import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs?v=20261114-skill-library-management';
 import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261114-prompt-library-management";
+import {ensureDatabaseBackupStyles,openDatabaseBackups} from './database_backups.mjs?v=20261115-cleanup';
 
 const CATEGORY_LABELS = {
     nsfw: "NSFW", extreme: "重口味", horror: "恐怖", gore: "血腥", minor: "未成年",
@@ -56,6 +57,7 @@ function button(text, action, className = "") {
 }
 
 export function openPromptBrowser({ request, currentId, onSelect, onClose = () => {}, initialExamples=false, exampleShasum=null, exampleRequest=(path,options)=>fetch(path,options), allowUse=true }) {
+    ensureDatabaseBackupStyles();
     if (!document.querySelector("link[data-toolbox-prompts]")) {
         const css = element("link");
         css.rel = "stylesheet";
@@ -69,7 +71,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
     detail.setAttribute("aria-label", "提示词详情");
     const lifetime = new AbortController();
     let closed = false, dirty = false, saving = false, page = 1, pages = 1, selected = currentId > 0 ? { id: Number(currentId) } : null;
-    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor, examplePanel, exampleManager, tagManager, confirmation;
+    let listingRequest, detailRequest, tagRequest, searchTimer, tagEditor, examplePanel, exampleManager, tagManager, confirmation, backupDialog;
     let examplesOpen=initialExamples,activeExampleShasum=exampleShasum;
     let using = false;
     let levelMode = "all";
@@ -86,6 +88,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         tagEditor?.destroy();
         examplePanel?.destroy();exampleManager?.close();
         tagManager?.close();confirmation?.close();
+        backupDialog?.close();
         clearTimeout(searchTimer);
         lifetime.abort(); listingRequest?.abort(); detailRequest?.abort(); tagRequest?.abort();
         detail.close(); detail.remove(); dialog.close(); dialog.remove(); onClose();
@@ -99,6 +102,7 @@ export function openPromptBrowser({ request, currentId, onSelect, onClose = () =
         detail.close(); detail.replaceChildren(); dirty = false;
     };
     const headerActions = element("div", "tbp-header-actions");
+    headerActions.append(button('备份数据库',()=>{if(!backupDialog)backupDialog=openDatabaseBackups({request:exampleRequest,onClose:()=>{backupDialog=null;}});}));
     headerActions.append(button("示例素材管理",()=>{if(!exampleManager)exampleManager=openExampleManager({request:exampleRequest,onChanged:()=>loadList(),onClose:()=>{exampleManager=null;}});}));
     headerActions.append(button("新增提示词", () => openNewPrompt(), "tbp-primary"), button("关闭", () => close()));
     header.append(heading, headerActions);

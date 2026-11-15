@@ -1,7 +1,7 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
-import { attachPromptReader } from "./prompt_browser.mjs?v=20261114-prompt-library-management";
-import { createPromptLibraryToolbar } from "./prompt_toolbar.mjs?v=20261114-prompt-library-management";
+import { attachPromptReader } from "./prompt_browser.mjs?v=20261115-backup-cleanup";
+import { createPromptLibraryToolbar } from "./prompt_toolbar.mjs?v=20261115-backup-cleanup";
 
 app.registerExtension({
     name: "eazy.toolbox.prompt_reader",
