@@ -1,4 +1,43 @@
 {
+  "ToolBoxLoadVideoPath": {
+    "display_name": "tb-load-video-path",
+    "description": "按服务器路径加载视频，不复制文件或一次性解码全部帧。需要图像帧或音轨时，将 VIDEO 连接到 Get Video Components。",
+    "inputs": {
+      "path": { "name": "视频路径", "tooltip": "填写服务器上的视频路径，或连接素材库的路径输出。" }
+    },
+    "outputs": {
+      "0": { "name": "视频" },
+      "1": { "name": "宽度", "tooltip": "原生 VIDEO 对象报告的宽度，单位为像素。" },
+      "2": { "name": "高度", "tooltip": "原生 VIDEO 对象报告的高度，单位为像素。" },
+      "3": { "name": "帧率", "tooltip": "原始帧率，单位为帧/秒，不重新采样。" },
+      "4": { "name": "时长", "tooltip": "视频时长，单位为秒。" }
+    }
+  },
+  "ToolBoxLoadAudioPath": {
+    "display_name": "tb-load-audio-path",
+    "description": "按服务器路径加载音频，保留原始采样率和声道；也支持读取视频中的音轨。",
+    "inputs": {
+      "path": { "name": "音频路径", "tooltip": "填写服务器上的音频路径，或连接素材库的路径输出。" }
+    },
+    "outputs": {
+      "0": { "name": "音频" },
+      "1": { "name": "采样率", "tooltip": "每秒采样数，单位为 Hz。" },
+      "2": { "name": "时长", "tooltip": "按解码后的采样数除以采样率计算，单位为秒。" }
+    }
+  },
+  "ToolBoxLoadImagePath": {
+    "display_name": "tb-load-image-path",
+    "description": "按服务器文件路径加载图片，自动应用 EXIF 方向并输出透明区域遮罩。动图只读取首帧。",
+    "inputs": {
+      "path": { "name": "图片路径", "tooltip": "填写服务器上的图片路径，或连接素材库的路径输出。" }
+    },
+    "outputs": {
+      "0": { "name": "图像" },
+      "1": { "name": "遮罩" },
+      "2": { "name": "宽度", "tooltip": "应用 EXIF 方向后图像的实际宽度，单位为像素。" },
+      "3": { "name": "高度", "tooltip": "应用 EXIF 方向后图像的实际高度，单位为像素。" }
+    }
+  },
   "ToolBoxLatentSize": {
     "display_name": "tb-latent-size",
     "inputs": {

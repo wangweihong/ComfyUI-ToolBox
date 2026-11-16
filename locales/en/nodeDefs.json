@@ -1,4 +1,43 @@
 {
+  "ToolBoxLoadVideoPath": {
+    "display_name": "tb-load-video-path",
+    "description": "Load a server video by path without copying or decoding all frames. Connect VIDEO to Get Video Components to extract images or audio.",
+    "inputs": {
+      "path": { "name": "Video path", "tooltip": "Enter a server file path or connect the media library path output." }
+    },
+    "outputs": {
+      "0": { "name": "Video" },
+      "1": { "name": "Width", "tooltip": "Width reported by the native VIDEO object, in pixels." },
+      "2": { "name": "Height", "tooltip": "Height reported by the native VIDEO object, in pixels." },
+      "3": { "name": "Frame rate", "tooltip": "Native frame rate in frames per second; no resampling." },
+      "4": { "name": "Duration", "tooltip": "Video duration in seconds." }
+    }
+  },
+  "ToolBoxLoadAudioPath": {
+    "display_name": "tb-load-audio-path",
+    "description": "Load server audio by path, preserving sample rate and channels. Also accepts video files with an audio track.",
+    "inputs": {
+      "path": { "name": "Audio path", "tooltip": "Enter a server file path or connect the media library path output." }
+    },
+    "outputs": {
+      "0": { "name": "Audio" },
+      "1": { "name": "Sample rate", "tooltip": "Samples per second (Hz)." },
+      "2": { "name": "Duration", "tooltip": "Decoded sample count divided by sample rate, in seconds." }
+    }
+  },
+  "ToolBoxLoadImagePath": {
+    "display_name": "tb-load-image-path",
+    "description": "Load a server image by path, with EXIF orientation and an inverted alpha mask. Animated files use the first frame.",
+    "inputs": {
+      "path": { "name": "Image path", "tooltip": "Enter a server file path or connect the media library path output." }
+    },
+    "outputs": {
+      "0": { "name": "Image" },
+      "1": { "name": "Mask" },
+      "2": { "name": "Width", "tooltip": "Image width in pixels after EXIF orientation." },
+      "3": { "name": "Height", "tooltip": "Image height in pixels after EXIF orientation." }
+    }
+  },
   "ToolBoxLatentSizeAuto": {
     "display_name": "tb-latent-size-auto",
     "description": "Detect the image aspect ratio, find the nearest preset and calculate scaled dimensions. Preserves the exact source ratio by default.",

@@ -9,6 +9,10 @@ from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
 from .nodes.image_metadata_nodes import NODE_CLASS_MAPPINGS as image_metadata_mapping
+from .nodes.image_path_nodes import NODE_CLASS_MAPPINGS as image_path_mapping
+from .nodes.image_path_nodes import NODE_DISPLAY_NAME_MAPPINGS as image_path_display
+from .nodes.media_path_nodes import NODE_CLASS_MAPPINGS as media_path_mapping
+from .nodes.media_path_nodes import NODE_DISPLAY_NAME_MAPPINGS as media_path_display
 from .nodes.prompt_nodes import NODE_CLASS_MAPPINGS as prompt_nodes_mapping
 from .nodes import prompt_routes as _prompt_routes
 from .nodes.prompt_media_nodes import NODE_CLASS_MAPPINGS as prompt_media_mapping, NODE_DISPLAY_NAME_MAPPINGS as prompt_media_display
@@ -41,6 +45,8 @@ NODE_CLASS_MAPPINGS = {
     **video_compare_nodes_mapping,
     **text_nodes_mapping,
     **image_metadata_mapping,
+    **image_path_mapping,
+    **media_path_mapping,
     **prompt_nodes_mapping,
     **prompt_media_mapping,
     **skill_nodes_mapping,
@@ -52,6 +58,8 @@ NODE_CLASS_MAPPINGS = {
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **image_path_display,
+    **media_path_display,
     **media_library_display,
     **dance_mv_display_mapping,
     **gaussian_display_mapping,

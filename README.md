@@ -281,6 +281,29 @@ node --test tests/prompt_browser.test.cjs
 
 浏览器测试在本机启动临时服务，仅使用合成数据库。可用 `PROMPT_TEST_PYTHON` 指定装有 `aiohttp` 的 Python，用 `NODE_PATH` 指定现有 Playwright 包目录。
 
+## 按路径加载图片
+
+`tb-load-image-path`（`ToolBoxLoadImagePath`，分类 `eazy-toolbox/image`）通过 `path` 读取 ComfyUI 服务器上的图片，依次输出 `image: IMAGE`、`mask: MASK`、`width: INT` 和 `height: INT`。宽高为应用 EXIF 方向后的实际像素尺寸，可直接连接下游尺寸参数。可手动填写绝对路径，也可将 `path` 控件转换为输入，连接 `tb-media-library` 的路径输出；直接读取原文件，无需复制或上传到 input。
+
+支持 Pillow 可解码的 PNG、JPEG、WebP 等格式，自动应用 EXIF 方向；透明区域的 mask 为 1，不透明区域为 0，无透明通道时输出与图片同尺寸的全零遮罩。动图或多页图片只读取首帧。支持 `~` 用户目录，相对路径以 ComfyUI 进程的工作目录为基准；路径必须能被服务器访问。文件内容改变后会重新读取，路径为空、文件不存在或无法解码时明确报错。
+
+验证：`python3 -m pytest tests/test_image_path.py -q`（需要 Pillow、NumPy、PyTorch 和 pytest）。
+
+## 按路径加载视频与音频
+
+新增两个路径加载节点，均可手动填写 `path`，或将其转换为输入连接 `tb-media-library` 的路径输出；直接读取服务器原文件，无需上传或复制到 input。支持绝对路径、`~` 和相对于 ComfyUI 进程工作目录的路径。
+
+| 节点 | 分类 | 输出（按端口顺序） |
+|------|------|--------------------|
+| `tb-load-video-path` | `eazy-toolbox/video` | `video: VIDEO`、`width: INT`、`height: INT`、`fps: FLOAT`、`duration: FLOAT` |
+| `tb-load-audio-path` | `eazy-toolbox/audio` | `audio: AUDIO`、`sample_rate: INT`、`duration: FLOAT` |
+
+视频复用原生文件型 `VIDEO`，读取宽高、帧率和时长时不一次性解码全部帧。宽高沿用原生 VIDEO 对象报告的尺寸；需要图像帧或音轨时连接 `Get Video Components`。音频复用 ComfyUI 自带解码器，保留原始采样率与声道，完整解码为 `[1, channels, samples]`；也支持提取视频中的音轨。时长单位为秒，采样率为 Hz，支持格式取决于当前 ComfyUI 的 FFmpeg/PyAV。无音轨视频可由视频节点加载，音频节点会明确报错。
+
+采用 ComfyUI V3 节点接口，需要包含标准 VIDEO/AUDIO 支持的 ComfyUI。文件大小、修改时间或文件状态时间变化会使缓存失效；检查缓存无需完整读取大文件。节点不修改源文件，不保存中间文件。
+
+验证：在现有 ComfyUI Python 环境运行 `python3 -m pytest tests/test_media_path.py -q`，仅生成临时合成媒体，不加载模型。
+
 ## 图像元数据读取
 
 `tb-image-metadata-reader`（`ToolBoxImageMetadataReader`，分类 `eazy-toolbox/image`）直接选择或上传原始图像文件，输出一个 `metadata` 字符串端口，内容为格式化 JSON。可连接文本预览或后续处理节点，无需运行模型。
