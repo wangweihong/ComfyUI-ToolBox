@@ -6,6 +6,7 @@ from nodes.latent_nodes import (
     CUSTOM_RATIO,
     KEEP_RATIO,
     LEGACY_RATIO_NAMES,
+    LEGACY_RESOLUTIONS,
     LONG_EDGE_MODE,
     MAX_DIMENSION,
     NEAREST_RATIO,
@@ -29,13 +30,25 @@ class LatentSizeTest(unittest.TestCase):
             self.assertTrue(any(max(pair) >= 7680 for pair in dimensions), name)
             self.assertTrue(all(max(pair) <= 8192 for pair in dimensions), name)
             self.assertTrue(all(value in required["resolution"][0] for value in resolutions))
-        for name in ("21:9 横屏", "32:9 横屏", "9:21 竖屏", "9:32 竖屏"):
+        for name in RATIO_DATA:
             x, y = ratio_pair(name)
             for resolution in RATIO_DATA[name]:
                 w, h = map(int, resolution.split(" x "))
                 self.assertEqual(w * y, h * x)
         self.assertIn("7680 x 4320", RATIO_DATA["16:9 横屏"])
         self.assertIn("8192 x 4608", RATIO_DATA["16:9 横屏"])
+        self.assertEqual(RATIO_DATA["16:9 横屏"][0], "1920 x 1080")
+        self.assertEqual(RATIO_DATA["9:16 竖屏"][0], "1080 x 1920")
+
+    def test_legacy_dimensions_remain_accepted_without_being_recommended(self):
+        required = ToolBoxLatentSize.INPUT_TYPES()["required"]
+        self.assertEqual(required["resolution"][1]["toolbox_legacy_ratio_data"], LEGACY_RESOLUTIONS)
+        for name, resolutions in LEGACY_RESOLUTIONS.items():
+            for resolution in resolutions:
+                self.assertNotIn(resolution, RATIO_DATA[name])
+                self.assertIn(resolution, required["resolution"][0])
+                width, height = map(int, resolution.split(" x "))
+                self.assertEqual(ToolBoxLatentSize().execute(name, resolution), (width, height))
 
     def test_existing_resolutions_legacy_names_and_custom_sizes(self):
         node = ToolBoxLatentSize()

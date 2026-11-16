@@ -3,7 +3,7 @@ import math
 
 MAX_DIMENSION = 32768
 
-# 保留已有预设及顺序，避免改变已保存工作流的分辨率。
+# 历史尺寸用于保留档位顺序；下面统一校正比例，并单独兼容旧工作流。
 RATIO_DATA = {
     "9:16 竖屏": ["1088 x 1920", "864 x 1536", "720 x 1280", "1296 x 2304", "1440 x 2560", "1728 x 3072", "2016 x 3584", "2304 x 4096"],
     "2:3 竖屏": ["1280 x 1920", "1120 x 1680", "960 x 1440", "832 x 1248", "1536 x 2304", "1704 x 2560", "2048 x 3072", "2392 x 3584", "2728 x 4096"],
@@ -40,6 +40,19 @@ def preset_resolution(name, long_edge):
     width, height = ratio_pair(name)
     multiplier = max(1, long_edge // (max(width, height) * 8)) * 8
     return f"{width * multiplier} x {height * multiplier}"
+
+
+LEGACY_RESOLUTIONS = {}
+for _ratio, _resolutions in RATIO_DATA.items():
+    _corrected = []
+    for _resolution in _resolutions:
+        _width, _height = map(int, _resolution.split(" x "))
+        _exact = preset_resolution(_ratio, max(_width, _height))
+        if _exact != _resolution:
+            LEGACY_RESOLUTIONS.setdefault(_ratio, []).append(_resolution)
+        if _exact not in _corrected:
+            _corrected.append(_exact)
+    RATIO_DATA[_ratio] = _corrected
 
 
 for _ratio in ("9:21 竖屏", "9:32 竖屏", "21:9 横屏", "32:9 横屏"):
@@ -79,11 +92,17 @@ class ToolBoxLatentSize:
         all_res = []
         for res_list in RATIO_DATA.values():
             all_res.extend(res_list)
+        # 服务端仍接受旧工作流保存的值，前端仅在恢复该值时展示它。
+        for res_list in LEGACY_RESOLUTIONS.values():
+            all_res.extend(res_list)
 
         return {
             "required": {
                 "ratio": ([*RATIO_DATA.keys(), CUSTOM_RATIO], {"default": "1:1 方图"}),
-                "resolution": (all_res, {"default": "1440 x 1440", "toolbox_ratio_data": RATIO_DATA}),
+                "resolution": (all_res, {
+                    "default": "1440 x 1440", "toolbox_ratio_data": RATIO_DATA,
+                    "toolbox_legacy_ratio_data": LEGACY_RESOLUTIONS,
+                }),
                 "custom_width": ("INT", {"default": 1024, "min": 8, "max": MAX_DIMENSION, "step": 8}),
                 "custom_height": ("INT", {"default": 1024, "min": 8, "max": MAX_DIMENSION, "step": 8}),
             }
