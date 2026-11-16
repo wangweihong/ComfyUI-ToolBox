@@ -1,6 +1,7 @@
 """User-requested, verified snapshots of the entire shared ToolBox database."""
 from contextlib import closing
 from datetime import datetime, timezone
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -52,7 +53,16 @@ def _set_active(value):
 def _record(path):
     stat = path.stat()
     return {'filename': path.name, 'size_bytes': stat.st_size, 'path': str(path),
-            'created_at': datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()}
+            'created_at': datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+            'version': _version([path.name, *_fingerprint(stat)])}
+
+
+def _fingerprint(info):
+    return [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns]
+
+
+def _version(identity):
+    return hashlib.sha256(repr(identity).encode()).hexdigest()
 
 
 def _backup_paths():
@@ -91,14 +101,32 @@ def _identity(path):
         raise BackupPlanChanged('备份文件正在被其他工具使用，请关闭后重新预览。')
     if path.resolve() == database.DEFAULT_DB.resolve():
         raise BackupPlanChanged('不能清理当前数据库。')
-    return [path.name, info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns]
+    return [path.name, *_fingerprint(info)]
+
+
+def delete_backup(filename, version, confirmed):
+    if confirmed is not True or not isinstance(version, str) or not re.fullmatch('[0-9a-f]{64}', version):
+        raise ValueError('请先选择备份并确认删除。')
+    if not _operation_lock.acquire(blocking=False):
+        raise BackupInProgress('数据库备份、清理或删除正在进行，请等待完成。')
+    try:
+        path = download_path(filename)
+        identity = _identity(path)
+        if _version(identity) != version:
+            raise BackupPlanChanged('备份文件已改变，请刷新列表后重新选择。')
+        _set_active({'phase': 'deleting', 'percent': 0})
+        path.unlink()
+        return {'deleted': filename, 'size_bytes': identity[3], 'remaining_count': len(_backup_paths())}
+    finally:
+        _set_active(None)
+        _operation_lock.release()
 
 
 def preview_cleanup(keep_latest):
     if type(keep_latest) is not int or not 1 <= keep_latest <= 1000:
         raise ValueError('保留数量必须为 1–1000 的整数，至少保留最新一份备份。')
     if not _operation_lock.acquire(blocking=False):
-        raise BackupInProgress('数据库备份或清理正在进行，请等待完成。')
+        raise BackupInProgress('数据库备份、清理或删除正在进行，请等待完成。')
     try:
         now = time.monotonic()
         for token in list(_cleanup_plans):
@@ -123,7 +151,7 @@ def cleanup_backups(token, confirmed):
     if not isinstance(token, str) or not re.fullmatch('[0-9a-f]{32}', token) or confirmed is not True:
         raise ValueError('请先预览并确认清理。')
     if not _operation_lock.acquire(blocking=False):
-        raise BackupInProgress('数据库备份或清理正在进行，请等待完成。')
+        raise BackupInProgress('数据库备份、清理或删除正在进行，请等待完成。')
     try:
         plan = _cleanup_plans.pop(token, None)
         if plan is None or plan['expires'] <= time.monotonic():
@@ -153,7 +181,7 @@ def cleanup_backups(token, confirmed):
 
 def create_backup():
     if not _operation_lock.acquire(blocking=False):
-        raise BackupInProgress('数据库备份或清理正在进行，请等待完成。')
+        raise BackupInProgress('数据库备份、清理或删除正在进行，请等待完成。')
     temporary = None
     try:
         _set_active({'phase': 'copying', 'percent': 0})

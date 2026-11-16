@@ -94,6 +94,28 @@ class PromptRoutesTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.client.post(apply_url, json={'token': plan['token'], 'confirmed': True})).status, 409)
             self.assertEqual(library.list_prompts({})['total'], 1)
 
+    async def test_delete_individual_database_backup_route(self):
+        with patch.object(database_backups, 'backup_directory', return_value=Path(self.directory.name) / 'backups'):
+            endpoint = '/toolbox/database/backups'
+            records = [await (await self.client.post(endpoint, json={})).json() for _ in range(2)]
+            selected = records[0]
+            path = endpoint + '/' + selected['filename']
+            payload = {'version': selected['version'], 'confirmed': True}
+            self.assertEqual((await self.client.delete(path, data='x')).status, 415)
+            self.assertEqual((await self.client.delete(path, json={})).status, 400)
+            self.assertEqual((await self.client.delete(path, json={**payload, 'confirmed':False})).status, 400)
+            self.assertEqual((await self.client.delete(path, json={**payload, 'version':'0'*64})).status, 409)
+            self.assertEqual((await self.client.delete(path, json=payload, headers={'Origin':'https://elsewhere.invalid'})).status, 403)
+            self.assertEqual((await self.client.delete(endpoint + '/prompts.sqlite3', json=payload)).status, 404)
+            response = await self.client.delete(path, json=payload)
+            self.assertEqual(response.status, 200)
+            self.assertEqual((await response.json())['remaining_count'], 1)
+            self.assertEqual((await self.client.get(path)).status, 404)
+            self.assertEqual((await self.client.delete(path, json=payload)).status, 404)
+            remaining = await (await self.client.get(endpoint)).json()
+            self.assertEqual(remaining['items'][0]['filename'], records[1]['filename'])
+            self.assertEqual(library.list_prompts({})['total'], 1)
+
     async def test_invalid_http_requests_and_missing_database(self):
         for url, status in (("/toolbox/prompts/999", 404), ("/toolbox/prompts/bad", 400),
                             ("/toolbox/prompts?page_size=999", 400), ("/toolbox/prompts?gore=bad", 400)):

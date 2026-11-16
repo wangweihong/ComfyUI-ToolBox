@@ -101,6 +101,58 @@ test('database backup cleanup requires another preview after retention changes o
     assert.equal((await(await page.request.get(endpoint)).json()).total,3);
 });
 
+test('database backup row deletion confirms the selected file and supports cancellation',async t=>{
+    const page=await pageFor(t),endpoint=base+'/toolbox/database/backups';
+    const before=await(await page.request.get(endpoint)).json();
+    const selected=await(await page.request.post(endpoint,{data:{}})).json();
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    const backups=page.getByRole('dialog',{name:'数据库备份',exact:true});
+    await page.waitForFunction(name=>[...document.querySelectorAll('.tbp-backup-row')].some(row=>row.textContent.includes(name)),selected.filename);
+    const row=backups.locator('.tbp-backup-row').filter({hasText:selected.filename});
+    await row.getByRole('button',{name:'删除',exact:true}).click();
+    let confirmation=page.getByRole('dialog',{name:'删除备份',exact:true});
+    assert.match(await confirmation.textContent(),new RegExp(selected.filename));
+    await confirmation.getByRole('button',{name:'取消',exact:true}).click();
+    assert.equal((await(await page.request.get(endpoint)).json()).total,before.total+1);
+    await row.getByRole('button',{name:'删除',exact:true}).click();
+    confirmation=page.getByRole('dialog',{name:'删除备份',exact:true});
+    await page.setViewportSize({width:620,height:1000});
+    assert.equal(await confirmation.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+    await page.screenshot({path:'test-results/database-backup-delete.png'});
+    await confirmation.getByRole('button',{name:'确认删除',exact:true}).click();
+    await page.waitForFunction(()=>!document.querySelector('.tbp-backup-delete-dialog'));
+    const after=await(await page.request.get(endpoint)).json();
+    assert.deepEqual(after.items.map(item=>item.filename),before.items.map(item=>item.filename));
+    assert.match(await backups.locator('.tbp-backup-status').textContent(),/已删除备份/);
+});
+
+test('database backup deletion handles stale versions and confirms the last backup',async t=>{
+    const page=await pageFor(t),endpoint=base+'/toolbox/database/backups';
+    let listing=await(await page.request.get(endpoint)).json();
+    if(!listing.total){await page.request.post(endpoint,{data:{}});listing=await(await page.request.get(endpoint)).json();}
+    for(const item of listing.items.slice(1))assert.equal((await page.request.delete(endpoint+'/'+item.filename,{data:{version:item.version,confirmed:true}})).status(),200);
+    const selected=listing.items[0];
+    await page.getByRole('button',{name:'备份数据库',exact:true}).click();
+    const backups=page.getByRole('dialog',{name:'数据库备份',exact:true});
+    await backups.getByRole('button',{name:'删除',exact:true}).click();
+    let confirmation=page.getByRole('dialog',{name:'删除备份',exact:true});
+    assert.match(await confirmation.textContent(),/最后一份手动备份/);
+    await page.route('**/toolbox/database/backups/'+selected.filename,route=>route.request().method()==='DELETE'?route.fulfill({status:409,json:{error:'备份文件已改变'}}):route.continue());
+    await confirmation.getByRole('button',{name:'确认删除',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.tbp-backup-delete-dialog [role="status"]').textContent.includes('备份文件已改变'));
+    assert.equal(await confirmation.getByRole('button',{name:'确认删除',exact:true}).isDisabled(),true);
+    assert.equal((await(await page.request.get(endpoint)).json()).total,1);
+    await confirmation.getByRole('button',{name:'取消',exact:true}).click();
+    await page.unroute('**/toolbox/database/backups/'+selected.filename);
+    await backups.getByRole('button',{name:'删除',exact:true}).click();
+    confirmation=page.getByRole('dialog',{name:'删除备份',exact:true});
+    await confirmation.getByRole('button',{name:'确认删除',exact:true}).click();
+    await page.waitForFunction(()=>!document.querySelector('.tbp-backup-delete-dialog'));
+    assert.equal((await(await page.request.get(endpoint)).json()).total,0);
+    assert.match(await backups.textContent(),/还没有手动备份/);
+    assert.equal((await page.request.get(base+'/toolbox/prompts?page_size=1')).status(),200);
+});
+
 test('random prompt count follows filters and handles linked inputs without counting seed changes', async t => {
     const page=await browser.newPage();t.after(()=>page.close());
     let requests=0;page.on('request',request=>{if(request.url().includes('/toolbox/prompts?'))requests++;});

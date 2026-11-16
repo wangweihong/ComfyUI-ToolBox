@@ -192,6 +192,57 @@ class DatabaseBackupsTest(unittest.TestCase):
             self.assertEqual(backups.list_backups()['total'], 2)
             self.assertTrue(Path(records[-1]['path']).is_file())
 
+    def test_single_delete_only_removes_selected_snapshot_and_allows_last_after_confirmation(self):
+        with closing(self.initialize()) as source:
+            first, selected, last = [backups.create_backup() for _ in range(3)]
+            with self.assertRaises(ValueError):
+                backups.delete_backup(selected['filename'], selected['version'], False)
+            result = backups.delete_backup(selected['filename'], selected['version'], True)
+            self.assertEqual(result['deleted'], selected['filename'])
+            self.assertEqual(result['size_bytes'], selected['size_bytes'])
+            self.assertEqual(result['remaining_count'], 2)
+            self.assertTrue(Path(first['path']).is_file())
+            self.assertTrue(Path(last['path']).is_file())
+            self.assertFalse(Path(selected['path']).exists())
+            backups.delete_backup(first['filename'], first['version'], True)
+            self.assertEqual(backups.delete_backup(last['filename'], last['version'], True)['remaining_count'], 0)
+            self.assertEqual(source.execute('SELECT count(*) FROM prompts').fetchone()[0], 1)
+
+    def test_single_delete_rejects_changed_files_busy_operations_and_unmanaged_paths(self):
+        with closing(self.initialize()):
+            record = backups.create_backup()
+            with backups._operation_lock:
+                with self.assertRaises(backups.BackupInProgress):
+                    backups.delete_backup(record['filename'], record['version'], True)
+            for filename in ('../prompts.sqlite3', 'prompts.sqlite3', '.prompts-backup-test.partial'):
+                with self.assertRaises(backups.BackupNotFound):
+                    backups.delete_backup(filename, record['version'], True)
+            saved = Path(record['path'])
+            saved.write_bytes(b'changed externally')
+            with self.assertRaises(backups.BackupPlanChanged):
+                backups.delete_backup(record['filename'], record['version'], True)
+            self.assertTrue(saved.exists())
+            saved.unlink()
+            saved.symlink_to(self.source)
+            with self.assertRaises(backups.BackupNotFound):
+                backups.delete_backup(record['filename'], record['version'], True)
+            saved.unlink()
+            import os
+            os.link(self.source, saved)
+            with self.assertRaises(backups.BackupPlanChanged):
+                backups.delete_backup(record['filename'], record['version'], True)
+            self.assertTrue(self.source.is_file())
+
+    def test_single_delete_failure_preserves_file_and_releases_lock(self):
+        with closing(self.initialize()):
+            record = backups.create_backup()
+            with patch.object(Path, 'unlink', side_effect=PermissionError('synthetic permission denied')):
+                with self.assertRaises(PermissionError):
+                    backups.delete_backup(record['filename'], record['version'], True)
+            self.assertTrue(Path(record['path']).is_file())
+            self.assertIsNone(backups.list_backups()['active'])
+            self.assertEqual(backups.delete_backup(record['filename'], record['version'], True)['remaining_count'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

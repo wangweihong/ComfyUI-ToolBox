@@ -13,7 +13,7 @@ function size(bytes) {
 }
 export function ensureDatabaseBackupStyles() {
     if(document.querySelector('link[data-toolbox-database-backups]'))return;
-    const link=el('link');link.rel='stylesheet';link.href=new URL('../css/database_backups.css?v=20261115-cleanup',import.meta.url).href;
+    const link=el('link');link.rel='stylesheet';link.href=new URL('../css/database_backups.css?v=20261115-delete',import.meta.url).href;
     link.dataset.toolboxDatabaseBackups='true';document.head.append(link);
 }
 
@@ -23,10 +23,10 @@ export function openDatabaseBackups({request,onClose=()=>{}}) {
     const header=el('header','tbp-header'),body=el('div','tbp-backup-body');
     const status=el('p','tbp-backup-status');status.setAttribute('role','status');
     const location=el('p','tbp-backup-location'),list=el('div','tbp-backup-list');
-    let closed=false,submitting=false,cleaning=false,pollTimer,listingController,active=null,downloadBase,cleanupDialog;
+    let closed=false,submitting=false,cleaning=false,deleting=false,pollTimer,listingController,active=null,downloadBase,cleanupDialog,deleteDialog,totalBackups=0;
     const close=()=>{
         if(closed)return;closed=true;clearTimeout(pollTimer);listingController?.abort();
-        cleanupDialog?.close();dialog.close();dialog.remove();onClose();
+        cleanupDialog?.close();deleteDialog?.close();dialog.close();dialog.remove();onClose();
     };
     const create=button('立即备份',()=>void createBackup(),'tbp-primary');
     const refresh=button('刷新列表',()=>void load());
@@ -45,14 +45,17 @@ export function openDatabaseBackups({request,onClose=()=>{}}) {
         return {data,response};
     }
     function updateActive() {
-        create.disabled=cleanup.disabled=submitting||cleaning||Boolean(active);
-        if(active)status.textContent=active.phase==='cleaning'?'正在清理旧备份…':active.phase==='verifying'?'正在校验备份完整性…':`正在备份数据库… ${active.percent}%`;
+        const busy=submitting||cleaning||deleting||Boolean(active);
+        create.disabled=cleanup.disabled=busy;
+        for(const control of list.querySelectorAll('[data-delete-backup]'))control.disabled=busy;
+        if(active)status.textContent=active.phase==='deleting'?'正在删除备份…':active.phase==='cleaning'?'正在清理旧备份…':active.phase==='verifying'?'正在校验备份完整性…':`正在备份数据库… ${active.percent}%`;
         clearTimeout(pollTimer);
         if(!closed&&(submitting||active))pollTimer=setTimeout(()=>void load(),1000);
     }
     function render(data) {
         const wasActive=Boolean(active);
         active=data.active;
+        totalBackups=data.total;
         if(wasActive&&!active&&!submitting)status.textContent='备份任务已结束，请查看下方备份列表。';
         location.textContent=`服务器保存目录：${data.directory}`;
         list.replaceChildren();
@@ -63,7 +66,9 @@ export function openDatabaseBackups({request,onClose=()=>{}}) {
             const download=el('a','tbp-backup-download','下载');
             const url=new URL(downloadBase);url.pathname=url.pathname.replace(/\/$/,'')+'/'+encodeURIComponent(item.filename);
             download.href=url.href;download.download=item.filename;
-            row.append(info,download);list.append(row);
+            const remove=button('删除',()=>openDelete(item),'tbp-backup-delete');remove.dataset.deleteBackup=item.filename;
+            const actions=el('div','tbp-backup-row-actions');actions.append(download,remove);
+            row.append(info,actions);list.append(row);
         }
         if(data.total>data.items.length)list.append(el('p','tbp-status',`共 ${data.total} 个备份，显示最近 ${data.items.length} 个。`));
         updateActive();
@@ -82,7 +87,7 @@ export function openDatabaseBackups({request,onClose=()=>{}}) {
         }
     }
     async function createBackup() {
-        if(submitting||cleaning||active||closed)return;
+        if(submitting||cleaning||deleting||active||closed)return;
         submitting=true;status.textContent='正在备份数据库…';updateActive();
         try {
             // Closing the dialog does not cancel a backup that the user already started.
@@ -96,8 +101,38 @@ export function openDatabaseBackups({request,onClose=()=>{}}) {
             if(!closed){updateActive();await load();}
         }
     }
+    function openDelete(item) {
+        if(closed||submitting||cleaning||deleting||active||cleanupDialog||deleteDialog)return;
+        const view=el('dialog','tb-prompts tbp-backup-dialog tbp-backup-delete-dialog');view.setAttribute('aria-label','删除备份');
+        const head=el('header','tbp-header'),content=el('div','tbp-backup-body');
+        const message=el('p','tbp-backup-status','确认永久删除这份备份？');message.setAttribute('role','status');
+        const info=el('div','tbp-backup-candidate');info.append(el('strong','',new Date(item.created_at).toLocaleString()),el('span','tbp-status',`${size(item.size_bytes)} · ${item.filename}`));
+        if(totalBackups===1)info.append(el('p','tbp-backup-last','这是最后一份手动备份，删除后备份列表将为空。'));
+        let dismissed=false;
+        const closeDelete=()=>{if(dismissed)return;dismissed=true;view.close();view.remove();deleteDialog=null;};
+        const apply=button('确认删除',()=>void remove(),'tbp-backup-danger');
+        const footer=el('div','tbp-backup-actions tbp-backup-cleanup-actions');footer.append(button('取消',closeDelete),apply);
+        head.append(el('strong','','删除备份'),button('关闭',closeDelete));content.append(message,info,footer);
+        view.append(head,content);document.body.append(view);view.addEventListener('cancel',event=>{event.preventDefault();closeDelete();});
+        deleteDialog={close:closeDelete};view.showModal();
+
+        async function remove() {
+            if(deleting||apply.disabled||dismissed)return;
+            deleting=true;apply.disabled=true;message.textContent='正在删除备份…';updateActive();
+            try {
+                const {data}=await json(ENDPOINT+'/'+encodeURIComponent(item.filename),{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:item.version,confirmed:true})});
+                if(closed)return;
+                active=null;await load();status.textContent=`已删除备份 ${data.deleted}，释放 ${size(data.size_bytes)}，剩余 ${data.remaining_count} 份。`;closeDelete();
+            } catch(error) {
+                if(!closed){await load();status.textContent=`删除失败：${error.message}`;}
+                if(!dismissed)message.textContent=`删除失败：${error.message} 请关闭弹窗，刷新列表后重试。`;
+            } finally {
+                deleting=false;if(!closed)updateActive();
+            }
+        }
+    }
     function openCleanup() {
-        if(closed||submitting||cleaning||active||cleanupDialog)return;
+        if(closed||submitting||cleaning||deleting||active||cleanupDialog||deleteDialog)return;
         const view=el('dialog','tb-prompts tbp-backup-dialog tbp-backup-cleanup-dialog');view.setAttribute('aria-label','清理旧备份');
         const head=el('header','tbp-header'),content=el('div','tbp-backup-body');
         const field=el('label','tbp-backup-retention');field.append(el('span','','保留最近'));

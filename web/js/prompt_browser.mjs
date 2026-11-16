@@ -2,7 +2,7 @@ import { SIZE_PRESETS, DEFAULT_SIZE, sizeFilter, sizeSelection } from "./prompt_
 import {createTagField} from "./tag_picker.mjs?v=20261114-skill-library-management";
 import {PROMPTS_EVENT,promptsChanged,confirmPromptDeletion,openPromptTagManager} from './prompt_actions.mjs?v=20261114-skill-library-management';
 import {createExamplesPanel,openExampleManager,EXAMPLES_EVENT} from "./prompt_examples.mjs?v=20261114-prompt-library-management";
-import {ensureDatabaseBackupStyles,openDatabaseBackups} from './database_backups.mjs?v=20261115-cleanup';
+import {ensureDatabaseBackupStyles,openDatabaseBackups} from './database_backups.mjs?v=20261115-delete';
 
 const CATEGORY_LABELS = {
     nsfw: "NSFW", extreme: "重口味", horror: "恐怖", gore: "血腥", minor: "未成年",

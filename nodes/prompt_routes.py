@@ -48,6 +48,9 @@ def register_routes():
     async def cleanup_backups(request):
         return await backup_write(request, 'plan' if request.path.endswith('/plan') else 'apply')
 
+    async def delete_backup(request):
+        return await backup_write(request, 'delete')
+
     async def backup_write(request, action):
         origin = request.headers.get('Origin')
         if request.headers.get('Sec-Fetch-Site') == 'cross-site' or origin and origin != f'{request.scheme}://{request.host}':
@@ -63,6 +66,10 @@ def register_routes():
                 return web.json_response({'error': '备份请求过大。'}, status=413)
         def operation():
             payload = json.loads(raw)
+            if action == 'delete':
+                if not isinstance(payload, dict) or set(payload) != {'version', 'confirmed'}:
+                    raise ValueError('请先选择备份并确认删除。')
+                return database_backups.delete_backup(request.match_info['filename'], payload['version'], payload['confirmed'])
             if action == 'plan':
                 if not isinstance(payload, dict) or set(payload) != {'keep_latest'}:
                     raise ValueError('请指定保留的备份数量。')
@@ -152,6 +159,7 @@ def register_routes():
     instance.routes.post('/toolbox/database/backups/cleanup/plan')(cleanup_backups)
     instance.routes.post('/toolbox/database/backups/cleanup/apply')(cleanup_backups)
     instance.routes.get('/toolbox/database/backups/{filename}')(download_backup)
+    instance.routes.delete('/toolbox/database/backups/{filename}')(delete_backup)
     instance.routes.get("/toolbox/prompts/options")(options)
     instance.routes.get("/toolbox/prompts/tags")(tags)
     instance.routes.delete("/toolbox/prompts/tags")(remove)
