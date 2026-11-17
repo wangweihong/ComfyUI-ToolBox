@@ -1,4 +1,68 @@
 {
+  "ToolBoxSwitchAny": {
+    "display_name": "tb-switch-any",
+    "inputs": {
+      "on_true": {
+        "name": "为真时的输入"
+      },
+      "on_false": {
+        "name": "为假时的输入"
+      },
+      "boolean": {
+        "name": "选择真分支"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "输出"
+      }
+    }
+  },
+  "ToolBoxSwitchImage": {
+    "display_name": "tb-switch-image",
+    "inputs": {
+      "on_true": {
+        "name": "为真时的图像"
+      },
+      "on_false": {
+        "name": "为假时的图像"
+      },
+      "boolean": {
+        "name": "选择真分支"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像"
+      }
+    }
+  },
+  "ToolBoxPrimitiveInteger": {
+    "display_name": "tb-primitive-integer",
+    "inputs": {
+      "int": {
+        "name": "整数"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "整数"
+      }
+    }
+  },
+  "ToolBoxPrimitiveStringMultiline": {
+    "display_name": "tb-primitive-string-multiline",
+    "inputs": {
+      "string": {
+        "name": "多行文本"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "文本"
+      }
+    }
+  },
   "ToolBoxLoadVideoPath": {
     "display_name": "tb-load-video-path",
     "description": "按服务器路径加载视频，不复制文件或一次性解码全部帧。需要图像帧或音轨时，将 VIDEO 连接到 Get Video Components。",

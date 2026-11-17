@@ -1,4 +1,68 @@
 {
+  "ToolBoxSwitchAny": {
+    "display_name": "tb-switch-any",
+    "inputs": {
+      "on_true": {
+        "name": "True branch"
+      },
+      "on_false": {
+        "name": "False branch"
+      },
+      "boolean": {
+        "name": "Select true branch"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Output"
+      }
+    }
+  },
+  "ToolBoxSwitchImage": {
+    "display_name": "tb-switch-image",
+    "inputs": {
+      "on_true": {
+        "name": "True image"
+      },
+      "on_false": {
+        "name": "False image"
+      },
+      "boolean": {
+        "name": "Select true branch"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Image"
+      }
+    }
+  },
+  "ToolBoxPrimitiveInteger": {
+    "display_name": "tb-primitive-integer",
+    "inputs": {
+      "int": {
+        "name": "Integer"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Integer"
+      }
+    }
+  },
+  "ToolBoxPrimitiveStringMultiline": {
+    "display_name": "tb-primitive-string-multiline",
+    "inputs": {
+      "string": {
+        "name": "Multiline text"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Text"
+      }
+    }
+  },
   "ToolBoxLoadVideoPath": {
     "display_name": "tb-load-video-path",
     "description": "Load a server video by path without copying or decoding all frames. Connect VIDEO to Get Video Components to extract images or audio.",

@@ -8,6 +8,8 @@ gaussian_display_mapping = _gaussian_nodes.NODE_DISPLAY_NAME_MAPPINGS
 from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
+from .nodes.control_nodes import NODE_CLASS_MAPPINGS as control_nodes_mapping
+from .nodes.control_nodes import NODE_DISPLAY_NAME_MAPPINGS as control_display_mapping
 from .nodes.image_metadata_nodes import NODE_CLASS_MAPPINGS as image_metadata_mapping
 from .nodes.image_path_nodes import NODE_CLASS_MAPPINGS as image_path_mapping
 from .nodes.image_path_nodes import NODE_DISPLAY_NAME_MAPPINGS as image_path_display
@@ -37,6 +39,7 @@ from .nodes.dance_mv import NODE_CLASS_MAPPINGS as dance_mv_nodes_mapping
 from .nodes.dance_mv import NODE_DISPLAY_NAME_MAPPINGS as dance_mv_display_mapping
 
 NODE_CLASS_MAPPINGS = {
+    **control_nodes_mapping,
     **media_library_mapping,
     **dance_mv_nodes_mapping,
     **gaussian_nodes_mapping,
@@ -58,6 +61,7 @@ NODE_CLASS_MAPPINGS = {
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **control_display_mapping,
     **image_path_display,
     **media_path_display,
     **media_library_display,

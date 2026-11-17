@@ -16,6 +16,12 @@ English: MOSS prompt enhancement now lives in ToolBox, retaining the legacy work
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
 
+## 开关与基础值
+
+提供 `tb-switch-any`、`tb-switch-image`、`tb-primitive-integer`、`tb-primitive-string-multiline`，独立迁入 Crystools 的四种基础节点，保留端口、控件顺序和开关惰性执行行为，无需安装 Crystools。不自动修改已有工作流或用户设置。
+
+[节点对应关系与迁移说明](docs/control_nodes.md)。
+
 ## FLUX.2 Klein 增强与身份迁移
 
 内置原 Flux2Klein Enhancer 的全部 **16 个节点**，统一位于 `ToolBox/Flux2Klein`：文本增强、分段编码、参考图控制、多参考 latent、遮罩、颜色锚定、身份引导、四版身份特征迁移和实验采样器。保留原节点 ID、显示名称、参数和计算逻辑，已有工作流可继续使用；请停用独立的 `ComfyUI-Flux2Klein-Enhancer` 插件，避免重复注册。
