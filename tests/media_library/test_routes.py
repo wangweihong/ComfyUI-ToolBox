@@ -15,6 +15,18 @@ async def client(lib):
     app=web.Application();routes=web.RouteTableDef();register_routes(routes,lambda:lib,app=app);app.add_routes(routes)
     async with TestClient(TestServer(app)) as client: yield client
 
+async def test_folder_move_endpoint_and_origin(client, lib):
+    root = Path(lib.roots()[0]['path'])
+    source = root / 'source'; source.mkdir()
+    target = root / 'target'; target.mkdir()
+    path = source / 'file.txt'; path.write_text('keep'); fid = lib.upsert(path)
+    payload = {'path': str(source), 'destination': str(target)}
+    response = await client.post('/toolbox/media-library/folders/move', json=payload, headers={'Origin': 'https://other.example'})
+    assert response.status == 400 and path.exists()
+    response = await client.post('/toolbox/media-library/folders/move', json=payload)
+    assert response.status == 200 and (await response.json())['updated_files'] == 1
+    assert lib.resolve(fid) == target / 'source' / 'file.txt'
+
 async def test_routes_select_and_range(client,lib):
     root=Path(lib.roots()[0]['path']);p=root/'data.mp4';p.write_bytes(bytes(range(256))*40);fid=lib.upsert(p)
     response=await client.get('/toolbox/media-library/file?id='+fid,headers={'Range':'bytes=10-19'})

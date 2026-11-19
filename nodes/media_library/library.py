@@ -382,16 +382,28 @@ class Library:
     def rename_folder(self, path, name):
         if not isinstance(name, str): raise LibraryError('请输入目录名称')
         self.valid_name(name)
+        return self.relocate_folder(path, name=name)
+
+    def move_folder(self, path, destination):
+        return self.relocate_folder(path, destination=destination)
+
+    def relocate_folder(self, path, *, name=None, destination=None):
         with self.operations_lock:
             source, _ = self.check_path(path)
             if not source.is_dir(): raise LibraryError('请选择目录')
             roots = self.roots()
             if any(root['builtin'] and Path(root['path']).is_relative_to(source) for root in roots):
-                raise LibraryError('不能重命名 ComfyUI 默认目录或包含默认目录的位置')
+                raise LibraryError('不能移动或重命名 ComfyUI 默认目录或包含默认目录的位置')
             if self.db_path.is_relative_to(source) or self.cache.is_relative_to(source):
-                raise LibraryError('不能重命名包含插件数据库或预览缓存的目录')
-            target = source.with_name(name)
-            if target == source: raise LibraryError('新旧目录名称相同')
+                raise LibraryError('不能移动或重命名包含插件数据库或预览缓存的目录')
+            if destination is not None:
+                parent, _ = self.check_path(destination)
+                if not parent.is_dir(): raise LibraryError('请选择目标目录')
+                if parent.is_relative_to(source): raise LibraryError('不能将目录移动到自身或其子目录')
+                target, _ = self.check_path(parent / source.name, must_exist=False)
+            else:
+                target = source.with_name(name)
+            if target == source: raise LibraryError('新旧目录路径相同')
             if target.exists() or target.is_symlink(): raise LibraryError('目标目录或文件已经存在')
             if any(Path(root['path']) == target for root in roots): raise LibraryError('目标路径已经配置为素材目录')
             if self.is_internal_path(target): raise LibraryError('不能使用插件数据库或预览缓存路径')
@@ -410,7 +422,7 @@ class Library:
                         old = Path(root['path'])
                         if old.is_relative_to(source):
                             root['path'] = str(target / old.relative_to(source))
-                            if old == source: root['name'] = name
+                            if old == source and name is not None: root['name'] = name
                             db.execute('UPDATE media_roots SET path=?,name=? WHERE id=?', (root['path'], root['name'], root['id']))
                     for row in rows:
                         new_path = target / Path(row['path']).relative_to(source)
@@ -426,18 +438,24 @@ class Library:
                         old_path = Path(visit['path'])
                         if old_path.is_relative_to(source):
                             visit['path'] = str(target / old_path.relative_to(source))
+                            visit['root_id'] = max((root for root in roots if Path(visit['path']).is_relative_to(Path(root['path']))), key=lambda root: len(root['path']))['id']
                         if visit['path'] not in visits or visits[visit['path']]['visited_at'] < visit['visited_at']:
                             visits[visit['path']] = visit
                     db.execute('DELETE FROM media_folder_visits')
                     db.executemany('INSERT INTO media_folder_visits VALUES(?,?,?)',
                                    [(visit['path'], visit['root_id'], visit['visited_at']) for visit in visits.values()])
-                    self.rename_directory_no_replace(source, target)
+                    try:
+                        self.rename_directory_no_replace(source, target)
+                    except OSError as exc:
+                        if exc.errno == errno.EXDEV:
+                            raise LibraryError('目录暂不支持跨文件系统移动，请选择同一磁盘分区内的目标目录') from exc
+                        raise
                     moved = True
             except BaseException:
                 if moved:
                     try: self.rename_directory_no_replace(target, source)
                     except OSError as exc:
-                        raise LibraryError(f'目录已改名为 {target}，数据库保存失败且无法恢复原目录：{exc}') from exc
+                        raise LibraryError(f'目录已变更为 {target}，数据库保存失败且无法恢复原目录：{exc}') from exc
                 raise
             self.plans.clear()
             self.revision += 1

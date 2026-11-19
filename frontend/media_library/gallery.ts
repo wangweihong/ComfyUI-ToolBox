@@ -34,6 +34,7 @@ let renderedScope='',statusEpoch=0,locationEpoch=0,lastLocation='';
 let listEpoch=0, detailEpoch=0, toastTimer=0, statusTimer=0, previewTimer=0;
 let plan:Plan|null=null, operationIds:string[]=[], operation='',moveDestination='';
 let operationEpoch=0,moveEpoch=0;
+let movingFolder='';
 let folderActionEpoch=0,folderActionPath='',folderAction:'create'|'delete'='create',folderDeleteToken='';
 let stopPreview=()=>{};
 let detailBusy=false,neighbors:Neighbors|null=null,neighborTotal=0,neighborEpoch=0,renamingPath='',folderRenameEpoch=0;
@@ -290,6 +291,7 @@ function bindFolderMenu(node:HTMLElement,path:string){
     const menu=$('asset-context-menu');menu.replaceChildren(el('div','context-selection',fileName(path)));
     menu.append(menuAction('新建目录',()=>openFolderAction('create',path)));
     if(canRenameFolder(path))menu.append(menuAction('重命名目录',()=>openFolderRename(path)));
+    if(canRenameFolder(path))menu.append(menuAction('移动目录',()=>openFolderMove(path)));
     const remove=menuAction('删除空目录',()=>openFolderAction('delete',path),true);remove.disabled=state.roots.some(root=>isWithin(root.path,path));
     if(remove.disabled)remove.title='已配置的素材根目录不能删除';menu.append(remove);showContextMenu(x,y,'目录操作');
   };
@@ -535,15 +537,28 @@ async function renameFolder(event:SubmitEvent){
   event.preventDefault();const epoch=folderRenameEpoch,source=renamingPath,button=$<HTMLButtonElement>('folder-rename-submit');button.disabled=true;$('folder-rename-error').textContent='';
   try{
     const data=await api<{path:string;previous_path:string;roots:Root[]}>('/folders/rename',{path:source,name:$<HTMLInputElement>('folder-name').value.trim()});
-    ++listEpoch;++locationEpoch;lastLocation='';
-    if(state.folder&&isWithin(state.folder,data.previous_path))state.folder=data.path+state.folder.slice(data.previous_path.length);
-    state.roots=data.roots;renderedScope='';renderRoots();renderRootSettings();await loadFolderVisits();
     if(epoch===folderRenameEpoch)$<HTMLDialogElement>('folder-rename-dialog').close();
-    await loadFiles();const root=state.roots.find(root=>root.id===state.root);if(root)await revealFolder(root,currentPath());
-    if(state.current&&isWithin(state.current.path,data.previous_path))await openDetail(state.current.id);
-    window.parent.postMessage({type:'tb-media-library-changed'},location.origin);toast('目录已重命名，素材路径已更新');
+    await followFolderChange(data);toast('目录已重命名，素材路径已更新');
   }catch(error){if(epoch===folderRenameEpoch)$('folder-rename-error').textContent=(error as Error).message;else toast((error as Error).message);}
   finally{if(epoch===folderRenameEpoch)button.disabled=false;}
+}
+async function followFolderChange(data:{path:string;previous_path:string;roots:Root[]}){
+  const previous=currentPath(),path=isWithin(previous,data.previous_path)?data.path+previous.slice(data.previous_path.length):previous;
+  ++listEpoch;++locationEpoch;lastLocation='';state.roots=data.roots;
+  if(path){
+    const root=state.roots.find(root=>root.id===state.root&&isWithin(path,root.path))||[...state.roots].sort((a,b)=>b.path.length-a.path.length).find(root=>isWithin(path,root.path));
+    state.root=root?.id||'';state.folder=root&&path!==root.path?path:'';
+  }
+  renderedScope='';clearSelection();renderRoots();renderRootSettings();await loadFolderVisits();await loadFiles();
+  const root=state.roots.find(root=>root.id===state.root);if(root)await revealFolder(root,currentPath());
+  if(state.current&&isWithin(state.current.path,data.previous_path))await openDetail(state.current.id);
+  window.parent.postMessage({type:'tb-media-library-changed'},location.origin);
+}
+async function openFolderMove(path:string){
+  await openOperation('move-folder',[]);movingFolder=path;
+  $('operation-description').textContent=`将目录及其全部内容移动到所选目录，保留目录名。源目录：${path}`;
+  const parent=parentPath(path);
+  await loadMoveDirectory(state.roots.some(root=>isWithin(parent,root.path))?parent:'');
 }
 function renderRootSettings(){const area=$('root-settings');area.replaceChildren();for(const root of state.roots){const row=el('div','root-setting'),label=el('div','',root.name);label.append(el('small','',root.path));row.append(label);if(root.builtin)row.append(el('span','muted','默认目录'));else {appendFolderRename(row,root.path);row.append(action('移除',async()=>{await api('/roots/'+root.id,{},'DELETE');state.root='';state.folder='';await loadRoots();await loadFiles();}));}area.append(row);}}
 function showSettings(){renderRootSettings();$<HTMLDialogElement>('settings-dialog').showModal();}
@@ -552,11 +567,11 @@ function parentPath(path:string){const parent=path.replace(/[\\/][^\\/]+[\\/]?$/
 async function openOperation(op:string,ids:string[]) {
   if(op==='rename'&&ids.length!==1){toast('重命名仅支持单选');return;}
   const epoch=++operationEpoch;
-  operation=op;operationIds=ids;plan=null;moveDestination='';++moveEpoch;
+  operation=op;operationIds=ids;plan=null;moveDestination='';movingFolder='';++moveEpoch;
   $('operation-list').replaceChildren();$('operation-fields').replaceChildren();
   $('apply-operation').hidden=true;$<HTMLButtonElement>('apply-operation').disabled=false;
   $('plan-operation').hidden=op!=='rename';$('operation-cancel').textContent='取消';
-  $('operation-title').textContent=({rename:'重命名文件',move:'移动文件',delete:'删除文件'} as Record<string,string>)[op];
+  $('operation-title').textContent=({rename:'重命名文件',move:'移动文件','move-folder':'移动目录',delete:'删除文件'} as Record<string,string>)[op];
   $('operation-description').textContent=op==='delete'?`确定永久删除以下文件？此操作无法撤销。`:op==='move'?`已选择 ${ids.length} 项。进入目标文件夹后，点击“移动到这里”。`:`已选择 ${ids.length} 项。修改名称后预览结果。`;
   $('apply-operation').classList.toggle('danger',op==='delete');
   $('operation-fields').oninput=()=>{if(operation==='rename'){plan=null;$('apply-operation').hidden=true;$('operation-list').replaceChildren();}};
@@ -588,14 +603,14 @@ async function loadMoveDirectory(path:string){
   picker.append(address,list);$('operation-fields').replaceChildren(picker);
   try{
     const folders=path?(await api<{folders:Folder[]}>('/folders?'+new URLSearchParams({path}))).folders:state.roots;
-    if(epoch!==moveEpoch||operation!=='move')return;
+    if(epoch!==moveEpoch||!['move','move-folder'].includes(operation))return;
     if(path){
       const parent=parentPath(path),inside=state.roots.some(r=>parent===r.path||parent.startsWith(r.path+'/')||parent.startsWith(r.path+'\\'));
       const up=action('',()=>loadMoveDirectory(inside?parent:''),'move-directory');up.setAttribute('aria-label','..');up.append(el('span','move-up','..'),el('span','','上一级'));list.append(up);
     }
-    for(const folder of folders){const b=action('',()=>loadMoveDirectory(folder.path),'move-directory');b.setAttribute('aria-label',folder.name);b.append(folderIcon(),el('span','',folder.name),el('span','move-chevron','›'));list.append(b);}
+    for(const folder of folders){const b=action('',()=>loadMoveDirectory(folder.path),'move-directory');b.setAttribute('aria-label',folder.name);b.append(folderIcon(),el('span','',folder.name),el('span','move-chevron','›'));if(movingFolder&&isWithin(folder.path,movingFolder)){b.disabled=true;b.title='不能移动到自身或其子目录';}list.append(b);}
     if(!folders.length)list.append(el('p','muted','此目录下没有子目录，可移动到当前目录。'));
-    apply.disabled=!path;
+    apply.disabled=!path||!!movingFolder&&(isWithin(path,movingFolder)||path===parentPath(movingFolder));
   }catch(e){if(epoch===moveEpoch)list.append(el('p','error',(e as Error).message));}
 }
 async function previewOperation(){
@@ -612,6 +627,11 @@ async function applyOperation(){
   const epoch=operationEpoch,op=operation,ids=[...operationIds],destination=moveDestination;
   const button=$<HTMLButtonElement>('apply-operation');button.disabled=true;
   try{
+    if(op==='move-folder'){
+      const data=await api<{path:string;previous_path:string;roots:Root[]}>('/folders/move',{path:movingFolder,destination});
+      if(epoch===operationEpoch)$<HTMLDialogElement>('operation-dialog').close();
+      await followFolderChange(data);toast('目录已移动，素材路径已更新');return;
+    }
     if(op==='move'){const prepared=await api<Plan>('/operations/plan',{op:'move',ids,destination});if(epoch!==operationEpoch)return;plan=prepared;}
     if(!plan||epoch!==operationEpoch)return;
     const result=await api<{results:{ok:boolean;error?:string;completed?:Action[]}[]}>('/operations/apply',{token:plan.token,confirmed:true});plan=null;

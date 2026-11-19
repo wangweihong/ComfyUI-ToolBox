@@ -64,7 +64,7 @@ test('directory creation detects conflicts and a file arriving after confirmatio
     await menu.getByRole('menuitem',{name:'新建目录'}).click();await page.locator('#new-folder-name').fill('空目录限制测试');await page.locator('#folder-action-submit').click();await expect(page.locator('#folder-action-dialog')).toBeHidden();
     await page.locator('#roots .root-name').first().click();await page.locator('#new-folder').click();await page.locator('#new-folder-name').fill('空目录限制测试');await page.locator('#folder-action-submit').click();await expect(page.locator('#folder-action-error')).toContainText('已经存在');await page.keyboard.press('Escape');
     const folder=page.locator(`.directory-card[data-path="${path}"]`);await folder.locator('.directory-open').focus();await page.keyboard.press('Shift+F10');
-    await expect(menu).toBeVisible();await expect(menu.getByRole('menuitem')).toHaveText(['新建目录','重命名目录','删除空目录']);
+    await expect(menu).toBeVisible();await expect(menu.getByRole('menuitem')).toHaveText(['新建目录','重命名目录','移动目录','删除空目录']);
     await page.screenshot({path:'test-results/media-library/folder-context-menu.png'});
     await menu.getByRole('menuitem',{name:'删除空目录'}).click();await expect(page.locator('#folder-action-submit')).toBeEnabled();
     await request.post('/upload/image',{multipart:{image:{name:'.hidden',mimeType:'text/plain',buffer:Buffer.from('keep')},type:'input',subfolder:'空目录限制测试'}});

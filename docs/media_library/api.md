@@ -14,6 +14,7 @@
 | `POST /folders/delete/plan` | `{path}` 校验目录为空且可删除，返回 token、path；不执行删除 |
 | `POST /folders/delete/apply` | `{token,confirmed:true}` 复查并删除空目录，返回 path；清理其失效索引和访问历史 |
 | `POST /folders/rename` | `{path,name}` 重命名目录，返回 path、previous_path、roots 和 updated_files；更新已索引子素材和嵌套自定义目录的路径 |
+| `POST /folders/move` | `{path,destination}` 将整个目录移动到已配置范围内的目标父目录，保留目录名；返回字段与目录重命名相同，同步更新素材、嵌套根目录与访问历史的路径及 root_id |
 | `GET /folder-visits` | 最近访问的 20 个目录，含 path、root_id、visited_at、available 和失效原因 |
 | `POST /folder-visits` | `{path,root_id?}` 记录成功访问的目录，去重置顶 |
 | `POST /folder-visits/prune` | `{}` 清除失效目录记录 |
@@ -43,6 +44,8 @@
 `/files` 同时返回 `focus: {position,previous_id,next_id}`，位置从 0 开始，前后 ID 遵循同一目录、筛选、排序与最近使用范围，支持跨页。首项的 previous_id、末项的 next_id 为 null；未提供或找不到 focus_id 时 focus 为 null。详情切换使用 `limit=1` 获取相邻 ID，无需加载全部文件。
 
 目录重命名拒绝覆盖已有目标、越界路径和符号链接；ComfyUI 默认 input/output/temp 目录及包含默认目录、共享数据库或预览缓存的位置不能改名。自定义根目录可在其父目录内改名。数据库更新失败时回滚目录名称；素材 ID 与最近使用关联保持不变，之前的文件操作快照失效。
+
+目录移动使用相同的原子路径更新和保护规则，目标必须为已配置素材范围内的现有目录；禁止移动到自身及后代，不覆盖任何已有同名目标。目前仅支持同一文件系统内移动，跨文件系统返回明确错误，磁盘与索引均保留原状。
 
 目录创建和删除限于已配置的素材目录。删除只接受空目录，隐藏文件、符号链接和子目录也计为内容；已配置的根目录及包含根目录、共享数据库或预览缓存的位置禁止删除。删除令牌一次有效，10 分钟过期；确认时再次检查目录身份与内容，并仅使用系统空目录删除操作，不递归删除。自定义根目录的“移除”仍仅取消配置，保留磁盘目录。
 

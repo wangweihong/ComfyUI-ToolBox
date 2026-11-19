@@ -203,6 +203,13 @@ def register_routes(routes, get_library, on_change=lambda: None, *, regeneration
         on_change()
         return web.json_response(result)
 
+    @endpoint('POST', '/folders/move')
+    async def move_folder(request):
+        data = await body(request)
+        result = await work(get_library().move_folder, data.get('path', ''), data.get('destination', ''))
+        on_change()
+        return web.json_response(result)
+
     @endpoint('POST', '/folders/rename')
     async def rename_folder(request):
         data = await body(request)

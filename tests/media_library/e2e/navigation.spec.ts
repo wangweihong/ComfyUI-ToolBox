@@ -36,8 +36,7 @@ test('directory rename handles conflicts and follows the current directory after
   await page.goto('/toolbox/media-library/gallery');await page.locator('#roots .root-name').first().click();
   await expect(page.locator('#rename-folder')).toBeHidden(); // The ComfyUI input root is fixed.
   const source=info.root+'/归档',target=info.root+'/归档已改名';
-  const listing=await(await request.get('/toolbox/media-library/files',{params:{folder:source,recursive:'1'}})).json();
-  const item=listing.items.find((item:any)=>item.name==='子目录图片.png');expect(item).toBeTruthy();
+  const item=await(await request.get('/toolbox/media-library/detail',{params:{path:source+'/子目录图片.png'}})).json();expect(item.id).toBeTruthy();
   await page.locator('.directory-card').filter({hasText:'归档'}).locator('.folder-rename').click();
   const dialog=page.locator('#folder-rename-dialog');await expect(dialog).toBeVisible();
   await expect(page.locator('#folder-name')).toHaveValue('归档');
