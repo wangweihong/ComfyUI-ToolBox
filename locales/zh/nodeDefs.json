@@ -1,4 +1,34 @@
 {
+  "ToolBoxImageCompare": {
+    "display_name": "tb-图像对比",
+    "description": "框体名称可编辑并显示在输出图片上；先选宽高比、再选分辨率，支持自由摆放、一键铺满和 IMAGE 输出。",
+    "inputs": {
+      "image_1": {
+        "name": "图像 1",
+        "tooltip": "连接后自动增加下一个 IMAGE 接口"
+      },
+      "width": {
+        "name": "自定义宽度"
+      },
+      "height": {
+        "name": "自定义高度"
+      },
+      "layout": {
+        "name": "分区布局"
+      },
+      "ratio": {
+        "name": "输出宽高比"
+      },
+      "resolution": {
+        "name": "输出分辨率"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "对比图"
+      }
+    }
+  },
   "ToolBoxSwitchAny": {
     "display_name": "tb-switch-any",
     "inputs": {

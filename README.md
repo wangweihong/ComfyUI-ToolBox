@@ -16,6 +16,18 @@ English: MOSS prompt enhancement now lives in ToolBox, retaining the legacy work
 
 这是一个为 ComfyUI 设计的综合工具盒，旨在通过预设化、模块化的节点提升工作流的效率。
 
+## 多图自由布局与图片输出
+
+`ToolBox/Image` → `tb-图像对比` / `tb-image-compare`（节点类型 `ToolBoxImageCompare`）。每个框体默认显示 `image_1`、`image_2` 等名称，点击框体中央的名称可直接修改，并随布局保存、显示在输出图片上。输入接口固定使用 `image_1` 等标识，改名不会改变输入标签或连接；框体只显示一处名称。旧版已被改动的接口标签在加载时恢复，用户自定义的框体名称保留。节点内只显示示意框、名称和尺寸，不预览原图。拖动框体自由移动，右下角调整宽高；点击置顶，方向键微调，Shift 加大步长。编辑名称时不会移动框体。
+
+输出尺寸按 **宽高比 → 分辨率** 选择，直接复用 `tb-latent-size` 的比例、分辨率和旧档位数据。分辨率菜单随比例联动；选择“自定义尺寸”后显示宽高输入。示意画布与区域像素标注同步更新。旧工作流中的宽高会保留并迁移到自定义尺寸；旧 API 可继续只传 width/height。
+
+摆好后点击 **铺满画布**，参考框体中心的上下、左右位置与面积，整理成无空隙布局，支持上二下一等二维排布；优先铺满，尽量保留位置关系，部分相邻关系可能改变。**撤销铺满** 可恢复原来的摆放；铺满后仍可自由移动和缩放。
+
+输出 `comparison: IMAGE` 按当前位置、大小与层级合成图片，并在每个区域内自动绘制可修改的名称，支持中文；名称过长时按区域宽度省略。图片等比居中裁切，空隙为黑底，重叠按层级覆盖。运行后可选择每框的批次图片；改名、改布局或尺寸后重新运行更新输出。不会生成原图预览或自动保存，需要落盘时连接保存图片节点。
+
+English: editable names appear in both the spatial layout and the composed IMAGE. Select aspect ratio before resolution using the tb-latent-size presets, or choose custom dimensions. Free movement, resizing, Fill canvas, undo and saved layouts remain available. No source image previews are created.
+
 ## 开关与基础值
 
 提供 `tb-switch-any`、`tb-switch-image`、`tb-primitive-integer`、`tb-primitive-string-multiline`，独立迁入 Crystools 的四种基础节点，保留端口、控件顺序和开关惰性执行行为，无需安装 Crystools。不自动修改已有工作流或用户设置。

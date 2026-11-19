@@ -1,4 +1,34 @@
 {
+  "ToolBoxImageCompare": {
+    "display_name": "tb-image-compare",
+    "description": "Editable region names are shown on the composed IMAGE. Choose aspect ratio then resolution; freely position rectangles and Fill canvas.",
+    "inputs": {
+      "image_1": {
+        "name": "image_1",
+        "tooltip": "Connect to automatically add another IMAGE socket"
+      },
+      "width": {
+        "name": "custom width"
+      },
+      "height": {
+        "name": "custom height"
+      },
+      "layout": {
+        "name": "partition layout"
+      },
+      "ratio": {
+        "name": "output aspect ratio"
+      },
+      "resolution": {
+        "name": "output resolution"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "comparison"
+      }
+    }
+  },
   "ToolBoxSwitchAny": {
     "display_name": "tb-switch-any",
     "inputs": {
