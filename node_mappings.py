@@ -6,6 +6,7 @@ gaussian_nodes_mapping = _gaussian_nodes.NODE_CLASS_MAPPINGS
 gaussian_display_mapping = _gaussian_nodes.NODE_DISPLAY_NAME_MAPPINGS
 # 使用绝对路径导入，避免 RELATIVE_PYTHON_MODULE 属性错误
 from .nodes.latent_nodes import NODE_CLASS_MAPPINGS as latent_nodes_mapping
+from .nodes.image_scale import NODE_CLASS_MAPPINGS as image_scale_mapping, NODE_DISPLAY_NAME_MAPPINGS as image_scale_display
 from .nodes.video_compare_node import NODE_CLASS_MAPPINGS as video_compare_nodes_mapping
 from .nodes.image_compare_node import NODE_CLASS_MAPPINGS as image_compare_mapping, NODE_DISPLAY_NAME_MAPPINGS as image_compare_display
 from .nodes.text_nodes import NODE_CLASS_MAPPINGS as text_nodes_mapping
@@ -46,6 +47,7 @@ NODE_CLASS_MAPPINGS = {
     **gaussian_nodes_mapping,
     **skin_color_nodes_mapping,
     **latent_nodes_mapping,
+    **image_scale_mapping,
     **video_compare_nodes_mapping,
     **image_compare_mapping,
     **text_nodes_mapping,
@@ -63,6 +65,7 @@ NODE_CLASS_MAPPINGS = {
 
 # 这里定义节点在 UI 菜单中显示的友好名称
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **image_scale_display,
     **control_display_mapping,
     **image_compare_display,
     **image_path_display,

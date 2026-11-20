@@ -132,6 +132,38 @@
       "3": { "name": "Height", "tooltip": "Image height in pixels after EXIF orientation." }
     }
   },
+  "ToolBoxImageScale": {
+    "display_name": "tb-image-scale",
+    "description": "Resize images or masks and overlay source and target frames at the same display scale. Run once to read input dimensions; edits then preview estimates.",
+    "inputs": {
+      "input": {
+        "name": "Image / mask"
+      },
+      "resize_type": {
+        "name": "Resize type"
+      },
+      "scale_method": {
+        "name": "Interpolation"
+      },
+      "multiple_of": {
+        "name": "Final alignment multiple"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Resized"
+      },
+      "1": {
+        "name": "Width"
+      },
+      "2": {
+        "name": "Height"
+      },
+      "3": {
+        "name": "Size information"
+      }
+    }
+  },
   "ToolBoxLatentSizeAuto": {
     "display_name": "tb-latent-size-auto",
     "description": "Detect the image aspect ratio, find the nearest preset and calculate scaled dimensions. Preserves the exact source ratio by default.",

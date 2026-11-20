@@ -84,6 +84,17 @@ English: editable names appear in both the spatial layout and the composed IMAGE
 | custom_width | INT | 自定义尺寸模式下输出的宽度，范围 8–32768 |
 | custom_height | INT | 自定义尺寸模式下输出的高度，范围 8–32768 |
 
+### tb-image-scale (ToolBoxImageScale)
+
+直接缩放 `IMAGE` / `MASK`，沿用 ComfyUI 原生 Resize Image/Mask 的九种调整类型及五种插值算法。输出已缩放的图像或掩码、`width`、`height`、`info`；无需模型，不保存中间图片。
+
+- **框体对比**：参考 `tb-latent-size` 的尺寸框，橙色虚线为输入、蓝色实线为目标；两个框使用同一显示比例叠加，标注目标宽高，显示输入/输出 MP、宽高倍数及像素量倍数。框体展示尺寸关系，不表示实际裁剪位置。
+- **即时预估**：先连接图片或掩码并运行一次，读取真实尺寸。修改缩放参数后即时显示预估；再次运行显示实际结果。更换输入、修改上游节点或使用连接的数值参数后需重新运行。打开保存的工作流时也需运行一次读取尺寸。
+- **最终对齐**：`multiple_of=1` 不额外调整；设为 `32` 等效于缩放后再接 `scale to multiple=32`。可在一个节点内完成 `scale total pixels=16 → 最终对齐32`。按原生规则向下取倍数，必要时等比缩放并居中裁剪；任一边小于倍数时保留未对齐尺寸并提示。
+- **像素单位**：原生 `megapixels` 使用 `1024²`，因此参数 `16` 对应约 1678 万像素；框体下方的 MP 按标准的 100 万像素显示。
+
+English: native image/mask resizing with shared-scale source/target frames, live estimates after the first run, actual execution metadata, and optional final multiple alignment. It writes no preview files.
+
 ### tb-latent-size-auto (ToolBoxLatentSizeAuto)
 
 自动读取 `IMAGE` 的宽高，识别最接近的预设比例，并计算可调整的输出尺寸。未连接图片时，使用 `source_width` / `source_height`，也可将它们转换为输入端口连接其他节点的尺寸。仅输出数值，不创建 latent，也不直接缩放图片。

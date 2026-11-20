@@ -141,6 +141,38 @@
       "custom_height": { "name": "自定义高度" }
     }
   },
+  "ToolBoxImageScale": {
+    "display_name": "tb-image-scale",
+    "description": "缩放图像或掩码，以同一显示比例叠加原尺寸与目标尺寸。运行后读取输入，调参即时预估，执行后显示实际结果。",
+    "inputs": {
+      "input": {
+        "name": "图像 / 掩码"
+      },
+      "resize_type": {
+        "name": "调整类型"
+      },
+      "scale_method": {
+        "name": "缩放算法"
+      },
+      "multiple_of": {
+        "name": "最终对齐倍数"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "已缩放"
+      },
+      "1": {
+        "name": "宽度"
+      },
+      "2": {
+        "name": "高度"
+      },
+      "3": {
+        "name": "尺寸说明"
+      }
+    }
+  },
   "ToolBoxLatentSizeAuto": {
     "display_name": "tb-latent-size-auto",
     "description": "自动识别图片宽高比、匹配最近预设并计算缩放尺寸。默认严格保持原图比例。",
